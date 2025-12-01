@@ -59,6 +59,11 @@ export default {
         },
         "field-green": "hsl(var(--field-green))",
         "energy-orange": "hsl(var(--energy-orange))",
+        "popular-bg": "hsl(var(--popular-bg))",
+        "popular-text": "hsl(var(--popular-text))",
+        "nav-bg": "hsl(var(--nav-bg))",
+        "nav-inactive": "hsl(var(--nav-inactive))",
+        "tertiary-text": "hsl(var(--tertiary-text))",
       },
       borderRadius: {
         lg: "var(--radius)",

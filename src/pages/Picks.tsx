@@ -193,13 +193,13 @@ const Picks = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30">
+      <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center gap-3 mb-2">
             <ClipboardList className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold text-foreground">
               EMMA
             </h1>
           </div>
@@ -212,7 +212,7 @@ const Picks = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v)} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-4 mb-8 h-auto p-1 bg-muted/50 border border-border">
             {playoffWeeks.map((week) => {
               const weekNum = week.weekNumber;
               const weekPicks = picksByWeek[weekNum];
@@ -281,17 +281,17 @@ const Picks = () => {
                 {/* Status Banner */}
                 <div className="mb-6">
                   {isFuture && (
-                    <Alert className="mb-4">
+                    <Alert className="mb-4 border-border bg-muted/20">
                       <Lock className="h-4 w-4" />
                       <AlertDescription>
-                        <div className="font-semibold mb-1">Week {weekNum} picks are not open yet.</div>
-                        <div className="text-sm">Week {weekNum} opens on {format(new Date(week.openAt), "PPPP 'at' p")}.</div>
+                        <div className="font-semibold mb-1 text-foreground">Week {weekNum} picks are not open yet.</div>
+                        <div className="text-sm text-muted-foreground">Week {weekNum} opens on {format(new Date(week.openAt), "PPPP 'at' p")}.</div>
                       </AlertDescription>
                     </Alert>
                   )}
                   
                   {isOpen && (
-                    <Alert className="mb-4 bg-primary/5 border-primary/20">
+                    <Alert className="mb-4 bg-primary/10 border-primary/30">
                       <Info className="h-4 w-4 text-primary" />
                       <AlertDescription>
                         <div className="font-semibold mb-1 text-primary">Make your picks for Week {weekNum}</div>
@@ -301,7 +301,7 @@ const Picks = () => {
                   )}
                   
                   {isSubmittedState && (
-                    <Alert className="mb-4 bg-primary/5 border-primary/20">
+                    <Alert className="mb-4 bg-primary/10 border-primary/30">
                       <CheckCircle2 className="h-4 w-4 text-primary" />
                       <AlertDescription>
                         <div className="font-semibold mb-1 text-primary">Your picks for Week {weekNum} have been submitted.</div>
@@ -313,7 +313,7 @@ const Picks = () => {
                   )}
                   
                   {isPastNoPicks && (
-                    <Alert className="mb-4" variant="destructive">
+                    <Alert className="mb-4 border-destructive/50 bg-destructive/10" variant="destructive">
                       <Info className="h-4 w-4" />
                       <AlertDescription>
                         <div className="font-semibold mb-1">Week {weekNum} is complete.</div>
@@ -327,14 +327,14 @@ const Picks = () => {
 
                 {/* QB Section */}
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                    <span className="inline-block w-1 h-5 bg-red-500 rounded"></span>
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-foreground">
+                    <span className="inline-block w-1 h-5 bg-primary rounded"></span>
                     Quarterback
                   </h3>
                   <Card
                     className={cn(
-                      "transition-all",
-                      isOpen && "cursor-pointer hover:shadow-md hover:border-primary/50",
+                      "transition-all border-border",
+                      isOpen && "cursor-pointer hover:bg-muted/10 hover:border-primary/50",
                       (isFuture || isPastNoPicks) && "opacity-60"
                     )}
                     onClick={() => isOpen && handleOpenSheet(weekNum, "QB", "Quarterback")}
@@ -370,14 +370,14 @@ const Picks = () => {
 
                 {/* RB Section */}
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                    <span className="inline-block w-1 h-5 bg-blue-500 rounded"></span>
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-foreground">
+                    <span className="inline-block w-1 h-5 bg-primary rounded"></span>
                     Running Back
                   </h3>
                   <Card
                     className={cn(
-                      "transition-all",
-                      isOpen && "cursor-pointer hover:shadow-md hover:border-primary/50",
+                      "transition-all border-border",
+                      isOpen && "cursor-pointer hover:bg-muted/10 hover:border-primary/50",
                       (isFuture || isPastNoPicks) && "opacity-60"
                     )}
                     onClick={() => isOpen && handleOpenSheet(weekNum, "RB", "Running Back")}
@@ -497,9 +497,9 @@ const Picks = () => {
                       </>
                     )}
 
-                    <Alert className="bg-muted/30">
-                      <Info className="h-4 w-4" />
-                      <AlertDescription className="text-sm">
+                    <Alert className="bg-muted/20 border-border">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      <AlertDescription className="text-sm text-muted-foreground">
                         Your picks are private to you until either:
                         <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
                           <li>Everyone in your league has submitted, or</li>
@@ -518,20 +518,20 @@ const Picks = () => {
 
       {/* Player Selection Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="flex flex-col max-h-[80vh]">
+        <SheetContent side="bottom" className="flex flex-col max-h-[80vh] bg-card border-t border-border">
           <SheetHeader>
-            <SheetTitle>
+            <SheetTitle className="text-foreground">
               {sheetConfig && `Select a ${sheetConfig.label} for Week ${sheetConfig.weekNumber}`}
             </SheetTitle>
           </SheetHeader>
 
           {/* Sticky search bar */}
-          <div className="sticky top-0 bg-background pb-2 z-10 mt-4">
+          <div className="sticky top-0 bg-card pb-2 z-10 mt-4">
             <Input
               placeholder="Search by player or team…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
+              className="w-full bg-background border-border"
             />
           </div>
 
@@ -549,17 +549,17 @@ const Picks = () => {
                   <div
                     key={player.id}
                     className={cn(
-                      "rounded-xl border bg-card transition",
+                      "rounded-xl border border-border bg-card transition",
                       displayIsAlreadyPicked 
-                        ? "opacity-50 cursor-not-allowed" 
-                        : "cursor-pointer hover:shadow-sm hover:bg-muted/60"
+                        ? "opacity-40 cursor-not-allowed" 
+                        : "cursor-pointer hover:bg-muted/20 hover:border-primary/30"
                     )}
                     onClick={() => !displayIsAlreadyPicked && handleSelectPlayer(player)}
                   >
                     <div className="flex items-center justify-between px-4 py-3 gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {/* Avatar with fallback */}
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center text-xs font-semibold shrink-0">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-foreground/80 flex items-center justify-center text-xs font-semibold shrink-0 text-background">
                           {player.photoUrl ? (
                             <img src={player.photoUrl} alt={player.name} className="w-full h-full object-cover" />
                           ) : (
@@ -569,7 +569,7 @@ const Picks = () => {
                         
                         {/* Player info */}
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold truncate">{player.name}</p>
+                          <p className="font-semibold truncate text-foreground">{player.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Badge className={cn("text-xs", getPositionColor(player.position))}>
                               {player.position}
@@ -585,7 +585,7 @@ const Picks = () => {
 
                       {/* Team pill with soft colors */}
                       <span 
-                        className="px-2 py-0.5 rounded-full text-xs font-semibold shrink-0"
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 opacity-90"
                         style={{ backgroundColor: colors.bg, color: colors.text }}
                       >
                         {player.team}
