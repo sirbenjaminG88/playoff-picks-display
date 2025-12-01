@@ -163,8 +163,14 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
 
 export default function Results() {
   const [activeWeek, setActiveWeek] = useState(1);
+  const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
 
   const currentWeekResults = mockWeekResults.find((w) => w.weekNumber === activeWeek);
+  
+  // Weekly leaderboard - just this week's points
+  const weeklyLeaderboard = mockStandingsData
+    .find((w) => w.weekNumber === activeWeek)
+    ?.picks.sort((a, b) => b.weekPoints - a.weekPoints) || [];
   
   // Calculate overall standings by summing all weeks up to and including current
   const overallStandings = mockStandingsData
@@ -185,6 +191,8 @@ export default function Results() {
       return acc;
     }, [] as { userId: string; userName: string; totalPoints: number }[])
     .sort((a, b) => b.totalPoints - a.totalPoints);
+
+  const leaderPoints = overallStandings[0]?.totalPoints || 0;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -266,30 +274,110 @@ export default function Results() {
                   </>
                 )}
 
-                {/* Overall Standings So Far */}
-                <Card className="border-border">
-                  <CardHeader>
-                    <CardTitle className="text-foreground">Overall Standings (Through Week {weekNum})</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {overallStandings.map((standing, index) => (
-                      <div
-                        key={standing.userId}
-                        className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="font-bold text-base border-border">
-                            #{index + 1}
-                          </Badge>
-                          <span className="font-semibold text-lg text-foreground">{standing.userName}</span>
-                        </div>
-                        <Badge className="text-lg font-bold bg-primary text-primary-foreground">
-                          {standing.totalPoints.toFixed(1)} pts
-                        </Badge>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
+                {/* Leaderboards Section */}
+                <div className="mt-8">
+                  <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
+                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border">
+                      <TabsTrigger value="weekly">Week {weekNum} Leaderboard</TabsTrigger>
+                      <TabsTrigger value="overall">Overall Leaderboard</TabsTrigger>
+                    </TabsList>
+
+                    {/* Weekly Leaderboard */}
+                    <TabsContent value="weekly" className="mt-0">
+                      <Card className="border-border">
+                        <CardHeader>
+                          <CardTitle className="text-foreground">Week {weekNum} Standings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {weeklyLeaderboard.length === 0 ? (
+                            <p className="text-muted-foreground text-center py-4">
+                              No picks submitted for Week {weekNum}
+                            </p>
+                          ) : (
+                            weeklyLeaderboard.map((pick, index) => (
+                              <div
+                                key={pick.userId}
+                                className="flex items-center gap-4 p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition"
+                              >
+                                {/* Rank */}
+                                <Badge variant="outline" className="font-bold text-base border-border w-12 justify-center">
+                                  #{index + 1}
+                                </Badge>
+
+                                {/* User Avatar */}
+                                <Avatar className="h-10 w-10">
+                                  <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                                    {getInitials(pick.userName)}
+                                  </AvatarFallback>
+                                </Avatar>
+
+                                {/* User Name */}
+                                <span className="font-semibold text-lg text-foreground flex-1">
+                                  {pick.userName}
+                                </span>
+
+                                {/* Points */}
+                                <Badge className="text-lg font-bold bg-primary text-primary-foreground">
+                                  {pick.weekPoints.toFixed(1)} pts
+                                </Badge>
+                              </div>
+                            ))
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    {/* Overall Leaderboard */}
+                    <TabsContent value="overall" className="mt-0">
+                      <Card className="border-border">
+                        <CardHeader>
+                          <CardTitle className="text-foreground">Overall Standings (Through Week {weekNum})</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {overallStandings.map((standing, index) => {
+                            const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
+                            
+                            return (
+                              <div
+                                key={standing.userId}
+                                className="flex items-center gap-4 p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition"
+                              >
+                                {/* Rank */}
+                                <Badge variant="outline" className="font-bold text-base border-border w-12 justify-center">
+                                  #{index + 1}
+                                </Badge>
+
+                                {/* User Avatar */}
+                                <Avatar className="h-10 w-10">
+                                  <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                                    {getInitials(standing.userName)}
+                                  </AvatarFallback>
+                                </Avatar>
+
+                                {/* User Name and Points Behind */}
+                                <div className="flex-1">
+                                  <span className="font-semibold text-lg text-foreground">
+                                    {standing.userName}
+                                  </span>
+                                  {pointsBehind > 0 && (
+                                    <span className="ml-2 text-sm text-tertiary-text">
+                                      (+{pointsBehind.toFixed(1)})
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Total Points */}
+                                <Badge className="text-lg font-bold bg-primary text-primary-foreground">
+                                  {standing.totalPoints.toFixed(1)} pts
+                                </Badge>
+                              </div>
+                            );
+                          })}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
               </TabsContent>
             );
           })}
