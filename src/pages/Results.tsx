@@ -39,22 +39,61 @@ const Results = () => {
             ))}
           </TabsList>
 
-          {weeksData.map((week) => (
-            <TabsContent key={week.week} value={week.week.toString()} className="mt-0">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">Week {week.week} Selections</h2>
-                <p className="text-muted-foreground">
-                  {week.players.length} players selected across all positions
-                </p>
-              </div>
+          {weeksData.map((week) => {
+            const qbs = week.players.filter(p => p.position === "QB");
+            const rbs = week.players.filter(p => p.position === "RB");
+            const flex = week.players.filter(p => p.position === "WR" || p.position === "TE");
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {week.players.map((player) => (
-                  <PlayerCard key={`${week.week}-${player.name}`} player={player} />
-                ))}
-              </div>
-            </TabsContent>
-          ))}
+            return (
+              <TabsContent key={week.week} value={week.week.toString()} className="mt-0">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold mb-2">Week {week.week} Selections</h2>
+                  <p className="text-muted-foreground">
+                    {week.players.length} players selected across all positions
+                  </p>
+                </div>
+
+                {/* QBs Section */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span className="inline-block w-1 h-6 bg-red-500 rounded"></span>
+                    QBs
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {qbs.map((player) => (
+                      <PlayerCard key={`${week.week}-${player.name}`} player={player} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* RBs Section */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span className="inline-block w-1 h-6 bg-blue-500 rounded"></span>
+                    RBs
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {rbs.map((player) => (
+                      <PlayerCard key={`${week.week}-${player.name}`} player={player} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Flex Section */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span className="inline-block w-1 h-6 bg-green-500 rounded"></span>
+                    Flex (WR/TE)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {flex.map((player) => (
+                      <PlayerCard key={`${week.week}-${player.name}`} player={player} />
+                    ))}
+                  </div>
+                </div>
+              </TabsContent>
+            );
+          })}
         </Tabs>
       </main>
     </div>
