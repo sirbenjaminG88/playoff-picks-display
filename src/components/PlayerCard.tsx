@@ -82,7 +82,7 @@ export const PlayerCard = ({
   };
 
   const calculatedPoints = calculateFantasyPoints(stats);
-  const displayPoints = calculatedPoints !== null && calculatedPoints !== undefined ? calculatedPoints.toFixed(1) : "—";
+  const displayPoints = calculatedPoints !== null && calculatedPoints !== undefined ? calculatedPoints.toFixed(2) : "—";
 
   return (
     <Card className="p-4 hover:shadow-lg transition-all duration-200 border-2">
