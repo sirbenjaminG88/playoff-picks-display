@@ -1,5 +1,33 @@
 // Mock data for testing the Results page structure
 
+export interface PlayerStats {
+  passYards?: number;
+  passTDs?: number;
+  interceptions?: number;
+  rushYards?: number;
+  rushTDs?: number;
+  recYards?: number;
+  recTDs?: number;
+  fumblesLost?: number;
+  twoPtConversions?: number;
+}
+
+export interface PlayerResult {
+  name: string;
+  team: string;
+  position: "QB" | "RB" | "WR" | "TE";
+  points: number;
+  selectedBy: string[];
+  stats: PlayerStats;
+}
+
+export interface WeekResults {
+  weekNumber: number;
+  qbs: PlayerResult[];
+  rbs: PlayerResult[];
+  flex: PlayerResult[];
+}
+
 export interface MockWeeklyPick {
   userId: string;
   userName: string;
@@ -13,6 +41,172 @@ export interface MockWeekStandings {
   weekNumber: number;
   picks: MockWeeklyPick[];
 }
+
+export const mockWeekResults: WeekResults[] = [
+  {
+    weekNumber: 1,
+    qbs: [
+      {
+        name: "Jalen Hurts",
+        team: "PHI",
+        position: "QB",
+        points: 28.5,
+        selectedBy: ["Alex"],
+        stats: {
+          passYards: 250,
+          passTDs: 2,
+          rushYards: 65,
+          rushTDs: 1,
+          interceptions: 0,
+        },
+      },
+      {
+        name: "Josh Allen",
+        team: "BUF",
+        position: "QB",
+        points: 24.8,
+        selectedBy: ["Jordan"],
+        stats: {
+          passYards: 280,
+          passTDs: 2,
+          rushYards: 38,
+          rushTDs: 0,
+          interceptions: 1,
+        },
+      },
+      {
+        name: "Patrick Mahomes",
+        team: "KC",
+        position: "QB",
+        points: 22.4,
+        selectedBy: ["Taylor"],
+        stats: {
+          passYards: 320,
+          passTDs: 2,
+          rushYards: 12,
+          rushTDs: 0,
+          interceptions: 0,
+        },
+      },
+      {
+        name: "Lamar Jackson",
+        team: "BAL",
+        position: "QB",
+        points: 19.6,
+        selectedBy: ["Sam"],
+        stats: {
+          passYards: 210,
+          passTDs: 1,
+          rushYards: 68,
+          rushTDs: 1,
+          interceptions: 1,
+        },
+      },
+    ],
+    rbs: [
+      {
+        name: "Saquon Barkley",
+        team: "PHI",
+        position: "RB",
+        points: 31.2,
+        selectedBy: ["Alex"],
+        stats: {
+          rushYards: 156,
+          rushTDs: 2,
+          recYards: 36,
+          recTDs: 0,
+        },
+      },
+      {
+        name: "Christian McCaffrey",
+        team: "SF",
+        position: "RB",
+        points: 26.8,
+        selectedBy: ["Jordan"],
+        stats: {
+          rushYards: 98,
+          rushTDs: 1,
+          recYards: 72,
+          recTDs: 1,
+        },
+      },
+      {
+        name: "David Montgomery",
+        team: "DET",
+        position: "RB",
+        points: 18.4,
+        selectedBy: ["Taylor"],
+        stats: {
+          rushYards: 88,
+          rushTDs: 1,
+          recYards: 26,
+          recTDs: 0,
+        },
+      },
+      {
+        name: "Derrick Henry",
+        team: "BAL",
+        position: "RB",
+        points: 17.8,
+        selectedBy: ["Sam"],
+        stats: {
+          rushYards: 122,
+          rushTDs: 1,
+          recYards: 8,
+          recTDs: 0,
+        },
+      },
+    ],
+    flex: [
+      {
+        name: "A.J. Brown",
+        team: "PHI",
+        position: "WR",
+        points: 24.6,
+        selectedBy: ["Alex"],
+        stats: {
+          recYards: 126,
+          recTDs: 1,
+          rushYards: 0,
+          rushTDs: 0,
+        },
+      },
+      {
+        name: "Travis Kelce",
+        team: "KC",
+        position: "TE",
+        points: 19.9,
+        selectedBy: ["Jordan"],
+        stats: {
+          recYards: 89,
+          recTDs: 1,
+        },
+      },
+      {
+        name: "Mark Andrews",
+        team: "BAL",
+        position: "TE",
+        points: 22.4,
+        selectedBy: ["Sam"],
+        stats: {
+          recYards: 104,
+          recTDs: 1,
+        },
+      },
+      {
+        name: "George Kittle",
+        team: "SF",
+        position: "TE",
+        points: 27.4,
+        selectedBy: ["Taylor"],
+        stats: {
+          recYards: 134,
+          recTDs: 1,
+        },
+      },
+    ],
+  },
+];
 
 export const mockStandingsData: MockWeekStandings[] = [
   {
