@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayerCard } from "@/components/PlayerCard";
 import { playoffResultsByWeek } from "@/data/playoffResultsData";
-import { calculateWeeklyTotals } from "@/lib/leaderboard";
+import { calculateWeeklyTotals, calculateOverallTotals } from "@/lib/leaderboard";
 import { Trophy } from "lucide-react";
 
 const Results = () => {
   const [activeWeek, setActiveWeek] = useState("1");
+  const overallTotals = calculateOverallTotals();
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,6 +143,46 @@ const Results = () => {
                             </td>
                           </tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Overall Leaderboard (all weeks combined) */}
+                <div className="mb-8 mt-8">
+                  <h3 className="text-xl font-bold mb-4">Overall Leaderboard</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Cumulative points across all playoff weeks (completed weeks have stats, future weeks count as 0).
+                  </p>
+                  <div className="overflow-hidden rounded-lg border bg-card">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/60">
+                        <tr>
+                          <th className="text-left px-4 py-2">Competitor</th>
+                          <th className="text-right px-4 py-2">Total Points</th>
+                          <th className="text-right px-4 py-2">Points Behind 1st</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {overallTotals.map((entry, index) => {
+                          const leaderPoints = overallTotals[0]?.totalPoints ?? 0;
+                          const behind = leaderPoints - entry.totalPoints;
+
+                          return (
+                            <tr
+                              key={entry.name}
+                              className={index === 0 ? "bg-primary/5 font-semibold" : ""}
+                            >
+                              <td className="px-4 py-2">{entry.name}</td>
+                              <td className="px-4 py-2 text-right">
+                                {entry.totalPoints.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                {index === 0 ? "—" : behind.toFixed(2)}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
