@@ -75,6 +75,19 @@ const Picks = () => {
     setSheetOpen(true);
   };
 
+  // Helper to get all player IDs picked in previous weeks by current user
+  const getAlreadyPickedPlayerIds = (currentWeekNum: number): Set<string> => {
+    const pickedIds = new Set<string>();
+    // Only look at weeks BEFORE the current week
+    for (let w = 1; w < currentWeekNum; w++) {
+      const picks = picksByWeek[w];
+      if (picks.qb) pickedIds.add(picks.qb.id);
+      if (picks.rb) pickedIds.add(picks.rb.id);
+      if (picks.flex) pickedIds.add(picks.flex.id);
+    }
+    return pickedIds;
+  };
+
   const handleSelectPlayer = (player: AvailablePlayer) => {
     if (!sheetConfig) return;
 
@@ -527,12 +540,19 @@ const Picks = () => {
             <div className="space-y-2 pr-2">
               {getFilteredPlayers().map((player) => {
                 const colors = teamColorMap[player.team] ?? teamColorMap.DEFAULT;
+                const alreadyPickedIds = sheetConfig ? getAlreadyPickedPlayerIds(sheetConfig.weekNumber) : new Set();
+                const isAlreadyPicked = alreadyPickedIds.has(player.id);
                 
                 return (
                   <div
                     key={player.id}
-                    className="rounded-xl border bg-card cursor-pointer transition hover:shadow-sm hover:bg-muted/60"
-                    onClick={() => handleSelectPlayer(player)}
+                    className={cn(
+                      "rounded-xl border bg-card transition",
+                      isAlreadyPicked 
+                        ? "opacity-50 cursor-not-allowed" 
+                        : "cursor-pointer hover:shadow-sm hover:bg-muted/60"
+                    )}
+                    onClick={() => !isAlreadyPicked && handleSelectPlayer(player)}
                   >
                     <div className="flex items-center justify-between px-4 py-3 gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -552,6 +572,11 @@ const Picks = () => {
                             <Badge className={cn("text-xs", getPositionColor(player.position))}>
                               {player.position}
                             </Badge>
+                            {isAlreadyPicked && (
+                              <Badge variant="secondary" className="text-xs">
+                                Already picked
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
