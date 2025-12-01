@@ -5,6 +5,7 @@ export interface AvailablePlayer {
   name: string;
   team: string;
   position: Position; // "QB" | "RB" | "WR" | "TE"
+  photoUrl?: string;
 }
 
 // For now we can hard-code a small sample list per week.
