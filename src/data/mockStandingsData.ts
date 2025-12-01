@@ -51,7 +51,7 @@ export const mockWeekResults: WeekResults[] = [
         team: "PHI",
         position: "QB",
         points: 28.5,
-        selectedBy: ["Alex"],
+        selectedBy: ["Alex", "Jordan"],
         stats: {
           passYards: 250,
           passTDs: 2,
@@ -65,7 +65,7 @@ export const mockWeekResults: WeekResults[] = [
         team: "BUF",
         position: "QB",
         points: 24.8,
-        selectedBy: ["Jordan"],
+        selectedBy: ["Taylor"],
         stats: {
           passYards: 280,
           passTDs: 2,
@@ -79,27 +79,13 @@ export const mockWeekResults: WeekResults[] = [
         team: "KC",
         position: "QB",
         points: 22.4,
-        selectedBy: ["Taylor"],
+        selectedBy: ["Sam"],
         stats: {
           passYards: 320,
           passTDs: 2,
           rushYards: 12,
           rushTDs: 0,
           interceptions: 0,
-        },
-      },
-      {
-        name: "Lamar Jackson",
-        team: "BAL",
-        position: "QB",
-        points: 19.6,
-        selectedBy: ["Sam"],
-        stats: {
-          passYards: 210,
-          passTDs: 1,
-          rushYards: 68,
-          rushTDs: 1,
-          interceptions: 1,
         },
       },
     ],
@@ -109,7 +95,7 @@ export const mockWeekResults: WeekResults[] = [
         team: "PHI",
         position: "RB",
         points: 31.2,
-        selectedBy: ["Alex"],
+        selectedBy: ["Alex", "Sam", "Taylor"],
         stats: {
           rushYards: 156,
           rushTDs: 2,
@@ -130,34 +116,19 @@ export const mockWeekResults: WeekResults[] = [
           recTDs: 1,
         },
       },
-      {
-        name: "David Montgomery",
-        team: "DET",
-        position: "RB",
-        points: 18.4,
-        selectedBy: ["Taylor"],
-        stats: {
-          rushYards: 88,
-          rushTDs: 1,
-          recYards: 26,
-          recTDs: 0,
-        },
-      },
-      {
-        name: "Derrick Henry",
-        team: "BAL",
-        position: "RB",
-        points: 17.8,
-        selectedBy: ["Sam"],
-        stats: {
-          rushYards: 122,
-          rushTDs: 1,
-          recYards: 8,
-          recTDs: 0,
-        },
-      },
     ],
     flex: [
+      {
+        name: "George Kittle",
+        team: "SF",
+        position: "TE",
+        points: 27.4,
+        selectedBy: ["Taylor", "Jordan"],
+        stats: {
+          recYards: 134,
+          recTDs: 1,
+        },
+      },
       {
         name: "A.J. Brown",
         team: "PHI",
@@ -172,17 +143,6 @@ export const mockWeekResults: WeekResults[] = [
         },
       },
       {
-        name: "Travis Kelce",
-        team: "KC",
-        position: "TE",
-        points: 19.9,
-        selectedBy: ["Jordan"],
-        stats: {
-          recYards: 89,
-          recTDs: 1,
-        },
-      },
-      {
         name: "Mark Andrews",
         team: "BAL",
         position: "TE",
@@ -190,17 +150,6 @@ export const mockWeekResults: WeekResults[] = [
         selectedBy: ["Sam"],
         stats: {
           recYards: 104,
-          recTDs: 1,
-        },
-      },
-      {
-        name: "George Kittle",
-        team: "SF",
-        position: "TE",
-        points: 27.4,
-        selectedBy: ["Taylor"],
-        stats: {
-          recYards: 134,
           recTDs: 1,
         },
       },
