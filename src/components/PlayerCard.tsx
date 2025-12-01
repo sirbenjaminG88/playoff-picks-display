@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, ChevronDown } from "lucide-react";
+import { PlayerStats } from "@/data/playoffResultsData";
 
 interface PlayerCardProps {
   name: string;
@@ -10,6 +11,7 @@ interface PlayerCardProps {
   selectedBy: string[];
   photoUrl?: string;
   points?: number | null;
+  stats?: PlayerStats;
 }
 
 export const PlayerCard = ({ 
@@ -18,7 +20,8 @@ export const PlayerCard = ({
   position, 
   selectedBy, 
   photoUrl, 
-  points 
+  points,
+  stats 
 }: PlayerCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -37,29 +40,40 @@ export const PlayerCard = ({
     }
   };
 
+  const formatStatValue = (value: number | null | undefined) => {
+    return value !== null && value !== undefined ? value.toString() : "—";
+  };
+
   const getPositionStats = () => {
     switch (position) {
       case "QB":
         return [
-          { label: "Passing Yards", value: "—" },
-          { label: "Passing TDs", value: "—" },
-          { label: "Interceptions", value: "—" },
-          { label: "Rushing Yards", value: "—" },
-          { label: "Rushing TDs", value: "—" },
+          { label: "Pass Yards", value: formatStatValue(stats?.passYards) },
+          { label: "Pass TDs", value: formatStatValue(stats?.passTDs) },
+          { label: "Interceptions", value: formatStatValue(stats?.interceptions) },
+          { label: "Rush Yards", value: formatStatValue(stats?.rushYards) },
+          { label: "Rush TDs", value: formatStatValue(stats?.rushTDs) },
+          { label: "Fumbles Lost", value: formatStatValue(stats?.fumblesLost) },
+          { label: "2pt Conversions", value: formatStatValue(stats?.twoPtConversions) },
         ];
       case "RB":
         return [
-          { label: "Rushing Yards", value: "—" },
-          { label: "Rushing TDs", value: "—" },
-          { label: "Receptions", value: "—" },
-          { label: "Receiving Yards", value: "—" },
+          { label: "Rush Yards", value: formatStatValue(stats?.rushYards) },
+          { label: "Rush TDs", value: formatStatValue(stats?.rushTDs) },
+          { label: "Rec Yards", value: formatStatValue(stats?.recYards) },
+          { label: "Rec TDs", value: formatStatValue(stats?.recTDs) },
+          { label: "Fumbles Lost", value: formatStatValue(stats?.fumblesLost) },
+          { label: "2pt Conversions", value: formatStatValue(stats?.twoPtConversions) },
         ];
       case "WR":
       case "TE":
         return [
-          { label: "Receptions", value: "—" },
-          { label: "Receiving Yards", value: "—" },
-          { label: "Receiving TDs", value: "—" },
+          { label: "Rec Yards", value: formatStatValue(stats?.recYards) },
+          { label: "Rec TDs", value: formatStatValue(stats?.recTDs) },
+          { label: "Rush Yards", value: formatStatValue(stats?.rushYards) },
+          { label: "Rush TDs", value: formatStatValue(stats?.rushTDs) },
+          { label: "Fumbles Lost", value: formatStatValue(stats?.fumblesLost) },
+          { label: "2pt Conversions", value: formatStatValue(stats?.twoPtConversions) },
         ];
       default:
         return [];
