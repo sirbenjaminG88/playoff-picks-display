@@ -42,7 +42,7 @@ const rawWeek2 = [
 
 const rawWeek3 = [
   { user: "Jasper", qb: "Patrick Mahomes", qbTeam: "KC", rb: "Brian Robinson Jr.", rbTeam: "WAS", flex: "Terry McLaurin", flexTeam: "WAS", flexPos: "WR" as const },
-  { user: "Jeremy", qb: "Patrick Mahomes", qbTeam: "KC", rb: "Austin Ekeler", rbTeam: "WAS", flex: "Travis Kelce", flexTeam: "KC", flexPos: "TE" as const },
+  { user: "Jeremy", qb: "Patrick Mahomes", qbTeam: "KC", rb: "Austin Ekeler", rbTeam: "LAC", flex: "A.J. Brown", flexTeam: "PHI", flexPos: "WR" as const },
   { user: "Eric", qb: "Patrick Mahomes", qbTeam: "KC", rb: "Brian Robinson Jr.", rbTeam: "WAS", flex: "A.J. Brown", flexTeam: "PHI", flexPos: "WR" as const },
   { user: "Ben", qb: "Patrick Mahomes", qbTeam: "KC", rb: "Saquon Barkley", rbTeam: "PHI", flex: "Terry McLaurin", flexTeam: "WAS", flexPos: "WR" as const },
 ];
@@ -335,6 +335,99 @@ if (nicoCollins) {
     recYards: 81,
     rushTDs: 0,
     recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+// Add Week 3 QB real stats
+const patrickMahomes = week3Data.qbs.find(qb => qb.name === "Patrick Mahomes");
+if (patrickMahomes) {
+  patrickMahomes.stats = {
+    passYards: 245,
+    passTDs: 1,
+    rushYards: 43,
+    recYards: 0,
+    rushTDs: 2,
+    recTDs: 0,
+    interceptions: 1,
+    fumblesLost: 0,
+    twoPtConversions: 1,
+  };
+}
+
+// Add Week 3 RB real stats
+const saquonBarkleyW3 = week3Data.rbs.find(rb => rb.name === "Saquon Barkley");
+if (saquonBarkleyW3) {
+  saquonBarkleyW3.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 122,
+    recYards: 0,
+    rushTDs: 3,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const brianRobinson = week3Data.rbs.find(rb => rb.name === "Brian Robinson Jr.");
+if (brianRobinson) {
+  brianRobinson.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 36,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const austinEkeler = week3Data.rbs.find(rb => rb.name === "Austin Ekeler");
+if (austinEkeler) {
+  austinEkeler.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 32,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 1,
+    twoPtConversions: 0,
+  };
+}
+
+// Add Week 3 Flex real stats
+const terryMcLaurin = week3Data.flex.find(wr => wr.name === "Terry McLaurin");
+if (terryMcLaurin) {
+  terryMcLaurin.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 0,
+    recYards: 51,
+    rushTDs: 0,
+    recTDs: 1,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const ajBrown = week3Data.flex.find(wr => wr.name === "A.J. Brown");
+if (ajBrown) {
+  ajBrown.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 0,
+    recYards: 96,
+    rushTDs: 0,
+    recTDs: 1,
     interceptions: 0,
     fumblesLost: 0,
     twoPtConversions: 0,
