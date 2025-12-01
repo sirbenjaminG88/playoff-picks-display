@@ -295,10 +295,10 @@ export default function Results() {
                     {/* Weekly Leaderboard */}
                     <TabsContent value="weekly" className="mt-0">
                       <Card className="border-border bg-card">
-                        <CardHeader className="pb-4">
+                        <CardHeader className="pb-4 px-6 pt-6">
                           <CardTitle className="text-foreground text-xl">Week {weekNum} Standings</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2">
+                        <CardContent className="space-y-4 px-6 pb-6">
                           {weeklyLeaderboard.length === 0 ? (
                             <div className="py-8 text-center">
                               <p className="text-muted-foreground">
@@ -309,7 +309,7 @@ export default function Results() {
                             weeklyLeaderboard.map((pick, index) => (
                               <div
                                 key={pick.userId}
-                                className="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+                                className="flex items-center gap-4 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
                               >
                                 {/* Rank Badge */}
                                 <Badge 
@@ -347,10 +347,10 @@ export default function Results() {
                     {/* Overall Leaderboard */}
                     <TabsContent value="overall" className="mt-0">
                       <Card className="border-border bg-card">
-                        <CardHeader className="pb-4">
+                        <CardHeader className="pb-4 px-6 pt-6">
                           <CardTitle className="text-foreground text-xl">Overall Standings (Through Week {weekNum})</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2">
+                        <CardContent className="space-y-4 px-6 pb-6">
                           {overallStandings.length === 0 ? (
                             <div className="py-8 text-center">
                               <p className="text-muted-foreground">
@@ -364,7 +364,7 @@ export default function Results() {
                               return (
                                 <div
                                   key={standing.userId}
-                                  className="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+                                  className="flex items-center gap-4 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
                                 >
                                   {/* Rank Badge */}
                                   <Badge 
@@ -387,12 +387,12 @@ export default function Results() {
                                   </span>
 
                                   {/* Points and Points Behind */}
-                                  <div className="flex flex-col items-end shrink-0">
+                                  <div className="flex flex-col items-end gap-2 shrink-0">
                                     <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
                                       {standing.totalPoints.toFixed(1)} pts
                                     </Badge>
                                     {pointsBehind > 0 && (
-                                      <span className="text-xs text-tertiary-text mt-1">
+                                      <span className="text-xs text-tertiary-text">
                                         {pointsBehind.toFixed(1)} pts back
                                       </span>
                                     )}
