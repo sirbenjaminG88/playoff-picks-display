@@ -1,15 +1,29 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User } from "lucide-react";
-import { PlayerPick } from "@/data/picks";
+import { User, ChevronDown } from "lucide-react";
 
 interface PlayerCardProps {
-  player: PlayerPick;
+  name: string;
+  team: string;
+  position: "QB" | "RB" | "WR" | "TE";
+  selectedBy: string[];
+  photoUrl?: string;
+  points?: number | null;
 }
 
-export const PlayerCard = ({ player }: PlayerCardProps) => {
-  const getPositionColor = (position: string) => {
-    switch (position) {
+export const PlayerCard = ({ 
+  name, 
+  team, 
+  position, 
+  selectedBy, 
+  photoUrl, 
+  points 
+}: PlayerCardProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const getPositionColor = (pos: string) => {
+    switch (pos) {
       case "QB":
         return "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20";
       case "RB":
@@ -23,12 +37,51 @@ export const PlayerCard = ({ player }: PlayerCardProps) => {
     }
   };
 
+  const getPositionStats = () => {
+    switch (position) {
+      case "QB":
+        return [
+          { label: "Passing Yards", value: "—" },
+          { label: "Passing TDs", value: "—" },
+          { label: "Interceptions", value: "—" },
+          { label: "Rushing Yards", value: "—" },
+          { label: "Rushing TDs", value: "—" },
+        ];
+      case "RB":
+        return [
+          { label: "Rushing Yards", value: "—" },
+          { label: "Rushing TDs", value: "—" },
+          { label: "Receptions", value: "—" },
+          { label: "Receiving Yards", value: "—" },
+        ];
+      case "WR":
+      case "TE":
+        return [
+          { label: "Receptions", value: "—" },
+          { label: "Receiving Yards", value: "—" },
+          { label: "Receiving TDs", value: "—" },
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const displayPoints = points !== null && points !== undefined ? points.toFixed(1) : "—";
+
   return (
-    <Card className="p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] border-2">
-      <div className="flex gap-4">
+    <Card className="p-4 hover:shadow-lg transition-all duration-200 border-2">
+      {/* Main Card Content - Always Visible */}
+      <div 
+        className="flex gap-4 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         {/* Photo Placeholder */}
-        <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-          <User className="w-10 h-10 text-muted-foreground" />
+        <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {photoUrl ? (
+            <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
+          ) : (
+            <User className="w-10 h-10 text-muted-foreground" />
+          )}
         </div>
 
         {/* Player Info */}
@@ -36,20 +89,27 @@ export const PlayerCard = ({ player }: PlayerCardProps) => {
           <div className="flex items-start justify-between gap-2 mb-2">
             <div>
               <h3 className="font-bold text-lg leading-tight truncate">
-                {player.name}
+                {name}
               </h3>
-              <p className="text-sm text-muted-foreground">{player.team}</p>
+              <p className="text-sm text-muted-foreground">{team}</p>
             </div>
-            <Badge className={`${getPositionColor(player.position)} font-semibold`}>
-              {player.position}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge className={`${getPositionColor(position)} font-semibold`}>
+                {position}
+              </Badge>
+              <ChevronDown 
+                className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${
+                  isExpanded ? "rotate-180" : ""
+                }`}
+              />
+            </div>
           </div>
 
           {/* Selected By */}
           <div className="mb-3">
             <p className="text-xs text-muted-foreground mb-1">Selected by:</p>
             <div className="flex flex-wrap gap-1">
-              {player.selectedBy.map((user) => (
+              {selectedBy.map((user) => (
                 <Badge key={user} variant="secondary" className="text-xs">
                   {user}
                 </Badge>
@@ -57,15 +117,38 @@ export const PlayerCard = ({ player }: PlayerCardProps) => {
             </div>
           </div>
 
-          {/* Points Placeholder */}
+          {/* Points */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Points:</span>
-            <div className="h-8 w-16 bg-muted rounded border-2 border-dashed border-border flex items-center justify-center">
-              <span className="text-xs text-muted-foreground">—</span>
+            <div className="h-8 px-3 bg-muted rounded border-2 border-dashed border-border flex items-center justify-center min-w-[4rem]">
+              <span className="text-sm font-semibold">{displayPoints}</span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Expanded Stats Section */}
+      {isExpanded && (
+        <div className="mt-4 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="mb-3">
+            <h4 className="font-bold text-sm mb-1">Stats for this week</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs text-muted-foreground">Total Points:</span>
+              <span className="text-lg font-bold text-primary">{displayPoints}</span>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            {getPositionStats().map((stat, index) => (
+              <div key={index} className="flex justify-between items-center py-1">
+                <span className="text-xs text-muted-foreground">{stat.label}:</span>
+                <span className="text-sm font-medium">{stat.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </Card>
   );
 };
