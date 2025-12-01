@@ -21,6 +21,9 @@ import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock } from "lucide-re
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { teamColorMap } from "@/lib/teamColors";
+import { playoffWeeks } from "@/data/playoffWeeks";
+import { getWeekStatus, getCurrentOpenWeek } from "@/lib/weekStatus";
+import { format } from "date-fns";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -35,7 +38,11 @@ const currentUserId = "ben";
 const currentLeagueId = "playoff-league-2024";
 
 const Picks = () => {
-  const [activeWeek, setActiveWeek] = useState<"1" | "2" | "3" | "4">("1");
+  const now = new Date();
+  const currentOpenWeek = getCurrentOpenWeek(playoffWeeks, now);
+  const initialWeek = currentOpenWeek?.weekNumber.toString() ?? "1";
+
+  const [activeWeek, setActiveWeek] = useState<string>(initialWeek);
   const [picksByWeek, setPicksByWeek] = useState<Record<number, WeekPicks>>({
     1: { submitted: false },
     2: { submitted: false },
@@ -184,33 +191,84 @@ const Picks = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v as "1" | "2" | "3" | "4")} className="w-full">
+        <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v)} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-8 h-auto p-1">
-            {[1, 2, 3, 4].map((weekNum) => (
-              <TabsTrigger
-                key={weekNum}
-                value={weekNum.toString()}
-                className="text-sm sm:text-base font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Week {weekNum}
-              </TabsTrigger>
-            ))}
+            {playoffWeeks.map((week) => {
+              const status = getWeekStatus(week, now);
+              const value = week.weekNumber.toString();
+              const isFuture = status === "future";
+
+              return (
+                <TabsTrigger
+                  key={week.id}
+                  value={value}
+                  disabled={isFuture}
+                  className={cn(
+                    "text-sm sm:text-base font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                    isFuture && "opacity-50 cursor-not-allowed"
+                  )}
+                  onClick={(e) => {
+                    if (isFuture) {
+                      e.preventDefault();
+                      toast({
+                        title: "Week not available",
+                        description: `Week ${week.weekNumber} picks open on ${format(new Date(week.openAt), "PPP 'at' p")}`,
+                      });
+                      return;
+                    }
+                  }}
+                >
+                  Week {week.weekNumber}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
 
-          {[1, 2, 3, 4].map((weekNum) => {
+          {playoffWeeks.map((week) => {
+            const weekNum = week.weekNumber;
             const weekPicks = picksByWeek[weekNum];
             const isSubmitted = weekPicks.submitted;
             const allSlotsSelected = weekPicks.qb && weekPicks.rb && weekPicks.flex;
+            
+            const status = getWeekStatus(week, now);
+            const isOpen = status === "open";
+            const isLocked = status === "locked";
+            const isFuture = status === "future";
 
             return (
-              <TabsContent key={weekNum} value={weekNum.toString()} className="mt-0">
+              <TabsContent key={week.id} value={weekNum.toString()} className="mt-0">
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold mb-2">Week {weekNum} Picks</h2>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground mb-2">
                     {isSubmitted
                       ? "Your picks have been submitted and locked."
-                      : "Select one player for each position to complete your picks."}
+                      : isOpen
+                      ? "Select one player for each position to complete your picks."
+                      : isLocked
+                      ? "This week is locked. You can view your picks below."
+                      : "This week hasn't opened yet. Picks will open soon."}
                   </p>
+                  {isOpen && !isSubmitted && (
+                    <p className="text-sm text-muted-foreground">
+                      Picks lock on {format(new Date(week.deadlineAt), "PPP 'at' p")}
+                    </p>
+                  )}
+                  {isFuture && (
+                    <Alert className="mt-2">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        Week {weekNum} picks open on {format(new Date(week.openAt), "PPP 'at' p")}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {isLocked && !isSubmitted && (
+                    <Alert className="mt-2">
+                      <Lock className="h-4 w-4" />
+                      <AlertDescription>
+                        Week {weekNum} is locked. Picks were due {format(new Date(week.deadlineAt), "PPP 'at' p")}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
 
                 {/* QB Section */}
@@ -222,9 +280,9 @@ const Picks = () => {
                   <Card
                     className={cn(
                       "transition-all",
-                      !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
+                      isOpen && !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
                     )}
-                    onClick={() => !isSubmitted && handleOpenSheet(weekNum, "QB", "Quarterback")}
+                    onClick={() => isOpen && !isSubmitted && handleOpenSheet(weekNum, "QB", "Quarterback")}
                   >
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-3">
@@ -241,13 +299,13 @@ const Picks = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {isSubmitted && (
+                        {(isSubmitted || !isOpen) && (
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Lock className="w-4 h-4" />
                             <span>Locked</span>
                           </div>
                         )}
-                        {!isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                        {isOpen && !isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
                       </div>
                     </CardContent>
                   </Card>
@@ -262,9 +320,9 @@ const Picks = () => {
                   <Card
                     className={cn(
                       "transition-all",
-                      !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
+                      isOpen && !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
                     )}
-                    onClick={() => !isSubmitted && handleOpenSheet(weekNum, "RB", "Running Back")}
+                    onClick={() => isOpen && !isSubmitted && handleOpenSheet(weekNum, "RB", "Running Back")}
                   >
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-3">
@@ -281,13 +339,13 @@ const Picks = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {isSubmitted && (
+                        {(isSubmitted || !isOpen) && (
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Lock className="w-4 h-4" />
                             <span>Locked</span>
                           </div>
                         )}
-                        {!isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                        {isOpen && !isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
                       </div>
                     </CardContent>
                   </Card>
@@ -302,9 +360,9 @@ const Picks = () => {
                   <Card
                     className={cn(
                       "transition-all",
-                      !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
+                      isOpen && !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
                     )}
-                    onClick={() => !isSubmitted && handleOpenSheet(weekNum, "FLEX", "Flex (WR/TE)")}
+                    onClick={() => isOpen && !isSubmitted && handleOpenSheet(weekNum, "FLEX", "Flex (WR/TE)")}
                   >
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-3">
@@ -321,13 +379,13 @@ const Picks = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {isSubmitted && (
+                        {(isSubmitted || !isOpen) && (
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Lock className="w-4 h-4" />
                             <span>Locked</span>
                           </div>
                         )}
-                        {!isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                        {isOpen && !isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
                       </div>
                     </CardContent>
                   </Card>
@@ -371,15 +429,17 @@ const Picks = () => {
                       <>
                         <Button
                           onClick={() => handleSubmitClick(weekNum)}
-                          disabled={!allSlotsSelected}
+                          disabled={!isOpen || !allSlotsSelected}
                           className="w-full"
                           size="lg"
                         >
                           Submit picks for Week {weekNum}
                         </Button>
-                        <p className="text-sm text-muted-foreground text-center">
-                          Once you submit picks for this week, they can't be changed.
-                        </p>
+                        {isOpen && (
+                          <p className="text-sm text-muted-foreground text-center">
+                            Once you submit picks for this week, they can't be changed.
+                          </p>
+                        )}
                       </>
                     )}
 

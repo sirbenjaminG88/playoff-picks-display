@@ -36,8 +36,9 @@ export interface Week {
   id: string;
   season: number;
   weekNumber: number; // 1–4 for playoffs
-  // When picks lock for this week. For now we can set this manually;
-  // in the future this can come from the kickoff time of the first game.
+  // When this week becomes available for making picks
+  openAt: string; // ISO date-time
+  // When picks lock for this week (kickoff of first game)
   deadlineAt: string; // ISO date-time
 }
 
