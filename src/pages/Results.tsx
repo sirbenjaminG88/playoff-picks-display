@@ -309,7 +309,7 @@ export default function Results() {
                             weeklyLeaderboard.map((pick, index) => (
                               <div
                                 key={pick.userId}
-                                className="flex items-center gap-4 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+                                className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
                               >
                                 {/* Rank Badge */}
                                 <Badge 
@@ -319,20 +319,23 @@ export default function Results() {
                                   #{index + 1}
                                 </Badge>
 
-                                {/* User Avatar */}
-                                <Avatar className="h-11 w-11 shrink-0">
-                                  <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
-                                    {getInitials(pick.userName)}
-                                  </AvatarFallback>
-                                </Avatar>
+                                {/* User Avatar + Name Stacked */}
+                                <div className="flex flex-col items-center gap-2 shrink-0">
+                                  <Avatar className="h-11 w-11">
+                                    <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                                      {getInitials(pick.userName)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="font-semibold text-sm text-foreground">
+                                    {pick.userName.split(" ")[0]}
+                                  </span>
+                                </div>
 
-                                {/* User Name */}
-                                <span className="font-semibold text-lg text-foreground flex-1 min-w-0">
-                                  {pick.userName}
-                                </span>
+                                {/* Spacer */}
+                                <div className="flex-1 min-w-0"></div>
 
                                 {/* Points */}
-                                <div className="flex flex-col items-end shrink-0">
+                                <div className="flex flex-col items-center gap-2 shrink-0">
                                   <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
                                     {pick.weekPoints.toFixed(1)} pts
                                   </Badge>
@@ -364,7 +367,7 @@ export default function Results() {
                               return (
                                 <div
                                   key={standing.userId}
-                                  className="flex items-center gap-4 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+                                  className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
                                 >
                                   {/* Rank Badge */}
                                   <Badge 
@@ -374,26 +377,29 @@ export default function Results() {
                                     #{index + 1}
                                   </Badge>
 
-                                  {/* User Avatar */}
-                                  <Avatar className="h-11 w-11 shrink-0">
-                                    <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
-                                      {getInitials(standing.userName)}
-                                    </AvatarFallback>
-                                  </Avatar>
+                                  {/* User Avatar + Name Stacked */}
+                                  <div className="flex flex-col items-center gap-2 shrink-0">
+                                    <Avatar className="h-11 w-11">
+                                      <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                                        {getInitials(standing.userName)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-semibold text-sm text-foreground">
+                                      {standing.userName.split(" ")[0]}
+                                    </span>
+                                  </div>
 
-                                  {/* User Name */}
-                                  <span className="font-semibold text-lg text-foreground flex-1 min-w-0">
-                                    {standing.userName}
-                                  </span>
+                                  {/* Spacer */}
+                                  <div className="flex-1 min-w-0"></div>
 
                                   {/* Points and Points Behind */}
-                                  <div className="flex flex-col items-end gap-2 shrink-0">
+                                  <div className="flex flex-col items-center gap-2 shrink-0">
                                     <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
                                       {standing.totalPoints.toFixed(1)} pts
                                     </Badge>
                                     {pointsBehind > 0 && (
-                                      <span className="text-xs text-tertiary-text">
-                                        {pointsBehind.toFixed(1)} pts back
+                                      <span className="text-xs text-muted-foreground">
+                                        {pointsBehind.toFixed(1)} back
                                       </span>
                                     )}
                                   </div>
