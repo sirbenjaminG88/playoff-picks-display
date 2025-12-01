@@ -6,6 +6,7 @@ export interface AvailablePlayer {
   team: string;
   position: Position; // "QB" | "RB" | "WR" | "TE"
   photoUrl?: string;
+  isTestAlreadyPicked?: boolean; // Temporary test flag for UI testing
 }
 
 // For now we can hard-code a small sample list per week.
@@ -17,7 +18,7 @@ export const availablePlayersByWeek: AvailablePlayersByWeek = {
     // QBs
     { id: "jalen-hurts-phi", name: "Jalen Hurts", team: "PHI", position: "QB" },
     { id: "jordan-love-gb", name: "Jordan Love", team: "GB", position: "QB" },
-    { id: "josh-allen-buf", name: "Josh Allen", team: "BUF", position: "QB" },
+    { id: "josh-allen-buf", name: "Josh Allen", team: "BUF", position: "QB", isTestAlreadyPicked: true },
     { id: "jared-goff-det", name: "Jared Goff", team: "DET", position: "QB" },
     { id: "lamar-jackson-bal", name: "Lamar Jackson", team: "BAL", position: "QB" },
     { id: "patrick-mahomes-kc", name: "Patrick Mahomes", team: "KC", position: "QB" },
@@ -34,7 +35,7 @@ export const availablePlayersByWeek: AvailablePlayersByWeek = {
     { id: "josh-jacobs-gb", name: "Josh Jacobs", team: "GB", position: "RB" },
     { id: "james-cook-buf", name: "James Cook", team: "BUF", position: "RB" },
     { id: "derrick-henry-bal", name: "Derrick Henry", team: "BAL", position: "RB" },
-    { id: "christian-mccaffrey-sf", name: "Christian McCaffrey", team: "SF", position: "RB" },
+    { id: "christian-mccaffrey-sf", name: "Christian McCaffrey", team: "SF", position: "RB", isTestAlreadyPicked: true },
     { id: "bijan-robinson-atl", name: "Bijan Robinson", team: "ATL", position: "RB" },
     { id: "breece-hall-nyj", name: "Breece Hall", team: "NYJ", position: "RB" },
     { id: "david-montgomery-det", name: "David Montgomery", team: "DET", position: "RB" },
@@ -64,7 +65,7 @@ export const availablePlayersByWeek: AvailablePlayersByWeek = {
     { id: "sam-laporta-det", name: "Sam LaPorta", team: "DET", position: "TE" },
     { id: "dallas-goedert-phi", name: "Dallas Goedert", team: "PHI", position: "TE" },
     { id: "dalton-kincaid-buf", name: "Dalton Kincaid", team: "BUF", position: "TE" },
-    { id: "travis-kelce-kc", name: "Travis Kelce", team: "KC", position: "TE" },
+    { id: "travis-kelce-kc", name: "Travis Kelce", team: "KC", position: "TE", isTestAlreadyPicked: true },
     { id: "george-kittle-sf", name: "George Kittle", team: "SF", position: "TE" },
     { id: "tj-hockenson-min", name: "T.J. Hockenson", team: "MIN", position: "TE" },
     { id: "mark-andrews-bal", name: "Mark Andrews", team: "BAL", position: "TE" },

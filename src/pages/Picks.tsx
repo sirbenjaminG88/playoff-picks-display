@@ -541,18 +541,20 @@ const Picks = () => {
               {getFilteredPlayers().map((player) => {
                 const colors = teamColorMap[player.team] ?? teamColorMap.DEFAULT;
                 const alreadyPickedIds = sheetConfig ? getAlreadyPickedPlayerIds(sheetConfig.weekNumber) : new Set();
-                const isAlreadyPicked = alreadyPickedIds.has(player.id);
+                const isReallyAlreadyPicked = alreadyPickedIds.has(player.id);
+                // Compute display flag: true if EITHER real logic OR test flag is true
+                const displayIsAlreadyPicked = isReallyAlreadyPicked || player.isTestAlreadyPicked === true;
                 
                 return (
                   <div
                     key={player.id}
                     className={cn(
                       "rounded-xl border bg-card transition",
-                      isAlreadyPicked 
+                      displayIsAlreadyPicked 
                         ? "opacity-50 cursor-not-allowed" 
                         : "cursor-pointer hover:shadow-sm hover:bg-muted/60"
                     )}
-                    onClick={() => !isAlreadyPicked && handleSelectPlayer(player)}
+                    onClick={() => !displayIsAlreadyPicked && handleSelectPlayer(player)}
                   >
                     <div className="flex items-center justify-between px-4 py-3 gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -572,7 +574,7 @@ const Picks = () => {
                             <Badge className={cn("text-xs", getPositionColor(player.position))}>
                               {player.position}
                             </Badge>
-                            {isAlreadyPicked && (
+                            {displayIsAlreadyPicked && (
                               <Badge variant="secondary" className="text-xs">
                                 Already picked
                               </Badge>
