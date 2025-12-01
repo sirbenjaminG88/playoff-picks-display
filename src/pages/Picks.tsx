@@ -10,6 +10,7 @@ import { availablePlayersByWeek, AvailablePlayer } from "@/data/availablePlayers
 import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { teamColorMap } from "@/lib/teamColors";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -386,7 +387,7 @@ const Picks = () => {
           </SheetHeader>
 
           {/* Sticky search bar */}
-          <div className="mt-4">
+          <div className="sticky top-0 bg-background pb-2 z-10 mt-4">
             <Input
               placeholder="Search by player or team…"
               value={searchTerm}
@@ -396,9 +397,11 @@ const Picks = () => {
           </div>
 
           {/* Scrollable player list */}
-          <div className="mt-4 flex-1 overflow-y-auto">
+          <div className="overflow-y-auto max-h-[65vh] pb-4">
             <div className="space-y-2 pr-2">
               {getFilteredPlayers().map((player) => {
+                const colors = teamColorMap[player.team] ?? teamColorMap.DEFAULT;
+                
                 return (
                   <div
                     key={player.id}
@@ -427,8 +430,11 @@ const Picks = () => {
                         </div>
                       </div>
 
-                      {/* Team pill */}
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground shrink-0">
+                      {/* Team pill with soft colors */}
+                      <span 
+                        className="px-2 py-0.5 rounded-full text-xs font-semibold shrink-0"
+                        style={{ backgroundColor: colors.bg, color: colors.text }}
+                      >
                         {player.team}
                       </span>
                     </div>
