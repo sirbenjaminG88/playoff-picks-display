@@ -24,6 +24,7 @@ import { teamColorMap } from "@/lib/teamColors";
 import { playoffWeeks } from "@/data/playoffWeeks";
 import { getWeekStatus, getCurrentOpenWeek } from "@/lib/weekStatus";
 import { format } from "date-fns";
+import { Pick } from "@/domain/types";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -32,14 +33,19 @@ type WeekPicks = {
   rb?: AvailablePlayer;
   flex?: AvailablePlayer;
   submitted: boolean;
+  submittedAt?: string;
 };
 
 const currentUserId = "ben";
 const currentLeagueId = "playoff-league-2024";
 
+// Debug time override - set to true to test Week 1 as open
+const USE_DEBUG_TIME = true;
+const DEBUG_NOW = new Date("2025-01-10T12:00:00-05:00");
+
 const Picks = () => {
-  const now = new Date();
-  const currentOpenWeek = getCurrentOpenWeek(playoffWeeks, now);
+  const CURRENT_TIME = USE_DEBUG_TIME ? DEBUG_NOW : new Date();
+  const currentOpenWeek = getCurrentOpenWeek(playoffWeeks, CURRENT_TIME);
   const initialWeek = currentOpenWeek?.weekNumber.toString() ?? "1";
 
   const [activeWeek, setActiveWeek] = useState<string>(initialWeek);
@@ -112,12 +118,13 @@ const Picks = () => {
       [weekToSubmit]: {
         ...prev[weekToSubmit],
         submitted: true,
+        submittedAt: new Date().toISOString(),
       },
     }));
 
     toast({
       title: `Week ${weekToSubmit} picks submitted!`,
-      description: "Your picks are now locked and cannot be changed.",
+      description: "Your picks have been locked and cannot be changed.",
     });
 
     setShowConfirmDialog(false);
@@ -194,9 +201,21 @@ const Picks = () => {
         <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v)} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-8 h-auto p-1">
             {playoffWeeks.map((week) => {
-              const status = getWeekStatus(week, now);
+              const weekNum = week.weekNumber;
+              const weekPicks = picksByWeek[weekNum];
+              
+              // Convert local picks to Pick[] format for status check
+              const userPicksForWeek: Pick[] = [];
+              if (weekPicks.submitted) {
+                // Create mock Pick objects (in real app, these would be actual Pick records)
+                if (weekPicks.qb) userPicksForWeek.push({ positionSlot: "QB" } as Pick);
+                if (weekPicks.rb) userPicksForWeek.push({ positionSlot: "RB" } as Pick);
+                if (weekPicks.flex) userPicksForWeek.push({ positionSlot: "FLEX" } as Pick);
+              }
+              
+              const status = getWeekStatus({ week, userPicksForWeek, now: CURRENT_TIME });
               const value = week.weekNumber.toString();
-              const isFuture = status === "future";
+              const isFuture = status === "FUTURE_LOCKED";
 
               return (
                 <TabsTrigger
@@ -230,45 +249,67 @@ const Picks = () => {
             const isSubmitted = weekPicks.submitted;
             const allSlotsSelected = weekPicks.qb && weekPicks.rb && weekPicks.flex;
             
-            const status = getWeekStatus(week, now);
-            const isOpen = status === "open";
-            const isLocked = status === "locked";
-            const isFuture = status === "future";
+            // Convert local picks to Pick[] format for status check
+            const userPicksForWeek: Pick[] = [];
+            if (weekPicks.submitted) {
+              if (weekPicks.qb) userPicksForWeek.push({ positionSlot: "QB" } as Pick);
+              if (weekPicks.rb) userPicksForWeek.push({ positionSlot: "RB" } as Pick);
+              if (weekPicks.flex) userPicksForWeek.push({ positionSlot: "FLEX" } as Pick);
+            }
+            
+            const status = getWeekStatus({ week, userPicksForWeek, now: CURRENT_TIME });
+            const isOpen = status === "OPEN_NOT_SUBMITTED";
+            const isPastNoPicks = status === "PAST_NO_PICKS";
+            const isFuture = status === "FUTURE_LOCKED";
+            const isSubmittedState = status === "SUBMITTED";
 
             return (
               <TabsContent key={week.id} value={weekNum.toString()} className="mt-0">
+                {/* Status Banner */}
                 <div className="mb-6">
-                  <h2 className="text-2xl font-bold mb-2">Week {weekNum} Picks</h2>
-                  <p className="text-muted-foreground mb-2">
-                    {isSubmitted
-                      ? "Your picks have been submitted and locked."
-                      : isOpen
-                      ? "Select one player for each position to complete your picks."
-                      : isLocked
-                      ? "This week is locked. You can view your picks below."
-                      : "This week hasn't opened yet. Picks will open soon."}
-                  </p>
-                  {isOpen && !isSubmitted && (
-                    <p className="text-sm text-muted-foreground">
-                      Picks lock on {format(new Date(week.deadlineAt), "PPP 'at' p")}
-                    </p>
-                  )}
                   {isFuture && (
-                    <Alert className="mt-2">
-                      <Info className="h-4 w-4" />
-                      <AlertDescription>
-                        Week {weekNum} picks open on {format(new Date(week.openAt), "PPP 'at' p")}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  {isLocked && !isSubmitted && (
-                    <Alert className="mt-2">
+                    <Alert className="mb-4">
                       <Lock className="h-4 w-4" />
                       <AlertDescription>
-                        Week {weekNum} is locked. Picks were due {format(new Date(week.deadlineAt), "PPP 'at' p")}
+                        <div className="font-semibold mb-1">Week {weekNum} picks are not open yet.</div>
+                        <div className="text-sm">Week {weekNum} opens on {format(new Date(week.openAt), "PPPP 'at' p")}.</div>
                       </AlertDescription>
                     </Alert>
                   )}
+                  
+                  {isOpen && (
+                    <Alert className="mb-4 bg-primary/5 border-primary/20">
+                      <Info className="h-4 w-4 text-primary" />
+                      <AlertDescription>
+                        <div className="font-semibold mb-1 text-primary">Make your picks for Week {weekNum}</div>
+                        <div className="text-sm text-muted-foreground">Picks are due by {format(new Date(week.deadlineAt), "PPPP 'at' p")}.</div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {isSubmittedState && (
+                    <Alert className="mb-4 bg-primary/5 border-primary/20">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <AlertDescription>
+                        <div className="font-semibold mb-1 text-primary">Your picks for Week {weekNum} have been submitted.</div>
+                        <div className="text-sm text-muted-foreground">
+                          Submitted on {weekPicks.submittedAt ? format(new Date(weekPicks.submittedAt), "PPP 'at' p") : "just now"}. You can't change picks after submitting.
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {isPastNoPicks && (
+                    <Alert className="mb-4" variant="destructive">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="font-semibold mb-1">Week {weekNum} is complete.</div>
+                        <div className="text-sm">You didn't submit picks for this week.</div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  <h2 className="text-2xl font-bold">Week {weekNum} Picks</h2>
                 </div>
 
                 {/* QB Section */}
@@ -280,9 +321,10 @@ const Picks = () => {
                   <Card
                     className={cn(
                       "transition-all",
-                      isOpen && !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
+                      isOpen && "cursor-pointer hover:shadow-md hover:border-primary/50",
+                      (isFuture || isPastNoPicks) && "opacity-60"
                     )}
-                    onClick={() => isOpen && !isSubmitted && handleOpenSheet(weekNum, "QB", "Quarterback")}
+                    onClick={() => isOpen && handleOpenSheet(weekNum, "QB", "Quarterback")}
                   >
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-3">
@@ -293,19 +335,21 @@ const Picks = () => {
                               <p className="font-semibold">{weekPicks.qb.name}</p>
                               <p className="text-sm text-muted-foreground">{weekPicks.qb.team}</p>
                             </div>
+                          ) : isPastNoPicks ? (
+                            <p className="text-muted-foreground italic">No picks submitted</p>
                           ) : (
                             <p className="text-muted-foreground italic">Not selected yet</p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {(isSubmitted || !isOpen) && (
+                        {isFuture && (
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Lock className="w-4 h-4" />
                             <span>Locked</span>
                           </div>
                         )}
-                        {isOpen && !isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                        {isOpen && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
                       </div>
                     </CardContent>
                   </Card>
@@ -320,9 +364,10 @@ const Picks = () => {
                   <Card
                     className={cn(
                       "transition-all",
-                      isOpen && !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
+                      isOpen && "cursor-pointer hover:shadow-md hover:border-primary/50",
+                      (isFuture || isPastNoPicks) && "opacity-60"
                     )}
-                    onClick={() => isOpen && !isSubmitted && handleOpenSheet(weekNum, "RB", "Running Back")}
+                    onClick={() => isOpen && handleOpenSheet(weekNum, "RB", "Running Back")}
                   >
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-3">
@@ -333,19 +378,21 @@ const Picks = () => {
                               <p className="font-semibold">{weekPicks.rb.name}</p>
                               <p className="text-sm text-muted-foreground">{weekPicks.rb.team}</p>
                             </div>
+                          ) : isPastNoPicks ? (
+                            <p className="text-muted-foreground italic">No picks submitted</p>
                           ) : (
                             <p className="text-muted-foreground italic">Not selected yet</p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {(isSubmitted || !isOpen) && (
+                        {isFuture && (
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Lock className="w-4 h-4" />
                             <span>Locked</span>
                           </div>
                         )}
-                        {isOpen && !isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                        {isOpen && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
                       </div>
                     </CardContent>
                   </Card>
@@ -360,9 +407,10 @@ const Picks = () => {
                   <Card
                     className={cn(
                       "transition-all",
-                      isOpen && !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
+                      isOpen && "cursor-pointer hover:shadow-md hover:border-primary/50",
+                      (isFuture || isPastNoPicks) && "opacity-60"
                     )}
-                    onClick={() => isOpen && !isSubmitted && handleOpenSheet(weekNum, "FLEX", "Flex (WR/TE)")}
+                    onClick={() => isOpen && handleOpenSheet(weekNum, "FLEX", "Flex (WR/TE)")}
                   >
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-3">
@@ -373,19 +421,21 @@ const Picks = () => {
                               <p className="font-semibold">{weekPicks.flex.name}</p>
                               <p className="text-sm text-muted-foreground">{weekPicks.flex.team}</p>
                             </div>
+                          ) : isPastNoPicks ? (
+                            <p className="text-muted-foreground italic">No picks submitted</p>
                           ) : (
                             <p className="text-muted-foreground italic">Not selected yet</p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {(isSubmitted || !isOpen) && (
+                        {isFuture && (
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Lock className="w-4 h-4" />
                             <span>Locked</span>
                           </div>
                         )}
-                        {isOpen && !isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                        {isOpen && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
                       </div>
                     </CardContent>
                   </Card>
@@ -418,28 +468,19 @@ const Picks = () => {
                       </div>
                     </div>
 
-                    {isSubmitted ? (
-                      <Alert className="bg-primary/5 border-primary/20">
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
-                        <AlertDescription className="text-primary">
-                          ✅ Picks for Week {weekNum} are locked. You can't change them anymore.
-                        </AlertDescription>
-                      </Alert>
-                    ) : (
+                    {isOpen && (
                       <>
                         <Button
                           onClick={() => handleSubmitClick(weekNum)}
-                          disabled={!isOpen || !allSlotsSelected}
+                          disabled={!allSlotsSelected}
                           className="w-full"
                           size="lg"
                         >
                           Submit picks for Week {weekNum}
                         </Button>
-                        {isOpen && (
-                          <p className="text-sm text-muted-foreground text-center">
-                            Once you submit picks for this week, they can't be changed.
-                          </p>
-                        )}
+                        <p className="text-sm text-muted-foreground text-center">
+                          Once you submit picks for this week, they can't be changed.
+                        </p>
                       </>
                     )}
 
