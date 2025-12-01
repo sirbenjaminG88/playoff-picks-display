@@ -194,10 +194,10 @@ if (kyrenWilliams) {
     passTDs: 0,
     rushYards: 92,
     recYards: 0,
-    rushTDs: 0,
+    rushTDs: 1,
     recTDs: 0,
     interceptions: 0,
-    fumblesLost: 1,
+    fumblesLost: 0,
     twoPtConversions: 0,
   };
 }
@@ -225,6 +225,114 @@ if (pukaNacua) {
     passTDs: 0,
     rushYards: 0,
     recYards: 51,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+// Add Week 2 QB real stats
+const lamarJacksonW2 = week2Data.qbs.find(qb => qb.name === "Lamar Jackson");
+if (lamarJacksonW2) {
+  lamarJacksonW2.stats = {
+    passYards: 254,
+    passTDs: 2,
+    rushYards: 39,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 2,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const joshAllenW2 = week2Data.qbs.find(qb => qb.name === "Josh Allen");
+if (joshAllenW2) {
+  joshAllenW2.stats = {
+    passYards: 127,
+    passTDs: 0,
+    rushYards: 20,
+    recYards: 0,
+    rushTDs: 2,
+    recTDs: 0,
+    interceptions: 2,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+// Add Week 2 RB real stats
+const derrickHenry = week2Data.rbs.find(rb => rb.name === "Derrick Henry");
+if (derrickHenry) {
+  derrickHenry.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 84,
+    recYards: 0,
+    rushTDs: 1,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const jahmyrGibbs = week2Data.rbs.find(rb => rb.name === "Jahmyr Gibbs");
+if (jahmyrGibbs) {
+  jahmyrGibbs.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 175,
+    recYards: 0,
+    rushTDs: 2,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+// Add Week 2 Flex real stats
+const amonRaStBrown = week2Data.flex.find(wr => wr.name === "Amon-Ra St. Brown");
+if (amonRaStBrown) {
+  amonRaStBrown.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 0,
+    recYards: 137,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const pukaNacuaW2 = week2Data.flex.find(wr => wr.name === "Puka Nacua");
+if (pukaNacuaW2) {
+  pukaNacuaW2.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 0,
+    recYards: 97,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const nicoCollins = week2Data.flex.find(wr => wr.name === "Nico Collins");
+if (nicoCollins) {
+  nicoCollins.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 0,
+    recYards: 81,
     rushTDs: 0,
     recTDs: 0,
     interceptions: 0,
