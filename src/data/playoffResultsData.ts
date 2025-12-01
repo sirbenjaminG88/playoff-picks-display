@@ -171,6 +171,68 @@ if (bakerMayfield) {
   };
 }
 
+// Add Week 1 RB real stats
+const saquonBarkley = week1Data.rbs.find(rb => rb.name === "Saquon Barkley");
+if (saquonBarkley) {
+  saquonBarkley.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 123,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const kyrenWilliams = week1Data.rbs.find(rb => rb.name === "Kyren Williams");
+if (kyrenWilliams) {
+  kyrenWilliams.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 92,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 1,
+    twoPtConversions: 0,
+  };
+}
+
+// Add Week 1 Flex real stats
+const justinJefferson = week1Data.flex.find(wr => wr.name === "Justin Jefferson");
+if (justinJefferson) {
+  justinJefferson.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 0,
+    recYards: 58,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const pukaNacua = week1Data.flex.find(wr => wr.name === "Puka Nacua");
+if (pukaNacua) {
+  pukaNacua.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 0,
+    recYards: 51,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
 export const playoffResultsByWeek = {
   week1: week1Data,
   week2: week2Data,
