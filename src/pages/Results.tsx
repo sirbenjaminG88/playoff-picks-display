@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayerCard } from "@/components/PlayerCard";
-import { weeksData, PlayerPick } from "@/data/picks";
+import { playoffResultsByWeek } from "@/data/playoffResultsData";
 import { Trophy } from "lucide-react";
 
 const Results = () => {
@@ -28,28 +28,27 @@ const Results = () => {
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeWeek} onValueChange={setActiveWeek} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-8 h-auto p-1">
-            {weeksData.map((week) => (
+            {[1, 2, 3, 4].map((weekNum) => (
               <TabsTrigger
-                key={week.week}
-                value={week.week.toString()}
+                key={weekNum}
+                value={weekNum.toString()}
                 className="text-sm sm:text-base font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Week {week.week}
+                Week {weekNum}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          {weeksData.map((week) => {
-            const qbs = week.players.filter(p => p.position === "QB");
-            const rbs = week.players.filter(p => p.position === "RB");
-            const flex = week.players.filter(p => p.position === "WR" || p.position === "TE");
+          {[1, 2, 3, 4].map((weekNum) => {
+            const weekKey = `week${weekNum}` as keyof typeof playoffResultsByWeek;
+            const weekData = playoffResultsByWeek[weekKey];
 
             return (
-              <TabsContent key={week.week} value={week.week.toString()} className="mt-0">
+              <TabsContent key={weekNum} value={weekNum.toString()} className="mt-0">
                 <div className="mb-6">
-                  <h2 className="text-2xl font-bold mb-2">Week {week.week} Selections</h2>
+                  <h2 className="text-2xl font-bold mb-2">Week {weekNum} Selections</h2>
                   <p className="text-muted-foreground">
-                    {week.players.length} players selected across all positions
+                    {weekData.qbs.length + weekData.rbs.length + weekData.flex.length} players selected across all positions
                   </p>
                 </div>
 
@@ -60,15 +59,16 @@ const Results = () => {
                     QBs
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {qbs.map((player) => (
+                    {weekData.qbs.map((player) => (
                       <PlayerCard 
-                        key={`${week.week}-${player.name}`}
+                        key={`${weekNum}-${player.name}`}
                         name={player.name}
                         team={player.team}
                         position={player.position}
                         selectedBy={player.selectedBy}
-                        photoUrl={player.photoUrl}
-                        points={player.points}
+                        photoUrl={undefined}
+                        points={player.points ?? null}
+                        stats={player.stats}
                       />
                     ))}
                   </div>
@@ -81,15 +81,16 @@ const Results = () => {
                     RBs
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {rbs.map((player) => (
+                    {weekData.rbs.map((player) => (
                       <PlayerCard 
-                        key={`${week.week}-${player.name}`}
+                        key={`${weekNum}-${player.name}`}
                         name={player.name}
                         team={player.team}
                         position={player.position}
                         selectedBy={player.selectedBy}
-                        photoUrl={player.photoUrl}
-                        points={player.points}
+                        photoUrl={undefined}
+                        points={player.points ?? null}
+                        stats={player.stats}
                       />
                     ))}
                   </div>
@@ -102,15 +103,16 @@ const Results = () => {
                     Flex (WR/TE)
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {flex.map((player) => (
+                    {weekData.flex.map((player) => (
                       <PlayerCard 
-                        key={`${week.week}-${player.name}`}
+                        key={`${weekNum}-${player.name}`}
                         name={player.name}
                         team={player.team}
                         position={player.position}
                         selectedBy={player.selectedBy}
-                        photoUrl={player.photoUrl}
-                        points={player.points}
+                        photoUrl={undefined}
+                        points={player.points ?? null}
+                        stats={player.stats}
                       />
                     ))}
                   </div>
