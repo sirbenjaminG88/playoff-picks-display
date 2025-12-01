@@ -4,76 +4,121 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { playoffResultsByWeek } from "@/data/playoffResultsData";
-import { ClipboardList, CheckCircle2, Info } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { availablePlayersByWeek, AvailablePlayer } from "@/data/availablePlayersByWeek";
+import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
 type WeekPicks = {
-  QB?: string;
-  RB?: string;
-  FLEX?: string;
-};
-
-type AvailablePlayer = {
-  id: string;
-  name: string;
-  team: string;
-  position: "QB" | "RB" | "WR" | "TE";
+  qb?: AvailablePlayer;
+  rb?: AvailablePlayer;
+  flex?: AvailablePlayer;
+  submitted: boolean;
 };
 
 const currentUserId = "ben";
 const currentLeagueId = "playoff-league-2024";
 
 const Picks = () => {
-  const [activeWeek, setActiveWeek] = useState("1");
-  const [picksByWeek, setPicksByWeek] = useState<Record<string, WeekPicks>>({});
-  const [submittedWeeks, setSubmittedWeeks] = useState<Set<string>>(new Set());
+  const [activeWeek, setActiveWeek] = useState<"1" | "2" | "3" | "4">("1");
+  const [picksByWeek, setPicksByWeek] = useState<Record<number, WeekPicks>>({
+    1: { submitted: false },
+    2: { submitted: false },
+    3: { submitted: false },
+    4: { submitted: false },
+  });
 
-  const handlePlayerSelect = (weekKey: string, slot: PositionSlot, playerId: string) => {
-    setPicksByWeek((prev) => {
-      const existing = prev[weekKey] ?? {};
-      return {
-        ...prev,
-        [weekKey]: {
-          ...existing,
-          [slot]: playerId,
-        },
-      };
+  // Sheet state for player selection
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetConfig, setSheetConfig] = useState<{
+    weekNumber: number;
+    positionSlot: PositionSlot;
+    label: string;
+  } | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleOpenSheet = (weekNumber: number, positionSlot: PositionSlot, label: string) => {
+    setSheetConfig({ weekNumber, positionSlot, label });
+    setSearchTerm("");
+    setSheetOpen(true);
+  };
+
+  const handleSelectPlayer = (player: AvailablePlayer) => {
+    if (!sheetConfig) return;
+
+    const { weekNumber, positionSlot } = sheetConfig;
+    const slotKey = positionSlot.toLowerCase() as "qb" | "rb" | "flex";
+
+    setPicksByWeek((prev) => ({
+      ...prev,
+      [weekNumber]: {
+        ...prev[weekNumber],
+        [slotKey]: player,
+      },
+    }));
+
+    setSheetOpen(false);
+    setSheetConfig(null);
+  };
+
+  const handleSubmit = (weekNumber: number) => {
+    const weekPicks = picksByWeek[weekNumber];
+
+    if (!weekPicks.qb || !weekPicks.rb || !weekPicks.flex) {
+      toast({
+        title: "Incomplete picks",
+        description: "Please select a player for all three positions before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPicksByWeek((prev) => ({
+      ...prev,
+      [weekNumber]: {
+        ...prev[weekNumber],
+        submitted: true,
+      },
+    }));
+
+    toast({
+      title: `Week ${weekNumber} picks submitted!`,
+      description: "Your picks are now locked and cannot be changed.",
     });
   };
 
-  const handleSubmit = (weekKey: string) => {
-    setSubmittedWeeks((prev) => new Set(prev).add(weekKey));
-  };
+  // Filter players for the sheet
+  const getFilteredPlayers = (): AvailablePlayer[] => {
+    if (!sheetConfig) return [];
 
-  const getAvailablePlayers = (weekNum: number, slot: PositionSlot): AvailablePlayer[] => {
-    const weekKey = `week${weekNum}` as keyof typeof playoffResultsByWeek;
-    const weekData = playoffResultsByWeek[weekKey];
+    const { weekNumber, positionSlot } = sheetConfig;
+    const allPlayers = availablePlayersByWeek[weekNumber] || [];
 
-    if (slot === "QB") {
-      return weekData.qbs.map((p) => ({
-        id: `${p.name}-${p.team}`,
-        name: p.name,
-        team: p.team,
-        position: p.position,
-      }));
-    } else if (slot === "RB") {
-      return weekData.rbs.map((p) => ({
-        id: `${p.name}-${p.team}`,
-        name: p.name,
-        team: p.team,
-        position: p.position,
-      }));
-    } else {
-      return weekData.flex.map((p) => ({
-        id: `${p.name}-${p.team}`,
-        name: p.name,
-        team: p.team,
-        position: p.position,
-      }));
+    // Filter by position
+    let filtered = allPlayers;
+    if (positionSlot === "QB") {
+      filtered = allPlayers.filter((p) => p.position === "QB");
+    } else if (positionSlot === "RB") {
+      filtered = allPlayers.filter((p) => p.position === "RB");
+    } else if (positionSlot === "FLEX") {
+      filtered = allPlayers.filter((p) => p.position === "WR" || p.position === "TE");
     }
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(term) || p.team.toLowerCase().includes(term)
+      );
+    }
+
+    // Sort alphabetically by name
+    return filtered.sort((a, b) => a.name.localeCompare(b.name));
   };
 
   const getPositionColor = (position: string) => {
@@ -109,7 +154,7 @@ const Picks = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeWeek} onValueChange={setActiveWeek} className="w-full">
+        <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v as "1" | "2" | "3" | "4")} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-8 h-auto p-1">
             {[1, 2, 3, 4].map((weekNum) => (
               <TabsTrigger
@@ -123,10 +168,9 @@ const Picks = () => {
           </TabsList>
 
           {[1, 2, 3, 4].map((weekNum) => {
-            const weekKey = `week${weekNum}`;
-            const weekPicks = picksByWeek[weekKey] ?? {};
-            const isSubmitted = submittedWeeks.has(weekKey);
-            const allSlotsSelected = weekPicks.QB && weekPicks.RB && weekPicks.FLEX;
+            const weekPicks = picksByWeek[weekNum];
+            const isSubmitted = weekPicks.submitted;
+            const allSlotsSelected = weekPicks.qb && weekPicks.rb && weekPicks.flex;
 
             return (
               <TabsContent key={weekNum} value={weekNum.toString()} className="mt-0">
@@ -140,141 +184,123 @@ const Picks = () => {
                 </div>
 
                 {/* QB Section */}
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <span className="inline-block w-1 h-6 bg-red-500 rounded"></span>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <span className="inline-block w-1 h-5 bg-red-500 rounded"></span>
                     Quarterback
                   </h3>
-                  <div
+                  <Card
                     className={cn(
-                      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
-                      isSubmitted && "opacity-60 pointer-events-none"
+                      "transition-all",
+                      !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
                     )}
+                    onClick={() => !isSubmitted && handleOpenSheet(weekNum, "QB", "Quarterback")}
                   >
-                    {getAvailablePlayers(weekNum, "QB").map((player) => {
-                      const isSelected = weekPicks.QB === player.id;
-                      return (
-                        <Card
-                          key={player.id}
-                          className={cn(
-                            "cursor-pointer transition-all hover:shadow-md",
-                            isSelected && "ring-2 ring-primary bg-primary/5"
+                    <CardContent className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">QB</p>
+                          {weekPicks.qb ? (
+                            <div>
+                              <p className="font-semibold">{weekPicks.qb.name}</p>
+                              <p className="text-sm text-muted-foreground">{weekPicks.qb.team}</p>
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground italic">Not selected yet</p>
                           )}
-                          onClick={() => !isSubmitted && handlePlayerSelect(weekKey, "QB", player.id)}
-                        >
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg">{player.name}</CardTitle>
-                            <CardDescription className="flex items-center gap-2">
-                              <span className="font-medium">{player.team}</span>
-                              <Badge className={cn("text-xs", getPositionColor(player.position))}>
-                                {player.position}
-                              </Badge>
-                            </CardDescription>
-                          </CardHeader>
-                          {isSelected && (
-                            <CardContent className="pt-0">
-                              <div className="flex items-center gap-2 text-sm text-primary">
-                                <CheckCircle2 className="w-4 h-4" />
-                                <span className="font-medium">Selected</span>
-                              </div>
-                            </CardContent>
-                          )}
-                        </Card>
-                      );
-                    })}
-                  </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isSubmitted && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Lock className="w-4 h-4" />
+                            <span>Locked</span>
+                          </div>
+                        )}
+                        {!isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* RB Section */}
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <span className="inline-block w-1 h-6 bg-blue-500 rounded"></span>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <span className="inline-block w-1 h-5 bg-blue-500 rounded"></span>
                     Running Back
                   </h3>
-                  <div
+                  <Card
                     className={cn(
-                      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
-                      isSubmitted && "opacity-60 pointer-events-none"
+                      "transition-all",
+                      !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
                     )}
+                    onClick={() => !isSubmitted && handleOpenSheet(weekNum, "RB", "Running Back")}
                   >
-                    {getAvailablePlayers(weekNum, "RB").map((player) => {
-                      const isSelected = weekPicks.RB === player.id;
-                      return (
-                        <Card
-                          key={player.id}
-                          className={cn(
-                            "cursor-pointer transition-all hover:shadow-md",
-                            isSelected && "ring-2 ring-primary bg-primary/5"
+                    <CardContent className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">RB</p>
+                          {weekPicks.rb ? (
+                            <div>
+                              <p className="font-semibold">{weekPicks.rb.name}</p>
+                              <p className="text-sm text-muted-foreground">{weekPicks.rb.team}</p>
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground italic">Not selected yet</p>
                           )}
-                          onClick={() => !isSubmitted && handlePlayerSelect(weekKey, "RB", player.id)}
-                        >
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg">{player.name}</CardTitle>
-                            <CardDescription className="flex items-center gap-2">
-                              <span className="font-medium">{player.team}</span>
-                              <Badge className={cn("text-xs", getPositionColor(player.position))}>
-                                {player.position}
-                              </Badge>
-                            </CardDescription>
-                          </CardHeader>
-                          {isSelected && (
-                            <CardContent className="pt-0">
-                              <div className="flex items-center gap-2 text-sm text-primary">
-                                <CheckCircle2 className="w-4 h-4" />
-                                <span className="font-medium">Selected</span>
-                              </div>
-                            </CardContent>
-                          )}
-                        </Card>
-                      );
-                    })}
-                  </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isSubmitted && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Lock className="w-4 h-4" />
+                            <span>Locked</span>
+                          </div>
+                        )}
+                        {!isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* FLEX Section */}
                 <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <span className="inline-block w-1 h-6 bg-green-500 rounded"></span>
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <span className="inline-block w-1 h-5 bg-green-500 rounded"></span>
                     Flex (WR/TE)
                   </h3>
-                  <div
+                  <Card
                     className={cn(
-                      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
-                      isSubmitted && "opacity-60 pointer-events-none"
+                      "transition-all",
+                      !isSubmitted && "cursor-pointer hover:shadow-md hover:border-primary/50"
                     )}
+                    onClick={() => !isSubmitted && handleOpenSheet(weekNum, "FLEX", "Flex (WR/TE)")}
                   >
-                    {getAvailablePlayers(weekNum, "FLEX").map((player) => {
-                      const isSelected = weekPicks.FLEX === player.id;
-                      return (
-                        <Card
-                          key={player.id}
-                          className={cn(
-                            "cursor-pointer transition-all hover:shadow-md",
-                            isSelected && "ring-2 ring-primary bg-primary/5"
+                    <CardContent className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">FLEX</p>
+                          {weekPicks.flex ? (
+                            <div>
+                              <p className="font-semibold">{weekPicks.flex.name}</p>
+                              <p className="text-sm text-muted-foreground">{weekPicks.flex.team}</p>
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground italic">Not selected yet</p>
                           )}
-                          onClick={() => !isSubmitted && handlePlayerSelect(weekKey, "FLEX", player.id)}
-                        >
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg">{player.name}</CardTitle>
-                            <CardDescription className="flex items-center gap-2">
-                              <span className="font-medium">{player.team}</span>
-                              <Badge className={cn("text-xs", getPositionColor(player.position))}>
-                                {player.position}
-                              </Badge>
-                            </CardDescription>
-                          </CardHeader>
-                          {isSelected && (
-                            <CardContent className="pt-0">
-                              <div className="flex items-center gap-2 text-sm text-primary">
-                                <CheckCircle2 className="w-4 h-4" />
-                                <span className="font-medium">Selected</span>
-                              </div>
-                            </CardContent>
-                          )}
-                        </Card>
-                      );
-                    })}
-                  </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isSubmitted && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Lock className="w-4 h-4" />
+                            <span>Locked</span>
+                          </div>
+                        )}
+                        {!isSubmitted && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* Summary and Submit Section */}
@@ -287,25 +313,19 @@ const Picks = () => {
                       <div className="flex items-center justify-between py-2 px-3 rounded bg-muted/50">
                         <span className="font-medium">QB:</span>
                         <span className="text-muted-foreground">
-                          {weekPicks.QB
-                            ? getAvailablePlayers(weekNum, "QB").find((p) => p.id === weekPicks.QB)?.name
-                            : "Not selected yet"}
+                          {weekPicks.qb ? `${weekPicks.qb.name} (${weekPicks.qb.team})` : "Not selected yet"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-2 px-3 rounded bg-muted/50">
                         <span className="font-medium">RB:</span>
                         <span className="text-muted-foreground">
-                          {weekPicks.RB
-                            ? getAvailablePlayers(weekNum, "RB").find((p) => p.id === weekPicks.RB)?.name
-                            : "Not selected yet"}
+                          {weekPicks.rb ? `${weekPicks.rb.name} (${weekPicks.rb.team})` : "Not selected yet"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-2 px-3 rounded bg-muted/50">
                         <span className="font-medium">FLEX:</span>
                         <span className="text-muted-foreground">
-                          {weekPicks.FLEX
-                            ? getAvailablePlayers(weekNum, "FLEX").find((p) => p.id === weekPicks.FLEX)?.name
-                            : "Not selected yet"}
+                          {weekPicks.flex ? `${weekPicks.flex.name} (${weekPicks.flex.team})` : "Not selected yet"}
                         </span>
                       </div>
                     </div>
@@ -314,18 +334,23 @@ const Picks = () => {
                       <Alert className="bg-primary/5 border-primary/20">
                         <CheckCircle2 className="h-4 w-4 text-primary" />
                         <AlertDescription className="text-primary">
-                          ✅ Picks submitted and locked. You can no longer change Week {weekNum} picks.
+                          ✅ Picks for Week {weekNum} are locked. You can't change them anymore.
                         </AlertDescription>
                       </Alert>
                     ) : (
-                      <Button
-                        onClick={() => handleSubmit(weekKey)}
-                        disabled={!allSlotsSelected}
-                        className="w-full"
-                        size="lg"
-                      >
-                        Submit picks for Week {weekNum}
-                      </Button>
+                      <>
+                        <Button
+                          onClick={() => handleSubmit(weekNum)}
+                          disabled={!allSlotsSelected}
+                          className="w-full"
+                          size="lg"
+                        >
+                          Submit picks for Week {weekNum}
+                        </Button>
+                        <p className="text-sm text-muted-foreground text-center">
+                          Once you submit picks for this week, they can't be changed.
+                        </p>
+                      </>
                     )}
 
                     <Alert className="bg-muted/30">
@@ -346,6 +371,54 @@ const Picks = () => {
           })}
         </Tabs>
       </main>
+
+      {/* Player Selection Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="bottom" className="h-[80vh] flex flex-col">
+          <SheetHeader>
+            <SheetTitle>
+              {sheetConfig && `Select a ${sheetConfig.label} for Week ${sheetConfig.weekNumber}`}
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-4 mb-4">
+            <Input
+              placeholder="Search by player or team…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-2">
+              {getFilteredPlayers().map((player) => (
+                <Card
+                  key={player.id}
+                  className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
+                  onClick={() => handleSelectPlayer(player)}
+                >
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="font-semibold">{player.name}</p>
+                      <p className="text-sm text-muted-foreground">{player.team}</p>
+                    </div>
+                    <Badge className={cn("text-xs", getPositionColor(player.position))}>
+                      {player.position}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {getFilteredPlayers().length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No players found matching your search.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
