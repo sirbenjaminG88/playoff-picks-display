@@ -120,9 +120,60 @@ function transformWeekPicks(rawPicks: Array<{
   };
 }
 
+const week1Data = transformWeekPicks(rawWeek1);
+const week2Data = transformWeekPicks(rawWeek2);
+const week3Data = transformWeekPicks(rawWeek3);
+const week4Data = transformWeekPicks(rawWeek4);
+
+// Add Week 1 QB real stats
+const joshAllen = week1Data.qbs.find(qb => qb.name === "Josh Allen");
+if (joshAllen) {
+  joshAllen.stats = {
+    passYards: 272,
+    passTDs: 2,
+    rushYards: 46,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 1,
+  };
+}
+
+const lamarJackson = week1Data.qbs.find(qb => qb.name === "Lamar Jackson");
+if (lamarJackson) {
+  lamarJackson.stats = {
+    passYards: 175,
+    passTDs: 2,
+    rushYards: 81,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const bakerMayfield = week1Data.qbs.find(qb => qb.name === "Baker Mayfield");
+if (bakerMayfield) {
+  bakerMayfield.stats = {
+    passYards: 185,
+    passTDs: 2,
+    rushYards: 23,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 1,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
 export const playoffResultsByWeek = {
-  week1: transformWeekPicks(rawWeek1),
-  week2: transformWeekPicks(rawWeek2),
-  week3: transformWeekPicks(rawWeek3),
-  week4: transformWeekPicks(rawWeek4),
+  week1: week1Data,
+  week2: week2Data,
+  week3: week3Data,
+  week4: week4Data,
 };
