@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayerCard } from "@/components/PlayerCard";
 import { playoffResultsByWeek } from "@/data/playoffResultsData";
+import { calculateWeeklyTotals } from "@/lib/leaderboard";
 import { Trophy } from "lucide-react";
 
 const Results = () => {
@@ -115,6 +116,34 @@ const Results = () => {
                         stats={player.stats}
                       />
                     ))}
+                  </div>
+                </div>
+
+                {/* Weekly Leaderboard */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold mb-4">Weekly Scoring</h3>
+                  <div className="overflow-hidden rounded-lg border bg-card">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/60">
+                        <tr>
+                          <th className="text-left px-4 py-2">Competitor</th>
+                          <th className="text-right px-4 py-2">Week {weekNum} Points</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calculateWeeklyTotals(weekData).map((entry, index) => (
+                          <tr
+                            key={entry.name}
+                            className={index === 0 ? "bg-primary/5 font-semibold" : ""}
+                          >
+                            <td className="px-4 py-2">{entry.name}</td>
+                            <td className="px-4 py-2 text-right">
+                              {entry.totalPoints.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </TabsContent>
