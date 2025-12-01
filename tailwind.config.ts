@@ -57,6 +57,8 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "field-green": "hsl(var(--field-green))",
+        "energy-orange": "hsl(var(--energy-orange))",
       },
       borderRadius: {
         lg: "var(--radius)",
