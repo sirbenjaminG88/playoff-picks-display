@@ -6,6 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { availablePlayersByWeek, AvailablePlayer } from "@/data/availablePlayersByWeek";
 import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,6 +52,10 @@ const Picks = () => {
   } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Confirmation dialog state
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [weekToSubmit, setWeekToSubmit] = useState<number | null>(null);
+
   const handleOpenSheet = (weekNumber: number, positionSlot: PositionSlot, label: string) => {
     setSheetConfig({ weekNumber, positionSlot, label });
     setSearchTerm("");
@@ -66,7 +80,7 @@ const Picks = () => {
     setSheetConfig(null);
   };
 
-  const handleSubmit = (weekNumber: number) => {
+  const handleSubmitClick = (weekNumber: number) => {
     const weekPicks = picksByWeek[weekNumber];
 
     if (!weekPicks.qb || !weekPicks.rb || !weekPicks.flex) {
@@ -78,18 +92,29 @@ const Picks = () => {
       return;
     }
 
+    // Open confirmation dialog
+    setWeekToSubmit(weekNumber);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    if (weekToSubmit === null) return;
+
     setPicksByWeek((prev) => ({
       ...prev,
-      [weekNumber]: {
-        ...prev[weekNumber],
+      [weekToSubmit]: {
+        ...prev[weekToSubmit],
         submitted: true,
       },
     }));
 
     toast({
-      title: `Week ${weekNumber} picks submitted!`,
+      title: `Week ${weekToSubmit} picks submitted!`,
       description: "Your picks are now locked and cannot be changed.",
     });
+
+    setShowConfirmDialog(false);
+    setWeekToSubmit(null);
   };
 
   // Filter players for the sheet
@@ -345,7 +370,7 @@ const Picks = () => {
                     ) : (
                       <>
                         <Button
-                          onClick={() => handleSubmit(weekNum)}
+                          onClick={() => handleSubmitClick(weekNum)}
                           disabled={!allSlotsSelected}
                           className="w-full"
                           size="lg"
@@ -451,6 +476,63 @@ const Picks = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Submit picks for Week {weekToSubmit}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to submit your picks for Week {weekToSubmit}?
+              This action cannot be changed once submitted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {weekToSubmit !== null && (
+            <div className="mt-4 space-y-1 text-sm">
+              <div>
+                <span className="font-medium">QB:</span>{" "}
+                {picksByWeek[weekToSubmit]?.qb ? (
+                  <>
+                    {picksByWeek[weekToSubmit].qb!.name} – {picksByWeek[weekToSubmit].qb!.team}
+                  </>
+                ) : (
+                  "Not selected"
+                )}
+              </div>
+              <div>
+                <span className="font-medium">RB:</span>{" "}
+                {picksByWeek[weekToSubmit]?.rb ? (
+                  <>
+                    {picksByWeek[weekToSubmit].rb!.name} – {picksByWeek[weekToSubmit].rb!.team}
+                  </>
+                ) : (
+                  "Not selected"
+                )}
+              </div>
+              <div>
+                <span className="font-medium">FLEX:</span>{" "}
+                {picksByWeek[weekToSubmit]?.flex ? (
+                  <>
+                    {picksByWeek[weekToSubmit].flex!.name} – {picksByWeek[weekToSubmit].flex!.team}
+                  </>
+                ) : (
+                  "Not selected"
+                )}
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSubmit}>
+              Yes, submit my picks
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
