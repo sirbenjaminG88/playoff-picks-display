@@ -258,7 +258,7 @@ if (joshAllenW2) {
     recYards: 0,
     rushTDs: 2,
     recTDs: 0,
-    interceptions: 2,
+    interceptions: 0,
     fumblesLost: 0,
     twoPtConversions: 0,
   };
