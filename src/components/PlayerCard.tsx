@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, ChevronDown } from "lucide-react";
 import { PlayerStats } from "@/data/playoffResultsData";
+import { calculateFantasyPoints } from "@/lib/utils";
 
 interface PlayerCardProps {
   name: string;
@@ -80,7 +81,8 @@ export const PlayerCard = ({
     }
   };
 
-  const displayPoints = points !== null && points !== undefined ? points.toFixed(1) : "—";
+  const calculatedPoints = calculateFantasyPoints(stats);
+  const displayPoints = calculatedPoints !== null && calculatedPoints !== undefined ? calculatedPoints.toFixed(1) : "—";
 
   return (
     <Card className="p-4 hover:shadow-lg transition-all duration-200 border-2">
