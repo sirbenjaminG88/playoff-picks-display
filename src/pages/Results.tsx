@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { mockStandingsData, mockWeekResults, PlayerResult } from "@/data/mockStandingsData";
+import { teamColorMap } from "@/lib/teamColors";
 
 const getInitials = (name: string): string => {
   const parts = name.split(" ");
@@ -19,6 +20,7 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
   const [isOpen, setIsOpen] = useState(false);
   const isPopular = player.selectedBy.length > 1;
   const isUnique = player.selectedBy.length === 1;
+  const teamColors = teamColorMap[player.team] ?? teamColorMap.DEFAULT;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -38,9 +40,12 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
                 {/* Player Name and Badges Row */}
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <CardTitle className="text-lg">{player.name}</CardTitle>
-                  <Badge variant="outline" className="text-xs">
+                  <span 
+                    className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                    style={{ backgroundColor: teamColors.bg, color: teamColors.text }}
+                  >
                     {player.team}
-                  </Badge>
+                  </span>
                   {isPopular && (
                     <Badge variant="secondary" className="text-xs">
                       Popular
