@@ -10,7 +10,6 @@ import { availablePlayersByWeek, AvailablePlayer } from "@/data/availablePlayers
 import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { teamStyles } from "@/lib/teamStyles";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -400,17 +399,14 @@ const Picks = () => {
           <div className="mt-4 flex-1 overflow-y-auto">
             <div className="space-y-2 pr-2">
               {getFilteredPlayers().map((player) => {
-                const teamStyle = teamStyles[player.team] ?? { primary: "#e5e7eb", secondary: "#9ca3af" };
-                
                 return (
                   <div
                     key={player.id}
-                    className="rounded-xl border bg-card cursor-pointer transition hover:shadow-sm"
-                    style={{ borderLeft: `4px solid ${teamStyle.primary}` }}
+                    className="rounded-xl border bg-card cursor-pointer transition hover:shadow-sm hover:bg-muted/60"
                     onClick={() => handleSelectPlayer(player)}
                   >
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between px-4 py-3 gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         {/* Avatar with fallback */}
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center text-xs font-semibold shrink-0">
                           {player.photoUrl ? (
@@ -421,8 +417,8 @@ const Picks = () => {
                         </div>
                         
                         {/* Player info */}
-                        <div className="flex-1">
-                          <p className="font-semibold">{player.name}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{player.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Badge className={cn("text-xs", getPositionColor(player.position))}>
                               {player.position}
@@ -432,13 +428,7 @@ const Picks = () => {
                       </div>
 
                       {/* Team pill */}
-                      <span
-                        className="px-2 py-0.5 rounded-full text-xs font-semibold"
-                        style={{ 
-                          backgroundColor: `${teamStyle.primary}20`, 
-                          color: teamStyle.primary 
-                        }}
-                      >
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground shrink-0">
                         {player.team}
                       </span>
                     </div>
