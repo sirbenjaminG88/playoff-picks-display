@@ -2,35 +2,80 @@ import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { mockStandingsData, mockWeekResults, PlayerResult } from "@/data/mockStandingsData";
 
+const getInitials = (name: string): string => {
+  const parts = name.split(" ");
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 const PlayerCard = ({ player }: { player: PlayerResult }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const isPopular = player.selectedBy.length > 1;
+  const isUnique = player.selectedBy.length === 1;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className="overflow-hidden">
         <CollapsibleTrigger className="w-full">
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 text-left">
-                <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-start gap-3">
+              {/* Player Avatar */}
+              <Avatar className="h-12 w-12 flex-shrink-0">
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {getInitials(player.name)}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Main Content */}
+              <div className="flex-1 min-w-0">
+                {/* Player Name and Badges Row */}
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <CardTitle className="text-lg">{player.name}</CardTitle>
                   <Badge variant="outline" className="text-xs">
                     {player.team}
                   </Badge>
+                  {isPopular && (
+                    <Badge variant="secondary" className="text-xs">
+                      Popular
+                    </Badge>
+                  )}
+                  {isUnique && (
+                    <Badge variant="outline" className="text-xs border-muted-foreground/50">
+                      Unique
+                    </Badge>
+                  )}
                   <Badge className="ml-auto text-base font-bold">
                     {player.points.toFixed(1)} pts
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Picked by: {player.selectedBy.join(", ")}
-                </p>
+
+                {/* User Avatars Row */}
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {player.selectedBy.map((userName) => (
+                      <Avatar key={userName} className="h-6 w-6 border-2 border-background">
+                        <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                          {getInitials(userName)}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {player.selectedBy.join(", ")}
+                  </span>
+                </div>
               </div>
+
+              {/* Chevron */}
               <ChevronDown
-                className={`ml-2 h-5 w-5 text-muted-foreground transition-transform ${
+                className={`h-5 w-5 text-muted-foreground transition-transform flex-shrink-0 ${
                   isOpen ? "rotate-180" : ""
                 }`}
               />
