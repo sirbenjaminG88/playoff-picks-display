@@ -277,49 +277,66 @@ export default function Results() {
                 {/* Leaderboards Section */}
                 <div className="mt-8">
                   <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
-                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border">
-                      <TabsTrigger value="weekly">Week {weekNum} Leaderboard</TabsTrigger>
-                      <TabsTrigger value="overall">Overall Leaderboard</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
+                      <TabsTrigger 
+                        value="weekly"
+                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Week {weekNum} Leaderboard
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="overall"
+                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Overall Leaderboard
+                      </TabsTrigger>
                     </TabsList>
 
                     {/* Weekly Leaderboard */}
                     <TabsContent value="weekly" className="mt-0">
-                      <Card className="border-border">
-                        <CardHeader>
-                          <CardTitle className="text-foreground">Week {weekNum} Standings</CardTitle>
+                      <Card className="border-border bg-card">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="text-foreground text-xl">Week {weekNum} Standings</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-2">
                           {weeklyLeaderboard.length === 0 ? (
-                            <p className="text-muted-foreground text-center py-4">
-                              No picks submitted for Week {weekNum}
-                            </p>
+                            <div className="py-8 text-center">
+                              <p className="text-muted-foreground">
+                                No picks submitted for Week {weekNum}
+                              </p>
+                            </div>
                           ) : (
                             weeklyLeaderboard.map((pick, index) => (
                               <div
                                 key={pick.userId}
-                                className="flex items-center gap-4 p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition"
+                                className="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
                               >
-                                {/* Rank */}
-                                <Badge variant="outline" className="font-bold text-base border-border w-12 justify-center">
+                                {/* Rank Badge */}
+                                <Badge 
+                                  variant="outline" 
+                                  className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
+                                >
                                   #{index + 1}
                                 </Badge>
 
                                 {/* User Avatar */}
-                                <Avatar className="h-10 w-10">
+                                <Avatar className="h-11 w-11 shrink-0">
                                   <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
                                     {getInitials(pick.userName)}
                                   </AvatarFallback>
                                 </Avatar>
 
                                 {/* User Name */}
-                                <span className="font-semibold text-lg text-foreground flex-1">
+                                <span className="font-semibold text-lg text-foreground flex-1 min-w-0">
                                   {pick.userName}
                                 </span>
 
                                 {/* Points */}
-                                <Badge className="text-lg font-bold bg-primary text-primary-foreground">
-                                  {pick.weekPoints.toFixed(1)} pts
-                                </Badge>
+                                <div className="flex flex-col items-end shrink-0">
+                                  <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
+                                    {pick.weekPoints.toFixed(1)} pts
+                                  </Badge>
+                                </div>
                               </div>
                             ))
                           )}
@@ -329,50 +346,61 @@ export default function Results() {
 
                     {/* Overall Leaderboard */}
                     <TabsContent value="overall" className="mt-0">
-                      <Card className="border-border">
-                        <CardHeader>
-                          <CardTitle className="text-foreground">Overall Standings (Through Week {weekNum})</CardTitle>
+                      <Card className="border-border bg-card">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="text-foreground text-xl">Overall Standings (Through Week {weekNum})</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3">
-                          {overallStandings.map((standing, index) => {
-                            const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
-                            
-                            return (
-                              <div
-                                key={standing.userId}
-                                className="flex items-center gap-4 p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition"
-                              >
-                                {/* Rank */}
-                                <Badge variant="outline" className="font-bold text-base border-border w-12 justify-center">
-                                  #{index + 1}
-                                </Badge>
+                        <CardContent className="space-y-2">
+                          {overallStandings.length === 0 ? (
+                            <div className="py-8 text-center">
+                              <p className="text-muted-foreground">
+                                No standings available yet
+                              </p>
+                            </div>
+                          ) : (
+                            overallStandings.map((standing, index) => {
+                              const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
+                              
+                              return (
+                                <div
+                                  key={standing.userId}
+                                  className="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+                                >
+                                  {/* Rank Badge */}
+                                  <Badge 
+                                    variant="outline" 
+                                    className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
+                                  >
+                                    #{index + 1}
+                                  </Badge>
 
-                                {/* User Avatar */}
-                                <Avatar className="h-10 w-10">
-                                  <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
-                                    {getInitials(standing.userName)}
-                                  </AvatarFallback>
-                                </Avatar>
+                                  {/* User Avatar */}
+                                  <Avatar className="h-11 w-11 shrink-0">
+                                    <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                                      {getInitials(standing.userName)}
+                                    </AvatarFallback>
+                                  </Avatar>
 
-                                {/* User Name and Points Behind */}
-                                <div className="flex-1">
-                                  <span className="font-semibold text-lg text-foreground">
+                                  {/* User Name */}
+                                  <span className="font-semibold text-lg text-foreground flex-1 min-w-0">
                                     {standing.userName}
                                   </span>
-                                  {pointsBehind > 0 && (
-                                    <span className="ml-2 text-sm text-tertiary-text">
-                                      (+{pointsBehind.toFixed(1)})
-                                    </span>
-                                  )}
-                                </div>
 
-                                {/* Total Points */}
-                                <Badge className="text-lg font-bold bg-primary text-primary-foreground">
-                                  {standing.totalPoints.toFixed(1)} pts
-                                </Badge>
-                              </div>
-                            );
-                          })}
+                                  {/* Points and Points Behind */}
+                                  <div className="flex flex-col items-end shrink-0">
+                                    <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
+                                      {standing.totalPoints.toFixed(1)} pts
+                                    </Badge>
+                                    {pointsBehind > 0 && (
+                                      <span className="text-xs text-tertiary-text mt-1">
+                                        {pointsBehind.toFixed(1)} pts back
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
                         </CardContent>
                       </Card>
                     </TabsContent>
