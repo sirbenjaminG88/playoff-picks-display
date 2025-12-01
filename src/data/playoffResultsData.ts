@@ -434,6 +434,84 @@ if (ajBrown) {
   };
 }
 
+// Add Week 4 QB real stats
+const jalenHurts = week4Data.qbs.find(qb => qb.name === "Jalen Hurts");
+if (jalenHurts) {
+  jalenHurts.stats = {
+    passYards: 221,
+    passTDs: 2,
+    rushYards: 72,
+    recYards: 0,
+    rushTDs: 1,
+    recTDs: 0,
+    interceptions: 1,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+// Add Week 4 RB real stats
+const isiahPacheco = week4Data.rbs.find(rb => rb.name === "Isiah Pacheco");
+if (isiahPacheco) {
+  isiahPacheco.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 12,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const kareemHunt = week4Data.rbs.find(rb => rb.name === "Kareem Hunt");
+if (kareemHunt) {
+  kareemHunt.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 14,
+    recYards: 0,
+    rushTDs: 0,
+    recTDs: 0,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+// Add Week 4 Flex real stats
+const xavierWorthy = week4Data.flex.find(wr => wr.name === "Xavier Worthy");
+if (xavierWorthy) {
+  xavierWorthy.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 0,
+    recYards: 157,
+    rushTDs: 0,
+    recTDs: 2,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
+const ajBrownW4 = week4Data.flex.find(wr => wr.name === "A.J. Brown");
+if (ajBrownW4) {
+  ajBrownW4.stats = {
+    passYards: 0,
+    passTDs: 0,
+    rushYards: 0,
+    recYards: 43,
+    rushTDs: 0,
+    recTDs: 1,
+    interceptions: 0,
+    fumblesLost: 0,
+    twoPtConversions: 0,
+  };
+}
+
 export const playoffResultsByWeek = {
   week1: week1Data,
   week2: week2Data,
