@@ -24,14 +24,14 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-border">
         <CollapsibleTrigger className="w-full">
-          <div className="p-4 hover:bg-muted/50 transition-colors cursor-pointer">
+          <div className="p-4 hover:bg-muted/30 transition-colors cursor-pointer">
             {/* Header: Avatar + Player Info + Chevron */}
             <div className="flex items-start gap-3 mb-3">
               {/* Player Avatar */}
               <Avatar className="h-12 w-12 flex-shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
                   {getInitials(player.name)}
                 </AvatarFallback>
               </Avatar>
@@ -39,10 +39,10 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
               {/* Player Info Stack */}
               <div className="flex-1 min-w-0">
                 {/* Line 1: Name + Team Badge */}
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-lg leading-tight">{player.name}</h3>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h3 className="font-bold text-lg leading-tight text-foreground">{player.name}</h3>
                   <span 
-                    className="px-2 py-0.5 rounded-full text-xs font-semibold ml-auto"
+                    className="px-2.5 py-1 rounded-full text-xs font-semibold ml-auto opacity-90"
                     style={{ backgroundColor: teamColors.bg, color: teamColors.text }}
                   >
                     {player.team}
@@ -51,16 +51,16 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
 
                 {/* Line 2: Points Badge + Popular/Unique Tag */}
                 <div className="flex items-center gap-2">
-                  <Badge className="text-sm font-bold bg-primary">
+                  <Badge className="text-sm font-bold bg-primary text-primary-foreground">
                     {player.points.toFixed(1)} pts
                   </Badge>
                   {isPopular && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="popular" className="text-xs">
                       Popular
                     </Badge>
                   )}
                   {isUnique && (
-                    <Badge variant="outline" className="text-xs border-muted-foreground/50">
+                    <Badge variant="secondary" className="text-xs">
                       Unique
                     </Badge>
                   )}
@@ -76,11 +76,11 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
             </div>
 
             {/* Picked By Row */}
-            <div className="flex items-center gap-2 ml-[60px]">
+            <div className="flex items-center gap-2 ml-[60px] mt-3">
               <div className="flex -space-x-2">
                 {player.selectedBy.map((userName) => (
-                  <Avatar key={userName} className="h-6 w-6 border-2 border-background">
-                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                  <Avatar key={userName} className="h-6 w-6 border-2 border-card">
+                    <AvatarFallback className="bg-foreground/80 text-background text-[10px] font-medium">
                       {getInitials(userName)}
                     </AvatarFallback>
                   </Avatar>
@@ -95,23 +95,23 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
         <CollapsibleContent>
           {/* Stats Section - Separated from Header */}
           <div className="px-4 pb-4">
-            <div className="pt-3 border-t border-border">
-              <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Week Stats Breakdown</h4>
-              <div className="rounded-lg bg-muted/30 p-3 space-y-2">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div className="pt-4 border-t border-border">
+              <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Week Stats Breakdown</h4>
+              <div className="rounded-xl bg-muted/20 border border-border p-4 space-y-2">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   {player.stats.passYards !== undefined && (
                     <>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Pass Yards:</span>
-                        <span className="font-semibold">{player.stats.passYards}</span>
+                        <span className="font-semibold text-foreground">{player.stats.passYards}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Pass TDs:</span>
-                        <span className="font-semibold">{player.stats.passTDs}</span>
+                        <span className="font-semibold text-foreground">{player.stats.passTDs}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Interceptions:</span>
-                        <span className="font-semibold">{player.stats.interceptions}</span>
+                        <span className="font-semibold text-foreground">{player.stats.interceptions}</span>
                       </div>
                     </>
                   )}
@@ -119,11 +119,11 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
                     <>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Rush Yards:</span>
-                        <span className="font-semibold">{player.stats.rushYards}</span>
+                        <span className="font-semibold text-foreground">{player.stats.rushYards}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Rush TDs:</span>
-                        <span className="font-semibold">{player.stats.rushTDs}</span>
+                        <span className="font-semibold text-foreground">{player.stats.rushTDs}</span>
                       </div>
                     </>
                   )}
@@ -131,24 +131,24 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
                     <>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Rec Yards:</span>
-                        <span className="font-semibold">{player.stats.recYards}</span>
+                        <span className="font-semibold text-foreground">{player.stats.recYards}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Rec TDs:</span>
-                        <span className="font-semibold">{player.stats.recTDs}</span>
+                        <span className="font-semibold text-foreground">{player.stats.recTDs}</span>
                       </div>
                     </>
                   )}
                   {player.stats.fumblesLost !== undefined && player.stats.fumblesLost > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Fumbles Lost:</span>
-                      <span className="font-semibold">{player.stats.fumblesLost}</span>
+                      <span className="font-semibold text-foreground">{player.stats.fumblesLost}</span>
                     </div>
                   )}
                   {player.stats.twoPtConversions !== undefined && player.stats.twoPtConversions > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">2PT Conversions:</span>
-                      <span className="font-semibold">{player.stats.twoPtConversions}</span>
+                      <span className="font-semibold text-foreground">{player.stats.twoPtConversions}</span>
                     </div>
                   )}
                 </div>
@@ -187,17 +187,17 @@ export default function Results() {
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="min-h-screen bg-background pb-20">
       <div className="container max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Results</h1>
+          <h1 className="text-4xl font-bold mb-2 text-foreground">Results</h1>
           <p className="text-muted-foreground">Weekly scores and overall standings</p>
         </div>
 
         {/* Week Tabs */}
         <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/50 border border-border">
             <TabsTrigger value="week-1">Week 1</TabsTrigger>
             <TabsTrigger value="week-2">Week 2</TabsTrigger>
             <TabsTrigger value="week-3">Week 3</TabsTrigger>
@@ -210,7 +210,7 @@ export default function Results() {
             return (
               <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
                 {!weekResults ? (
-                  <Card>
+                  <Card className="border-border">
                     <CardContent className="py-8">
                       <p className="text-muted-foreground text-center">
                         No results available for Week {weekNum} yet
@@ -221,7 +221,10 @@ export default function Results() {
                   <>
                     {/* Quarterbacks Section */}
                     <div className="space-y-3">
-                      <h2 className="text-xl font-bold">Quarterbacks</h2>
+                      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                        <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+                        Quarterbacks
+                      </h2>
                       <div className="space-y-3">
                         {weekResults.qbs
                           .sort((a, b) => b.points - a.points)
@@ -233,7 +236,10 @@ export default function Results() {
 
                     {/* Running Backs Section */}
                     <div className="space-y-3">
-                      <h2 className="text-xl font-bold">Running Backs</h2>
+                      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                        <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+                        Running Backs
+                      </h2>
                       <div className="space-y-3">
                         {weekResults.rbs
                           .sort((a, b) => b.points - a.points)
@@ -245,7 +251,10 @@ export default function Results() {
 
                     {/* Flex Section */}
                     <div className="space-y-3">
-                      <h2 className="text-xl font-bold">Flex (WR/TE/RB)</h2>
+                      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                        <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+                        Flex (WR/TE/RB)
+                      </h2>
                       <div className="space-y-3">
                         {weekResults.flex
                           .sort((a, b) => b.points - a.points)
@@ -258,23 +267,23 @@ export default function Results() {
                 )}
 
                 {/* Overall Standings So Far */}
-                <Card>
+                <Card className="border-border">
                   <CardHeader>
-                    <CardTitle>Overall Standings (Through Week {weekNum})</CardTitle>
+                    <CardTitle className="text-foreground">Overall Standings (Through Week {weekNum})</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {overallStandings.map((standing, index) => (
                       <div
                         key={standing.userId}
-                        className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition"
+                        className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition"
                       >
                         <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="font-bold text-base">
+                          <Badge variant="outline" className="font-bold text-base border-border">
                             #{index + 1}
                           </Badge>
-                          <span className="font-semibold text-lg">{standing.userName}</span>
+                          <span className="font-semibold text-lg text-foreground">{standing.userName}</span>
                         </div>
-                        <Badge className="text-lg font-bold">
+                        <Badge className="text-lg font-bold bg-primary text-primary-foreground">
                           {standing.totalPoints.toFixed(1)} pts
                         </Badge>
                       </div>
