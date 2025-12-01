@@ -26,8 +26,9 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className="overflow-hidden">
         <CollapsibleTrigger className="w-full">
-          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-            <div className="flex items-start gap-3">
+          <div className="p-4 hover:bg-muted/50 transition-colors cursor-pointer">
+            {/* Header: Avatar + Player Info + Chevron */}
+            <div className="flex items-start gap-3 mb-3">
               {/* Player Avatar */}
               <Avatar className="h-12 w-12 flex-shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary font-semibold">
@@ -35,17 +36,24 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
                 </AvatarFallback>
               </Avatar>
 
-              {/* Main Content */}
+              {/* Player Info Stack */}
               <div className="flex-1 min-w-0">
-                {/* Player Name and Badges Row */}
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <CardTitle className="text-lg">{player.name}</CardTitle>
+                {/* Line 1: Name + Team Badge */}
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-lg leading-tight">{player.name}</h3>
                   <span 
-                    className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                    className="px-2 py-0.5 rounded-full text-xs font-semibold ml-auto"
                     style={{ backgroundColor: teamColors.bg, color: teamColors.text }}
                   >
                     {player.team}
                   </span>
+                </div>
+
+                {/* Line 2: Points Badge + Popular/Unique Tag */}
+                <div className="flex items-center gap-2">
+                  <Badge className="text-sm font-bold bg-primary">
+                    {player.points.toFixed(1)} pts
+                  </Badge>
                   {isPopular && (
                     <Badge variant="secondary" className="text-xs">
                       Popular
@@ -56,25 +64,6 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
                       Unique
                     </Badge>
                   )}
-                  <Badge className="ml-auto text-base font-bold">
-                    {player.points.toFixed(1)} pts
-                  </Badge>
-                </div>
-
-                {/* User Avatars Row */}
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    {player.selectedBy.map((userName) => (
-                      <Avatar key={userName} className="h-6 w-6 border-2 border-background">
-                        <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                          {getInitials(userName)}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    {player.selectedBy.join(", ")}
-                  </span>
                 </div>
               </div>
 
@@ -85,67 +74,87 @@ const PlayerCard = ({ player }: { player: PlayerResult }) => {
                 }`}
               />
             </div>
-          </CardHeader>
+
+            {/* Picked By Row */}
+            <div className="flex items-center gap-2 ml-[60px]">
+              <div className="flex -space-x-2">
+                {player.selectedBy.map((userName) => (
+                  <Avatar key={userName} className="h-6 w-6 border-2 border-background">
+                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                      {getInitials(userName)}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {player.selectedBy.join(", ")}
+              </span>
+            </div>
+          </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent className="pt-0">
-            <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                {player.stats.passYards !== undefined && (
-                  <>
-                    <div>
-                      <span className="text-muted-foreground">Pass Yards:</span>
-                      <span className="ml-2 font-semibold">{player.stats.passYards}</span>
+          {/* Stats Section - Separated from Header */}
+          <div className="px-4 pb-4">
+            <div className="pt-3 border-t border-border">
+              <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Week Stats Breakdown</h4>
+              <div className="rounded-lg bg-muted/30 p-3 space-y-2">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  {player.stats.passYards !== undefined && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Pass Yards:</span>
+                        <span className="font-semibold">{player.stats.passYards}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Pass TDs:</span>
+                        <span className="font-semibold">{player.stats.passTDs}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Interceptions:</span>
+                        <span className="font-semibold">{player.stats.interceptions}</span>
+                      </div>
+                    </>
+                  )}
+                  {player.stats.rushYards !== undefined && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Rush Yards:</span>
+                        <span className="font-semibold">{player.stats.rushYards}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Rush TDs:</span>
+                        <span className="font-semibold">{player.stats.rushTDs}</span>
+                      </div>
+                    </>
+                  )}
+                  {player.stats.recYards !== undefined && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Rec Yards:</span>
+                        <span className="font-semibold">{player.stats.recYards}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Rec TDs:</span>
+                        <span className="font-semibold">{player.stats.recTDs}</span>
+                      </div>
+                    </>
+                  )}
+                  {player.stats.fumblesLost !== undefined && player.stats.fumblesLost > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Fumbles Lost:</span>
+                      <span className="font-semibold">{player.stats.fumblesLost}</span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Pass TDs:</span>
-                      <span className="ml-2 font-semibold">{player.stats.passTDs}</span>
+                  )}
+                  {player.stats.twoPtConversions !== undefined && player.stats.twoPtConversions > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">2PT Conversions:</span>
+                      <span className="font-semibold">{player.stats.twoPtConversions}</span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Interceptions:</span>
-                      <span className="ml-2 font-semibold">{player.stats.interceptions}</span>
-                    </div>
-                  </>
-                )}
-                {player.stats.rushYards !== undefined && (
-                  <>
-                    <div>
-                      <span className="text-muted-foreground">Rush Yards:</span>
-                      <span className="ml-2 font-semibold">{player.stats.rushYards}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Rush TDs:</span>
-                      <span className="ml-2 font-semibold">{player.stats.rushTDs}</span>
-                    </div>
-                  </>
-                )}
-                {player.stats.recYards !== undefined && (
-                  <>
-                    <div>
-                      <span className="text-muted-foreground">Rec Yards:</span>
-                      <span className="ml-2 font-semibold">{player.stats.recYards}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Rec TDs:</span>
-                      <span className="ml-2 font-semibold">{player.stats.recTDs}</span>
-                    </div>
-                  </>
-                )}
-                {player.stats.fumblesLost !== undefined && player.stats.fumblesLost > 0 && (
-                  <div>
-                    <span className="text-muted-foreground">Fumbles Lost:</span>
-                    <span className="ml-2 font-semibold">{player.stats.fumblesLost}</span>
-                  </div>
-                )}
-                {player.stats.twoPtConversions !== undefined && player.stats.twoPtConversions > 0 && (
-                  <div>
-                    <span className="text-muted-foreground">2PT Conversions:</span>
-                    <span className="ml-2 font-semibold">{player.stats.twoPtConversions}</span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
-          </CardContent>
+          </div>
         </CollapsibleContent>
       </Card>
     </Collapsible>
