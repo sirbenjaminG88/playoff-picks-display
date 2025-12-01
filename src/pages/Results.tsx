@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayerCard } from "@/components/PlayerCard";
-import { weeksData } from "@/data/picks";
+import { weeksData, PlayerPick } from "@/data/picks";
 import { Trophy } from "lucide-react";
 
 const Results = () => {
@@ -61,7 +61,15 @@ const Results = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {qbs.map((player) => (
-                      <PlayerCard key={`${week.week}-${player.name}`} player={player} />
+                      <PlayerCard 
+                        key={`${week.week}-${player.name}`}
+                        name={player.name}
+                        team={player.team}
+                        position={player.position}
+                        selectedBy={player.selectedBy}
+                        photoUrl={player.photoUrl}
+                        points={player.points}
+                      />
                     ))}
                   </div>
                 </div>
@@ -74,7 +82,15 @@ const Results = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {rbs.map((player) => (
-                      <PlayerCard key={`${week.week}-${player.name}`} player={player} />
+                      <PlayerCard 
+                        key={`${week.week}-${player.name}`}
+                        name={player.name}
+                        team={player.team}
+                        position={player.position}
+                        selectedBy={player.selectedBy}
+                        photoUrl={player.photoUrl}
+                        points={player.points}
+                      />
                     ))}
                   </div>
                 </div>
@@ -87,7 +103,15 @@ const Results = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {flex.map((player) => (
-                      <PlayerCard key={`${week.week}-${player.name}`} player={player} />
+                      <PlayerCard 
+                        key={`${week.week}-${player.name}`}
+                        name={player.name}
+                        team={player.team}
+                        position={player.position}
+                        selectedBy={player.selectedBy}
+                        photoUrl={player.photoUrl}
+                        points={player.points}
+                      />
                     ))}
                   </div>
                 </div>

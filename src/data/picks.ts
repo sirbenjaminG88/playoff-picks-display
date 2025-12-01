@@ -3,6 +3,8 @@ export interface PlayerPick {
   team: string;
   position: "QB" | "RB" | "WR" | "TE";
   selectedBy: string[];
+  photoUrl?: string;
+  points?: number | null;
 }
 
 export interface WeekData {
