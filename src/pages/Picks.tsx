@@ -10,6 +10,7 @@ import { availablePlayersByWeek, AvailablePlayer } from "@/data/availablePlayers
 import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { teamStyles } from "@/lib/teamStyles";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -110,10 +111,10 @@ const Picks = () => {
 
     // Filter by search term
     if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
+      const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (p) =>
-          p.name.toLowerCase().includes(term) || p.team.toLowerCase().includes(term)
+          p.name.toLowerCase().includes(searchLower) || p.team.toLowerCase().includes(searchLower)
       );
     }
 
@@ -133,6 +134,10 @@ const Picks = () => {
       default:
         return "bg-gray-500";
     }
+  };
+
+  const getPlayerInitials = (name: string) => {
+    return name.split(" ").map(n => n[0]).join("").toUpperCase();
   };
 
   return (
@@ -374,14 +379,15 @@ const Picks = () => {
 
       {/* Player Selection Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="h-[80vh] flex flex-col">
+        <SheetContent side="bottom" className="flex flex-col max-h-[80vh]">
           <SheetHeader>
             <SheetTitle>
               {sheetConfig && `Select a ${sheetConfig.label} for Week ${sheetConfig.weekNumber}`}
             </SheetTitle>
           </SheetHeader>
 
-          <div className="mt-4 mb-4">
+          {/* Sticky search bar */}
+          <div className="mt-4">
             <Input
               placeholder="Search by player or team…"
               value={searchTerm}
@@ -390,25 +396,55 @@ const Picks = () => {
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="space-y-2">
-              {getFilteredPlayers().map((player) => (
-                <Card
-                  key={player.id}
-                  className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-                  onClick={() => handleSelectPlayer(player)}
-                >
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div>
-                      <p className="font-semibold">{player.name}</p>
-                      <p className="text-sm text-muted-foreground">{player.team}</p>
+          {/* Scrollable player list */}
+          <div className="mt-4 flex-1 overflow-y-auto">
+            <div className="space-y-2 pr-2">
+              {getFilteredPlayers().map((player) => {
+                const teamStyle = teamStyles[player.team] ?? { primary: "#e5e7eb", secondary: "#9ca3af" };
+                
+                return (
+                  <div
+                    key={player.id}
+                    className="rounded-xl border bg-card cursor-pointer transition hover:shadow-sm"
+                    style={{ borderLeft: `4px solid ${teamStyle.primary}` }}
+                    onClick={() => handleSelectPlayer(player)}
+                  >
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {/* Avatar with fallback */}
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center text-xs font-semibold shrink-0">
+                          {player.photoUrl ? (
+                            <img src={player.photoUrl} alt={player.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{getPlayerInitials(player.name)}</span>
+                          )}
+                        </div>
+                        
+                        {/* Player info */}
+                        <div className="flex-1">
+                          <p className="font-semibold">{player.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <Badge className={cn("text-xs", getPositionColor(player.position))}>
+                              {player.position}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Team pill */}
+                      <span
+                        className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                        style={{ 
+                          backgroundColor: `${teamStyle.primary}20`, 
+                          color: teamStyle.primary 
+                        }}
+                      >
+                        {player.team}
+                      </span>
                     </div>
-                    <Badge className={cn("text-xs", getPositionColor(player.position))}>
-                      {player.position}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                );
+              })}
 
               {getFilteredPlayers().length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
