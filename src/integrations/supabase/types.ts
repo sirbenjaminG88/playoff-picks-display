@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      playoff_teams: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          made_playoffs: boolean
+          name: string
+          season: number
+          team_id: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          made_playoffs?: boolean
+          name: string
+          season?: number
+          team_id: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          made_playoffs?: boolean
+          name?: string
+          season?: number
+          team_id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
