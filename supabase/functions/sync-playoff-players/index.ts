@@ -27,7 +27,6 @@ Deno.serve(async (req) => {
     }
 
     const season = 2024;
-    const league = 1; // NFL
 
     console.log(`Fetching playoff teams for season ${season}...`);
 
@@ -62,7 +61,7 @@ Deno.serve(async (req) => {
 
       try {
         const response = await fetch(
-          `https://v1.american-football.api-sports.io/players?team=${team.team_id}&season=${season}&league=${league}`,
+          `https://v1.american-football.api-sports.io/players?team=${team.team_id}&season=${season}`,
           {
             headers: {
               'x-apisports-key': apiSportsKey,
