@@ -84,10 +84,9 @@ Deno.serve(async (req) => {
         console.log(`Received ${players.length} total players for ${team.name}`);
 
         // Filter for QB, RB, WR, TE positions
-        const validPositions = ['QB', 'RB', 'WR', 'TE'];
         const filteredPlayers = players
-          .filter((player: PlayerResponse) => validPositions.includes(player.position))
-          .map((player: PlayerResponse) => ({
+          .filter((player: any) => validPositions.includes(player.position))
+          .map((player: any) => ({
             player_id: player.id,
             name: player.name,
             position: player.position,
@@ -107,50 +106,22 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Total players to sync: ${allPlayers.length}`);
+    console.log(`Total players collected: ${allPlayers.length}`);
 
-    if (allPlayers.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          playersSynced: 0,
-          teamsProcessed: playoffTeams.length,
-          message: 'No players found to sync',
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
-
-    // Step 3: Upsert players into database
-    const { data: insertedPlayers, error: insertError } = await supabase
-      .from('playoff_players')
-      .upsert(allPlayers, {
-        onConflict: 'player_id,season',
-        ignoreDuplicates: false,
-      })
-      .select();
-
-    if (insertError) {
-      console.error('Database insert error:', insertError);
-      throw insertError;
-    }
-
-    console.log(`Successfully synced ${insertedPlayers?.length || 0} playoff players`);
-
+    // Return diagnostic summary without writing to database
     return new Response(
       JSON.stringify({
         success: true,
-        playersSynced: insertedPlayers?.length || 0,
         teamsProcessed: playoffTeams.length,
+        totalPlayers: allPlayers.length,
         positionBreakdown: {
           QB: allPlayers.filter(p => p.position === 'QB').length,
           RB: allPlayers.filter(p => p.position === 'RB').length,
           WR: allPlayers.filter(p => p.position === 'WR').length,
           TE: allPlayers.filter(p => p.position === 'TE').length,
         },
+        // Sample players to inspect structure
+        samplePlayers: allPlayers.slice(0, 10),
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
