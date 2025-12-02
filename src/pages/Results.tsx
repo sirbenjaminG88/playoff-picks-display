@@ -367,7 +367,7 @@ export default function Results() {
                               return (
                                 <div
                                   key={standing.userId}
-                                  className="flex items-center gap-6 px-6 py-6 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors min-h-[100px]"
+                                  className="flex items-start gap-6 px-6 py-6 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors min-h-[100px]"
                                 >
                                   {/* Rank Badge */}
                                   <div className="w-[44px] h-[44px] rounded-full bg-muted flex items-center justify-center shrink-0">
