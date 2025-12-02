@@ -7,8 +7,10 @@ const Admin = () => {
   const { toast } = useToast();
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
+  const [isLoadingTest, setIsLoadingTest] = useState(false);
   const [teamsResult, setTeamsResult] = useState<any>(null);
   const [playersResult, setPlayersResult] = useState<any>(null);
+  const [testResult, setTestResult] = useState<any>(null);
 
   const syncPlayoffTeams = async () => {
     setIsLoadingTeams(true);
@@ -81,6 +83,53 @@ const Admin = () => {
       });
     } finally {
       setIsLoadingPlayers(false);
+    }
+  };
+
+  const testPlayoffTeamPlayers = async () => {
+    setIsLoadingTest(true);
+    setTestResult(null);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/test-playoff-team-players`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Test Successful!",
+          description: `Found ${data.total_players} players for team ${data.team_id}`,
+        });
+      } else {
+        toast({
+          title: "Test Failed",
+          description: data.error || "Unknown error",
+          variant: "destructive",
+        });
+      }
+      
+      setTestResult(data);
+    } catch (error) {
+      const errorData = {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to test players endpoint"
+      };
+      setTestResult(errorData);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to test players endpoint",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingTest(false);
     }
   };
 
@@ -181,6 +230,33 @@ const Admin = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Test API-Sports Players Endpoint</CardTitle>
+            <CardDescription>
+              Test fetching players for Houston Texans (team_id: 26) to diagnose API response
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={testPlayoffTeamPlayers} 
+              disabled={isLoadingTest}
+              size="lg"
+              variant="secondary"
+            >
+              {isLoadingTest ? "Testing..." : "Test Playoff Team Players (team_id 26)"}
+            </Button>
+
+            {testResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Test Results:</h3>
+                <pre className="text-xs overflow-auto max-h-96 bg-background p-4 rounded border">
+                  {JSON.stringify(testResult, null, 2)}
+                </pre>
               </div>
             )}
           </CardContent>

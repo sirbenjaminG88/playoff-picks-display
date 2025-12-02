@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.sync-playoff-players]
 verify_jwt = false
+
+[functions.test-playoff-team-players]
+verify_jwt = false
