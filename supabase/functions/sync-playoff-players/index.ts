@@ -70,12 +70,18 @@ Deno.serve(async (req) => {
           }
         );
 
+        console.log(`API Response Status for team ${team.team_id}: ${response.status}`);
+
         if (!response.ok) {
           console.error(`API request failed for team ${team.team_id}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error(`Error response body: ${errorText}`);
           continue;
         }
 
         const data = await response.json();
+        console.log(`API Response structure for ${team.name}:`, JSON.stringify(data, null, 2));
+        
         const players = data.response || [];
 
         console.log(`Received ${players.length} total players for ${team.name}`);
