@@ -92,6 +92,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_picks: {
+        Row: {
+          created_at: string
+          id: string
+          league_id: string
+          player_id: number
+          player_name: string
+          position: string
+          position_slot: string
+          season: number
+          submitted_at: string
+          team_id: number
+          team_name: string
+          updated_at: string
+          user_id: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          league_id?: string
+          player_id: number
+          player_name: string
+          position: string
+          position_slot: string
+          season?: number
+          submitted_at?: string
+          team_id: number
+          team_name: string
+          updated_at?: string
+          user_id: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          league_id?: string
+          player_id?: number
+          player_name?: string
+          position?: string
+          position_slot?: string
+          season?: number
+          submitted_at?: string
+          team_id?: number
+          team_name?: string
+          updated_at?: string
+          user_id?: string
+          week?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
