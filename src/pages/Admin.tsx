@@ -1,7 +1,9 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Users } from "lucide-react";
 
 const Admin = () => {
   const { toast } = useToast();
@@ -135,7 +137,15 @@ const Admin = () => {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Admin Panel</h1>
+        <Link to="/admin/players">
+          <Button variant="outline">
+            <Users className="w-4 h-4 mr-2" />
+            Browse Players
+          </Button>
+        </Link>
+      </div>
 
       <div className="space-y-6">
         <Card>
