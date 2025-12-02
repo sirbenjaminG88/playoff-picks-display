@@ -547,6 +547,15 @@ const Picks = () => {
                     >
                       <CardContent className="flex items-center justify-between p-4">
                         <div className="flex items-center gap-3">
+                          {weekPicks.qb && (
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-foreground/80 flex items-center justify-center text-xs font-semibold shrink-0 text-background">
+                              {weekPicks.qb.image_url ? (
+                                <img src={weekPicks.qb.image_url} alt={weekPicks.qb.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{getPlayerInitials(weekPicks.qb.name)}</span>
+                              )}
+                            </div>
+                          )}
                           <div>
                             <p className="text-sm text-muted-foreground mb-1">QB</p>
                             {weekPicks.qb ? (
@@ -590,6 +599,15 @@ const Picks = () => {
                     >
                       <CardContent className="flex items-center justify-between p-4">
                         <div className="flex items-center gap-3">
+                          {weekPicks.rb && (
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-foreground/80 flex items-center justify-center text-xs font-semibold shrink-0 text-background">
+                              {weekPicks.rb.image_url ? (
+                                <img src={weekPicks.rb.image_url} alt={weekPicks.rb.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{getPlayerInitials(weekPicks.rb.name)}</span>
+                              )}
+                            </div>
+                          )}
                           <div>
                             <p className="text-sm text-muted-foreground mb-1">RB</p>
                             {weekPicks.rb ? (
@@ -633,6 +651,15 @@ const Picks = () => {
                     >
                       <CardContent className="flex items-center justify-between p-4">
                         <div className="flex items-center gap-3">
+                          {weekPicks.flex && (
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-foreground/80 flex items-center justify-center text-xs font-semibold shrink-0 text-background">
+                              {weekPicks.flex.image_url ? (
+                                <img src={weekPicks.flex.image_url} alt={weekPicks.flex.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{getPlayerInitials(weekPicks.flex.name)}</span>
+                              )}
+                            </div>
+                          )}
                           <div>
                             <p className="text-sm text-muted-foreground mb-1">FLEX</p>
                             {weekPicks.flex ? (
