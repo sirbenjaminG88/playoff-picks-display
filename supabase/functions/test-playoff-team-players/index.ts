@@ -27,13 +27,12 @@ Deno.serve(async (req) => {
     }
 
     const season = 2024;
-    const league = 1; // NFL
     const team_id = 26; // Houston Texans
 
-    console.log(`Testing API call for team_id: ${team_id}, season: ${season}, league: ${league}`);
+    console.log(`Testing API call for team_id: ${team_id}, season: ${season}`);
 
     const response = await fetch(
-      `https://v1.american-football.api-sports.io/players?team=${team_id}&season=${season}&league=${league}`,
+      `https://v1.american-football.api-sports.io/players?team=${team_id}&season=${season}`,
       {
         headers: {
           'x-apisports-key': apiSportsKey,
@@ -49,13 +48,15 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log(`API Response structure:`, JSON.stringify(data, null, 2));
+    console.log('raw players data:', JSON.stringify(data, null, 2));
+    console.log('results count from API:', data.results);
     
     const allPlayers = data.response || [];
     console.log(`Total players returned: ${allPlayers.length}`);
 
     const validPositions = ['QB', 'RB', 'WR', 'TE'];
-    const filteredPlayers = allPlayers
+    const players = data.response || [];
+    const filteredPlayers = players
       .filter((player: PlayerResponse) => validPositions.includes(player.position))
       .map((player: PlayerResponse) => ({
         player_id: player.id,
@@ -81,6 +82,7 @@ Deno.serve(async (req) => {
         total_players: filteredPlayers.length,
         positions_breakdown: positionsBreakdown,
         players: filteredPlayers,
+        raw_api_response: data, // Include raw response for debugging
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
