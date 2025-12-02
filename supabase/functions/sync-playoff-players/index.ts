@@ -5,15 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface PlayerResponse {
-  id: number;
-  name: string;
-  position: string;
-  group: string;
-  number: string;
-  image: string;
-}
-
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -106,22 +97,61 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Total players collected: ${allPlayers.length}`);
+    console.log(`Total players to sync: ${allPlayers.length}`);
 
-    // Return diagnostic summary without writing to database
+    if (allPlayers.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          playersSynced: 0,
+          teamsProcessed: playoffTeams.length,
+          message: 'No players found to sync',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
+    // Step 3: Upsert players into database
+    // Process in batches to avoid duplicate key issues within same upsert
+    const uniquePlayers = new Map<string, any>();
+    for (const player of allPlayers) {
+      const key = `${player.team_id}-${player.season}-${player.player_id}`;
+      uniquePlayers.set(key, player);
+    }
+    const dedupedPlayers = Array.from(uniquePlayers.values());
+
+    console.log(`Deduped to ${dedupedPlayers.length} unique players`);
+
+    const { data: insertedPlayers, error: insertError } = await supabase
+      .from('playoff_players')
+      .upsert(dedupedPlayers, {
+        onConflict: 'team_id,season,player_id',
+        ignoreDuplicates: false,
+      })
+      .select();
+
+    if (insertError) {
+      console.error('Database insert error:', insertError);
+      throw insertError;
+    }
+
+    const syncedCount = insertedPlayers?.length || dedupedPlayers.length;
+    console.log(`Successfully synced ${syncedCount} playoff players`);
+
     return new Response(
       JSON.stringify({
         success: true,
+        playersSynced: syncedCount,
         teamsProcessed: playoffTeams.length,
-        totalPlayers: allPlayers.length,
         positionBreakdown: {
-          QB: allPlayers.filter(p => p.position === 'QB').length,
-          RB: allPlayers.filter(p => p.position === 'RB').length,
-          WR: allPlayers.filter(p => p.position === 'WR').length,
-          TE: allPlayers.filter(p => p.position === 'TE').length,
+          QB: dedupedPlayers.filter(p => p.position === 'QB').length,
+          RB: dedupedPlayers.filter(p => p.position === 'RB').length,
+          WR: dedupedPlayers.filter(p => p.position === 'WR').length,
+          TE: dedupedPlayers.filter(p => p.position === 'TE').length,
         },
-        // Sample players to inspect structure
-        samplePlayers: allPlayers.slice(0, 10),
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
