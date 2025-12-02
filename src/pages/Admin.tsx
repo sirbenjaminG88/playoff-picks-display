@@ -69,7 +69,7 @@ const Admin = () => {
       if (data.success) {
         toast({
           title: "Success!",
-          description: `Found ${data.totalPlayers} playoff players from ${data.teamsProcessed} teams.`,
+          description: `Synced ${data.playersSynced} playoff players from ${data.teamsProcessed} teams.`,
         });
         setPlayersResult(data);
       } else {
@@ -201,10 +201,10 @@ const Admin = () => {
 
             {playersResult && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
-                <h3 className="font-semibold mb-2">Diagnostic Results:</h3>
+                <h3 className="font-semibold mb-2">Sync Results:</h3>
                 <ul className="space-y-1 text-sm">
                   <li>Teams Processed: {playersResult.teamsProcessed}</li>
-                  <li>Total Players Found: {playersResult.totalPlayers}</li>
+                  <li>Players Synced: {playersResult.playersSynced}</li>
                 </ul>
                 
                 {playersResult.positionBreakdown && (
@@ -231,14 +231,6 @@ const Admin = () => {
                   </div>
                 )}
 
-                {playersResult.samplePlayers && playersResult.samplePlayers.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-semibold mb-2">Sample Players (first 10):</h4>
-                    <pre className="text-xs overflow-auto max-h-64 bg-background p-4 rounded border">
-                      {JSON.stringify(playersResult.samplePlayers, null, 2)}
-                    </pre>
-                  </div>
-                )}
               </div>
             )}
           </CardContent>
