@@ -79,13 +79,12 @@ Deno.serve(async (req) => {
         }
 
         const data = await response.json();
-        console.log(`API Response structure for ${team.name}:`, JSON.stringify(data, null, 2));
-        
         const players = data.response || [];
 
         console.log(`Received ${players.length} total players for ${team.name}`);
 
         // Filter for QB, RB, WR, TE positions
+        const validPositions = ['QB', 'RB', 'WR', 'TE'];
         const filteredPlayers = players
           .filter((player: PlayerResponse) => validPositions.includes(player.position))
           .map((player: PlayerResponse) => ({
