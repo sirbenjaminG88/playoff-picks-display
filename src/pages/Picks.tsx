@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock } from "lucide-react";
+import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { teamColorMap } from "@/lib/teamColors";
@@ -87,6 +87,11 @@ const Picks = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [weekToSubmit, setWeekToSubmit] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset dialog state
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [weekToReset, setWeekToReset] = useState<number | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Fetch players from playoff_players table
   useEffect(() => {
@@ -323,6 +328,66 @@ const Picks = () => {
     }
   };
 
+  // Handle reset picks for a week
+  const handleResetClick = (weekNumber: number) => {
+    setWeekToReset(weekNumber);
+    setShowResetDialog(true);
+  };
+
+  const handleConfirmReset = async () => {
+    if (weekToReset === null) return;
+
+    setIsResetting(true);
+
+    try {
+      const { error } = await supabase
+        .from("user_picks")
+        .delete()
+        .eq("user_id", currentUserId)
+        .eq("league_id", currentLeagueId)
+        .eq("season", CURRENT_SEASON)
+        .eq("week", weekToReset);
+
+      if (error) {
+        console.error("Error resetting picks:", error);
+        toast({
+          title: "Error resetting picks",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Reset local state for this week
+      setPicksByWeek((prev) => ({
+        ...prev,
+        [weekToReset]: {
+          qb: undefined,
+          rb: undefined,
+          flex: undefined,
+          submitted: false,
+          submittedAt: undefined,
+        },
+      }));
+
+      toast({
+        title: `Week ${weekToReset} picks cleared`,
+        description: "You can now make new selections.",
+      });
+    } catch (err) {
+      console.error("Error resetting picks:", err);
+      toast({
+        title: "Error",
+        description: "Failed to reset picks. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+      setShowResetDialog(false);
+      setWeekToReset(null);
+    }
+  };
+
   // Filter players for the sheet
   const getFilteredPlayers = (): PlayoffPlayer[] => {
     if (!sheetConfig) return [];
@@ -528,7 +593,24 @@ const Picks = () => {
                       </Alert>
                     )}
                     
-                    <h2 className="text-2xl font-bold">Week {weekNum} Picks</h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold">Week {weekNum} Picks</h2>
+                      {/* Admin reset button */}
+                      {(weekPicks.qb || weekPicks.rb || weekPicks.flex || weekPicks.submitted) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-muted-foreground hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleResetClick(weekNum);
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Admin: Reset Week {weekNum}
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* QB Section */}
@@ -890,6 +972,31 @@ const Picks = () => {
             <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmSubmit} disabled={isSubmitting}>
               {isSubmitting ? "Submitting..." : "Yes, submit my picks"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Confirmation Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Reset picks for Week {weekToReset}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to clear your picks for Week {weekToReset}? 
+              This only affects your account and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmReset} 
+              disabled={isResetting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isResetting ? "Resetting..." : "Yes, clear my picks"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
