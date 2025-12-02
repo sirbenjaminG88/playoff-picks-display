@@ -353,7 +353,7 @@ export default function Results() {
                         <CardHeader className="pb-4 px-6 pt-6">
                           <CardTitle className="text-foreground text-xl">Overall Standings (Through Week {weekNum})</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4 px-6 pb-6">
+                        <CardContent className="space-y-5 px-6 pb-6">
                           {overallStandings.length === 0 ? (
                             <div className="py-8 text-center">
                               <p className="text-muted-foreground">
@@ -367,20 +367,19 @@ export default function Results() {
                               return (
                                 <div
                                   key={standing.userId}
-                                  className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+                                  className="flex items-center gap-6 px-6 py-6 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors min-h-[100px]"
                                 >
                                   {/* Rank Badge */}
-                                  <Badge 
-                                    variant="outline" 
-                                    className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
-                                  >
-                                    #{index + 1}
-                                  </Badge>
+                                  <div className="w-[44px] h-[44px] rounded-full bg-muted flex items-center justify-center shrink-0">
+                                    <span className="font-semibold text-base text-foreground">
+                                      #{index + 1}
+                                    </span>
+                                  </div>
 
                                   {/* User Avatar + Name Stacked */}
                                   <div className="flex flex-col items-center gap-2 shrink-0">
-                                    <Avatar className="h-11 w-11">
-                                      <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                                    <Avatar className="h-[44px] w-[44px]">
+                                      <AvatarFallback className="bg-foreground/80 text-background font-bold text-[17px]">
                                         {getInitials(standing.userName)}
                                       </AvatarFallback>
                                     </Avatar>
@@ -393,12 +392,12 @@ export default function Results() {
                                   <div className="flex-1 min-w-0"></div>
 
                                   {/* Points and Points Behind */}
-                                  <div className="flex flex-col items-center gap-2 shrink-0">
-                                    <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
+                                  <div className="flex flex-col items-center gap-1.5 shrink-0">
+                                    <Badge className="text-base font-bold bg-primary text-primary-foreground px-4 py-1.5 h-[44px] flex items-center">
                                       {standing.totalPoints.toFixed(1)} pts
                                     </Badge>
                                     {pointsBehind > 0 && (
-                                      <span className="text-xs text-muted-foreground">
+                                      <span className="text-[13px] text-muted-foreground font-medium">
                                         {pointsBehind.toFixed(1)} back
                                       </span>
                                     )}
