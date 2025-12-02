@@ -5,12 +5,14 @@ import { useState } from "react";
 
 const Admin = () => {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [isLoadingTeams, setIsLoadingTeams] = useState(false);
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
+  const [teamsResult, setTeamsResult] = useState<any>(null);
+  const [playersResult, setPlayersResult] = useState<any>(null);
 
   const syncPlayoffTeams = async () => {
-    setIsLoading(true);
-    setResult(null);
+    setIsLoadingTeams(true);
+    setTeamsResult(null);
 
     try {
       const response = await fetch(
@@ -30,7 +32,7 @@ const Admin = () => {
           title: "Success!",
           description: `Synced ${data.teamsSynced} playoff teams from ${data.gamesFound} games.`,
         });
-        setResult(data);
+        setTeamsResult(data);
       } else {
         throw new Error(data.error || 'Failed to sync teams');
       }
@@ -41,7 +43,44 @@ const Admin = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoadingTeams(false);
+    }
+  };
+
+  const syncPlayoffPlayers = async () => {
+    setIsLoadingPlayers(true);
+    setPlayersResult(null);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playoff-players`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: `Synced ${data.playersSynced} playoff players from ${data.teamsProcessed} teams.`,
+        });
+        setPlayersResult(data);
+      } else {
+        throw new Error(data.error || 'Failed to sync players');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sync playoff players",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPlayers(false);
     }
   };
 
@@ -49,50 +88,104 @@ const Admin = () => {
     <div className="container mx-auto p-6 max-w-4xl">
       <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Sync 2024 NFL Playoff Teams</CardTitle>
-          <CardDescription>
-            Fetch all 2024 NFL postseason games from API-Sports and extract playoff teams
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button 
-            onClick={syncPlayoffTeams} 
-            disabled={isLoading}
-            size="lg"
-          >
-            {isLoading ? "Syncing..." : "Sync Playoff Teams"}
-          </Button>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Sync 2024 NFL Playoff Teams</CardTitle>
+            <CardDescription>
+              Fetch all 2024 NFL postseason games from API-Sports and extract playoff teams
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={syncPlayoffTeams} 
+              disabled={isLoadingTeams}
+              size="lg"
+            >
+              {isLoadingTeams ? "Syncing..." : "Sync Playoff Teams"}
+            </Button>
 
-          {result && (
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold mb-2">Sync Results:</h3>
-              <ul className="space-y-1 text-sm">
-                <li>Games Found: {result.gamesFound}</li>
-                <li>Teams Extracted: {result.teamsExtracted}</li>
-                <li>Teams Synced: {result.teamsSynced}</li>
-              </ul>
-              
-              {result.teams && result.teams.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="font-semibold mb-2">Playoff Teams:</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {result.teams.map((team: any) => (
-                      <div key={team.team_id} className="flex items-center gap-2 p-2 bg-background rounded">
-                        {team.logo_url && (
-                          <img src={team.logo_url} alt={team.name} className="w-8 h-8 object-contain" />
-                        )}
-                        <span className="text-xs">{team.name}</span>
-                      </div>
-                    ))}
+            {teamsResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Sync Results:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Games Found: {teamsResult.gamesFound}</li>
+                  <li>Teams Extracted: {teamsResult.teamsExtracted}</li>
+                  <li>Teams Synced: {teamsResult.teamsSynced}</li>
+                </ul>
+                
+                {teamsResult.teams && teamsResult.teams.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold mb-2">Playoff Teams:</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {teamsResult.teams.map((team: any) => (
+                        <div key={team.team_id} className="flex items-center gap-2 p-2 bg-background rounded">
+                          {team.logo_url && (
+                            <img src={team.logo_url} alt={team.name} className="w-8 h-8 object-contain" />
+                          )}
+                          <span className="text-xs">{team.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sync 2024 NFL Playoff Players</CardTitle>
+            <CardDescription>
+              Fetch all QB, RB, WR, and TE players from playoff teams using API-Sports
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={syncPlayoffPlayers} 
+              disabled={isLoadingPlayers}
+              size="lg"
+            >
+              {isLoadingPlayers ? "Syncing..." : "Sync Playoff Players"}
+            </Button>
+
+            {playersResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Sync Results:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Teams Processed: {playersResult.teamsProcessed}</li>
+                  <li>Players Synced: {playersResult.playersSynced}</li>
+                </ul>
+                
+                {playersResult.positionBreakdown && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold mb-2">Position Breakdown:</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div className="p-2 bg-background rounded text-center">
+                        <div className="text-2xl font-bold">{playersResult.positionBreakdown.QB}</div>
+                        <div className="text-xs text-muted-foreground">Quarterbacks</div>
+                      </div>
+                      <div className="p-2 bg-background rounded text-center">
+                        <div className="text-2xl font-bold">{playersResult.positionBreakdown.RB}</div>
+                        <div className="text-xs text-muted-foreground">Running Backs</div>
+                      </div>
+                      <div className="p-2 bg-background rounded text-center">
+                        <div className="text-2xl font-bold">{playersResult.positionBreakdown.WR}</div>
+                        <div className="text-xs text-muted-foreground">Wide Receivers</div>
+                      </div>
+                      <div className="p-2 bg-background rounded text-center">
+                        <div className="text-2xl font-bold">{playersResult.positionBreakdown.TE}</div>
+                        <div className="text-xs text-muted-foreground">Tight Ends</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

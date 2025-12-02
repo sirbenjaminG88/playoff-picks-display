@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      playoff_players: {
+        Row: {
+          created_at: string
+          group: string | null
+          id: string
+          image_url: string | null
+          name: string
+          number: string | null
+          player_id: number
+          position: string
+          season: number
+          team_id: number
+          team_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          number?: string | null
+          player_id: number
+          position: string
+          season?: number
+          team_id: number
+          team_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          number?: string | null
+          player_id?: number
+          position?: string
+          season?: number
+          team_id?: number
+          team_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       playoff_teams: {
         Row: {
           created_at: string
