@@ -75,10 +75,12 @@ export type Database = {
         Row: {
           away_score: number | null
           away_team_external_id: number
+          away_team_id: string | null
           created_at: string
           game_id: number
           home_score: number | null
           home_team_external_id: number
+          home_team_id: string | null
           id: string
           kickoff_at: string | null
           season: number
@@ -94,10 +96,12 @@ export type Database = {
         Insert: {
           away_score?: number | null
           away_team_external_id: number
+          away_team_id?: string | null
           created_at?: string
           game_id: number
           home_score?: number | null
           home_team_external_id: number
+          home_team_id?: string | null
           id?: string
           kickoff_at?: string | null
           season: number
@@ -113,10 +117,12 @@ export type Database = {
         Update: {
           away_score?: number | null
           away_team_external_id?: number
+          away_team_id?: string | null
           created_at?: string
           game_id?: number
           home_score?: number | null
           home_team_external_id?: number
+          home_team_id?: string | null
           id?: string
           kickoff_at?: string | null
           season?: number
@@ -129,7 +135,22 @@ export type Database = {
           week_index?: number
           week_label?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "playoff_games_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "playoff_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playoff_games_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "playoff_teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       playoff_players: {
         Row: {
