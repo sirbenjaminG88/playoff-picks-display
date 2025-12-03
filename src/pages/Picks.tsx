@@ -25,7 +25,7 @@ import { getWeekStatus, getCurrentOpenWeek } from "@/lib/weekStatus";
 import { format } from "date-fns";
 import { Pick } from "@/domain/types";
 import { supabase } from "@/integrations/supabase/client";
-import { getWeekLabel, getWeekShortLabel } from "@/data/weekLabels";
+import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -508,7 +508,7 @@ const Picks = () => {
                     value={value}
                     disabled={isFuture}
                     className={cn(
-                      "flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm font-semibold whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                      "flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
                       isFuture && "opacity-50 cursor-not-allowed"
                     )}
                     onClick={(e) => {
@@ -522,7 +522,8 @@ const Picks = () => {
                       }
                     }}
                   >
-                    {getWeekShortLabel(week.weekNumber)}
+                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">{getWeekTabLabel(week.weekNumber).abbrev}</span>
+                    <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{getWeekTabLabel(week.weekNumber).dates}</span>
                   </TabsTrigger>
                 );
               })}
@@ -608,7 +609,7 @@ const Picks = () => {
                           }}
                         >
                           <Trash2 className="w-3 h-3 mr-1" />
-                          Admin: Reset {getWeekShortLabel(weekNum)}
+                          Admin: Reset {getWeekLabel(weekNum)}
                         </Button>
                       )}
                     </div>
