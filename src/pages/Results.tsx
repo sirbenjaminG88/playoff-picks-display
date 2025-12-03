@@ -230,7 +230,7 @@ const WeekResults = ({ week, onSyncStats }: { week: number; onSyncStats: (week: 
           ) : (
             <RefreshCw className="w-3 h-3 mr-1" />
           )}
-          Admin: Sync Stats for {getWeekTabLabel(week).abbrev}
+          Sync Stats for This Week
         </Button>
       </div>
       
@@ -317,14 +317,8 @@ export default function Results() {
 
   const handleSyncStats = async (week: number) => {
     try {
-      const { data, error } = await supabase.functions.invoke('sync-player-stats', {
-        body: null,
-        method: 'GET',
-      });
-
-      // Actually need to call with query params, so use fetch directly
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-player-stats?week=${week}&season=2024`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-player-stats-for-week?week=${week}`,
         {
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
@@ -340,7 +334,7 @@ export default function Results() {
 
       toast({
         title: "Stats synced successfully",
-        description: `Matched ${result.matched} players for ${getWeekTabLabel(week).abbrev}`,
+        description: `Synced ${result.statsUpserted}/${result.playersProcessed} players for ${getWeekTabLabel(week).abbrev}`,
       });
 
       // Invalidate queries to refetch data
