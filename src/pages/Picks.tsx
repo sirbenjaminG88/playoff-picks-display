@@ -22,7 +22,7 @@ import { toast } from "@/hooks/use-toast";
 import { teamColorMap } from "@/lib/teamColors";
 import { playoffWeeks } from "@/data/playoffWeeks";
 import { getWeekStatus, getCurrentOpenWeek } from "@/lib/weekStatus";
-import { format } from "date-fns";
+import { formatDeadlineET, formatGameDateET } from "@/lib/timezone";
 import { Pick } from "@/domain/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
@@ -532,7 +532,7 @@ const Picks = () => {
                         e.preventDefault();
                         toast({
                           title: "Week not available",
-                          description: `${getWeekLabel(week.weekNumber)} picks open on ${format(new Date(week.openAt), "PPP 'at' p")}`,
+                          description: `${getWeekLabel(week.weekNumber)} picks open on ${formatGameDateET(week.openAt)}`,
                         });
                         return;
                       }
@@ -574,7 +574,7 @@ const Picks = () => {
                         <Lock className="h-4 w-4" />
                         <AlertDescription>
                           <div className="font-semibold mb-1 text-foreground">{getWeekLabel(weekNum)} picks are not open yet.</div>
-                          <div className="text-sm text-muted-foreground">{getWeekLabel(weekNum)} opens on {format(new Date(week.openAt), "PPPP 'at' p")}.</div>
+                          <div className="text-sm text-muted-foreground">{getWeekLabel(weekNum)} opens on {formatGameDateET(week.openAt)}.</div>
                         </AlertDescription>
                       </Alert>
                     )}
@@ -584,7 +584,7 @@ const Picks = () => {
                         <Info className="h-4 w-4 text-primary" />
                         <AlertDescription>
                           <div className="font-semibold mb-1 text-primary">Make your picks for {getWeekLabel(weekNum)}</div>
-                          <div className="text-sm text-muted-foreground">Picks are due by {format(new Date(week.deadlineAt), "PPPP 'at' p")}.</div>
+                          <div className="text-sm text-muted-foreground">Picks are due by {formatGameDateET(week.deadlineAt)}.</div>
                         </AlertDescription>
                       </Alert>
                     )}
@@ -595,7 +595,7 @@ const Picks = () => {
                         <AlertDescription>
                           <div className="font-semibold mb-1 text-primary">Your picks for {getWeekLabel(weekNum)} have been submitted.</div>
                           <div className="text-sm text-muted-foreground">
-                            Submitted on {weekPicks.submittedAt ? format(new Date(weekPicks.submittedAt), "PPP 'at' p") : "just now"}. You can't change picks after submitting.
+                            Submitted on {weekPicks.submittedAt ? formatGameDateET(weekPicks.submittedAt) : "just now"}. You can't change picks after submitting.
                           </div>
                         </AlertDescription>
                       </Alert>
