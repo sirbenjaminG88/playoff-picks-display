@@ -71,6 +71,66 @@ export type Database = {
         }
         Relationships: []
       }
+      playoff_games: {
+        Row: {
+          away_score: number | null
+          away_team_external_id: number
+          created_at: string
+          game_id: number
+          home_score: number | null
+          home_team_external_id: number
+          id: string
+          kickoff_at: string | null
+          season: number
+          stage: string
+          status_long: string | null
+          status_short: string | null
+          updated_at: string
+          venue_city: string | null
+          venue_name: string | null
+          week_index: number
+          week_label: string
+        }
+        Insert: {
+          away_score?: number | null
+          away_team_external_id: number
+          created_at?: string
+          game_id: number
+          home_score?: number | null
+          home_team_external_id: number
+          id?: string
+          kickoff_at?: string | null
+          season: number
+          stage: string
+          status_long?: string | null
+          status_short?: string | null
+          updated_at?: string
+          venue_city?: string | null
+          venue_name?: string | null
+          week_index: number
+          week_label: string
+        }
+        Update: {
+          away_score?: number | null
+          away_team_external_id?: number
+          created_at?: string
+          game_id?: number
+          home_score?: number | null
+          home_team_external_id?: number
+          id?: string
+          kickoff_at?: string | null
+          season?: number
+          stage?: string
+          status_long?: string | null
+          status_short?: string | null
+          updated_at?: string
+          venue_city?: string | null
+          venue_name?: string | null
+          week_index?: number
+          week_label?: string
+        }
+        Relationships: []
+      }
       playoff_players: {
         Row: {
           created_at: string
