@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.fetch-player-game-stats]
 verify_jwt = false
+
+[functions.upsert-player-week-stats]
+verify_jwt = false
