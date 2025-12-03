@@ -284,6 +284,63 @@ export type Database = {
         }
         Relationships: []
       }
+      regular_season_games: {
+        Row: {
+          api_game_id: number
+          away_team_abbr: string | null
+          away_team_api_id: number
+          away_team_name: string
+          created_at: string
+          game_date: string | null
+          home_team_abbr: string | null
+          home_team_api_id: number
+          home_team_name: string
+          id: string
+          season: number
+          season_type: string
+          status: string | null
+          updated_at: string
+          venue: string | null
+          week: number
+        }
+        Insert: {
+          api_game_id: number
+          away_team_abbr?: string | null
+          away_team_api_id: number
+          away_team_name: string
+          created_at?: string
+          game_date?: string | null
+          home_team_abbr?: string | null
+          home_team_api_id: number
+          home_team_name: string
+          id?: string
+          season: number
+          season_type?: string
+          status?: string | null
+          updated_at?: string
+          venue?: string | null
+          week: number
+        }
+        Update: {
+          api_game_id?: number
+          away_team_abbr?: string | null
+          away_team_api_id?: number
+          away_team_name?: string
+          created_at?: string
+          game_date?: string | null
+          home_team_abbr?: string | null
+          home_team_api_id?: number
+          home_team_name?: string
+          id?: string
+          season?: number
+          season_type?: string
+          status?: string | null
+          updated_at?: string
+          venue?: string | null
+          week?: number
+        }
+        Relationships: []
+      }
       scoring_settings: {
         Row: {
           created_at: string
