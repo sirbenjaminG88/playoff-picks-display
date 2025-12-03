@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Loader2, RefreshCw } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
-import { useWeekPicks, GroupedPlayer } from "@/hooks/useWeekPicks";
+import { useWeekPicks, GroupedPlayer, PlayerWeekStats } from "@/hooks/useWeekPicks";
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -18,6 +18,71 @@ const getInitials = (name: string): string => {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   }
   return name.substring(0, 2).toUpperCase();
+};
+
+// Stats breakdown component for expanded player cards
+const StatsBreakdown = ({ stats }: { stats: PlayerWeekStats | null }) => {
+  if (!stats) {
+    return (
+      <div className="rounded-xl bg-muted/20 border border-border p-4">
+        <p className="text-sm text-muted-foreground text-center">
+          Stats will appear here once games have been played.
+        </p>
+      </div>
+    );
+  }
+
+  const hasPassing = stats.pass_yds > 0 || stats.pass_tds > 0 || stats.interceptions > 0;
+  const hasRushing = stats.rush_yds > 0 || stats.rush_tds > 0;
+  const hasReceiving = stats.rec_yds > 0 || stats.rec_tds > 0;
+  const totalTurnovers = stats.interceptions + stats.fumbles_lost;
+
+  return (
+    <div className="rounded-xl bg-muted/20 border border-border p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Left Column: Passing & Rushing */}
+        <div className="space-y-3">
+          {hasPassing && (
+            <div>
+              <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Passing</h5>
+              <p className="text-sm font-medium text-foreground">
+                {stats.pass_yds} yds • {stats.pass_tds} TD • {stats.interceptions} INT
+              </p>
+            </div>
+          )}
+          {hasRushing && (
+            <div>
+              <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Rushing</h5>
+              <p className="text-sm font-medium text-foreground">
+                {stats.rush_yds} yds • {stats.rush_tds} TD
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Receiving & Turnovers/Fantasy */}
+        <div className="space-y-3">
+          {hasReceiving && (
+            <div>
+              <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Receiving</h5>
+              <p className="text-sm font-medium text-foreground">
+                {stats.rec_yds} yds • {stats.rec_tds} TD
+              </p>
+            </div>
+          )}
+          <div>
+            <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Turnovers & Fantasy</h5>
+            <p className="text-sm font-medium text-foreground">
+              Turnovers: {totalTurnovers}
+            </p>
+            <p className="text-sm font-bold text-primary mt-1">
+              Fantasy: {stats.fantasy_points_standard.toFixed(1)} pts
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // Map full team names to abbreviations for team color lookup
@@ -127,15 +192,10 @@ const PlayerCard = ({ player }: { player: GroupedPlayer }) => {
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          {/* Stats Section - Placeholder for now */}
           <div className="px-4 pb-4">
             <div className="pt-4 border-t border-border">
               <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Week Stats Breakdown</h4>
-              <div className="rounded-xl bg-muted/20 border border-border p-4">
-                <p className="text-sm text-muted-foreground text-center">
-                  Stats will be available once games are played
-                </p>
-              </div>
+              <StatsBreakdown stats={player.stats} />
             </div>
           </div>
         </CollapsibleContent>
