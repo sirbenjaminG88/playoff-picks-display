@@ -1,12 +1,47 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Trophy, BarChart3, Users } from "lucide-react";
+import { Trophy, BarChart3, Users, LogIn, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, profile, signOut, loading } = useAuth();
+
+  const getInitials = (name: string) => {
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/home");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto text-center">
+          {/* User Status */}
+          {!loading && user && profile && (
+            <div className="absolute top-4 right-4 flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5">
+                <Avatar className="h-6 w-6">
+                  {profile.avatar_url ? (
+                    <AvatarImage src={profile.avatar_url} alt={profile.display_name || ""} />
+                  ) : (
+                    <AvatarFallback className="bg-foreground/80 text-background text-xs font-medium">
+                      {profile.display_name ? getInitials(profile.display_name) : "?"}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <span className="text-sm font-medium text-foreground">{profile.display_name}</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
           {/* Logo/Icon */}
           <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-2xl mb-6 shadow-lg">
             <Trophy className="w-10 h-10 text-primary-foreground" />
@@ -50,12 +85,29 @@ const Index = () => {
             </div>
           </div>
 
-          {/* CTA Button */}
-          <Link to="/results">
-            <Button size="lg" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
-              View 2024-2025 Results
-            </Button>
-          </Link>
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            {!loading && !user ? (
+              <Link to="/signin">
+                <Button size="lg" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
+                  <LogIn className="w-5 h-5 mr-2" />
+                  Sign In / Join League
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/picks">
+                <Button size="lg" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
+                  Make Your Picks
+                </Button>
+              </Link>
+            )}
+            
+            <Link to="/results">
+              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+                View 2024-2025 Results
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
