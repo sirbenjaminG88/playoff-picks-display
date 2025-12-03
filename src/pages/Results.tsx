@@ -53,9 +53,17 @@ const PlayerCard = ({ player }: { player: GroupedPlayer }) => {
             <div className="flex items-start gap-3 mb-3">
               {/* Player Avatar */}
               <Avatar className="h-12 w-12 flex-shrink-0">
-                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
-                  {getInitials(player.playerName)}
-                </AvatarFallback>
+                {player.imageUrl ? (
+                  <img 
+                    src={player.imageUrl} 
+                    alt={player.playerName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                    {getInitials(player.playerName)}
+                  </AvatarFallback>
+                )}
               </Avatar>
 
               {/* Player Info Stack */}

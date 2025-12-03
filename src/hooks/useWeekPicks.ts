@@ -11,6 +11,7 @@ export interface GroupedPlayer {
   teamId: number;
   position: string;
   positionSlot: string;
+  imageUrl: string | null;
   selectedBy: string[];
   points: number; // Placeholder for now
 }
@@ -23,24 +24,45 @@ export interface WeekPicksData {
 }
 
 async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
-  const { data, error } = await supabase
+  // Fetch user picks
+  const { data: picks, error: picksError } = await supabase
     .from("user_picks")
     .select("*")
     .eq("league_id", LEAGUE_ID)
     .eq("season", SEASON)
     .eq("week", week);
 
-  if (error) {
-    throw new Error(error.message);
+  if (picksError) {
+    throw new Error(picksError.message);
   }
 
-  if (!data || data.length === 0) {
+  if (!picks || picks.length === 0) {
     return { qbs: [], rbs: [], flex: [], allUsers: [] };
   }
 
+  // Get unique player_ids to fetch their images
+  const playerIds = [...new Set(picks.map((p) => p.player_id))];
+
+  // Fetch player images from playoff_players
+  const { data: players, error: playersError } = await supabase
+    .from("playoff_players")
+    .select("player_id, image_url")
+    .in("player_id", playerIds)
+    .eq("season", SEASON);
+
+  if (playersError) {
+    console.error("Error fetching player images:", playersError);
+  }
+
+  // Create a map of player_id to image_url
+  const playerImageMap = new Map<number, string | null>();
+  players?.forEach((p) => {
+    playerImageMap.set(p.player_id, p.image_url);
+  });
+
   // Group by position_slot and player_id
-  const groupByPositionAndPlayer = (picks: typeof data, positionSlot: string): GroupedPlayer[] => {
-    const filtered = picks.filter((p) => p.position_slot === positionSlot);
+  const groupByPositionAndPlayer = (allPicks: typeof picks, positionSlot: string): GroupedPlayer[] => {
+    const filtered = allPicks.filter((p) => p.position_slot === positionSlot);
     const grouped = new Map<number, GroupedPlayer>();
 
     filtered.forEach((pick) => {
@@ -57,6 +79,7 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
           teamId: pick.team_id,
           position: pick.position,
           positionSlot: pick.position_slot,
+          imageUrl: playerImageMap.get(pick.player_id) ?? null,
           selectedBy: [pick.user_id],
           points: 0, // Placeholder until we wire in real fantasy points
         });
@@ -70,12 +93,12 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
   };
 
   // Get all unique users
-  const allUsers = [...new Set(data.map((p) => p.user_id))];
+  const allUsers = [...new Set(picks.map((p) => p.user_id))];
 
   return {
-    qbs: groupByPositionAndPlayer(data, "QB"),
-    rbs: groupByPositionAndPlayer(data, "RB"),
-    flex: groupByPositionAndPlayer(data, "FLEX"),
+    qbs: groupByPositionAndPlayer(picks, "QB"),
+    rbs: groupByPositionAndPlayer(picks, "RB"),
+    flex: groupByPositionAndPlayer(picks, "FLEX"),
     allUsers,
   };
 }
