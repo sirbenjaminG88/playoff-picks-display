@@ -166,7 +166,8 @@ async function fetchAndUpsertPlayerStats(
   week: number,
   playerId: number,
   gameId: number,
-  scoringSettings: ScoringSettings
+  scoringSettings: ScoringSettings,
+  playerName: string
 ): Promise<{ success: boolean; fantasyPoints: number; twoPtConversions: number }> {
   
   const apiUrl = `https://v1.american-football.api-sports.io/games/statistics/players?id=${gameId}&player=${playerId}`;
@@ -188,6 +189,7 @@ async function fetchAndUpsertPlayerStats(
       season,
       week,
       player_id: playerId,
+      player_name: playerName,
       pass_yds: stats.pass_yds,
       pass_tds: stats.pass_tds,
       interceptions: stats.interceptions,
@@ -347,7 +349,8 @@ serve(async (req) => {
         week,
         playerId,
         gameData.game_id,
-        scoringSettings
+        scoringSettings,
+        playerData.name
       );
 
       if (success) {

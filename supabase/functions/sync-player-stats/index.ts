@@ -105,6 +105,7 @@ serve(async (req) => {
       season: number;
       week: number;
       player_id: number;
+      player_name: string;
       pass_yds: number;
       pass_tds: number;
       interceptions: number;
@@ -183,6 +184,7 @@ serve(async (req) => {
         season,
         week,
         player_id: apiPlayerId,
+        player_name: ourPlayer.name,
         ...stats,
         fantasy_points_standard: fantasy_points,
         raw_json: record,
