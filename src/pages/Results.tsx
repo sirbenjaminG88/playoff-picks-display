@@ -4,10 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, Loader2, RefreshCw } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
 import { useWeekPicks, GroupedPlayer } from "@/hooks/useWeekPicks";
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 const getInitials = (name: string): string => {
   const parts = name.split(" ");
   if (parts.length >= 2) {
@@ -81,7 +85,7 @@ const PlayerCard = ({ player }: { player: GroupedPlayer }) => {
 
                 {/* Line 2: Points Badge + Popular/Unique Tag */}
                 <div className="flex items-center gap-2">
-                  <Badge className="text-sm font-bold bg-primary text-primary-foreground">
+                  <Badge className={`text-sm font-bold ${player.hasStats ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                     {player.points.toFixed(1)} pts
                   </Badge>
                   {isPopular && (
@@ -164,8 +168,15 @@ const PositionSection = ({
   );
 };
 
-const WeekResults = ({ week }: { week: number }) => {
+const WeekResults = ({ week, onSyncStats }: { week: number; onSyncStats: (week: number) => void }) => {
   const { data, isLoading, error } = useWeekPicks(week);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    await onSyncStats(week);
+    setIsSyncing(false);
+  };
 
   if (isLoading) {
     return (
@@ -205,6 +216,24 @@ const WeekResults = ({ week }: { week: number }) => {
 
   return (
     <div className="space-y-6">
+      {/* Admin Sync Button */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSync}
+          disabled={isSyncing}
+          className="text-xs"
+        >
+          {isSyncing ? (
+            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+          ) : (
+            <RefreshCw className="w-3 h-3 mr-1" />
+          )}
+          Admin: Sync Stats for {getWeekTabLabel(week).abbrev}
+        </Button>
+      </div>
+      
       <PositionSection title="Quarterbacks" players={data.qbs} />
       <PositionSection title="Running Backs" players={data.rbs} />
       <PositionSection title="Flex (WR/TE)" players={data.flex} />
@@ -284,6 +313,47 @@ const WeekLeaderboard = ({ week }: { week: number }) => {
 export default function Results() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
+  const queryClient = useQueryClient();
+
+  const handleSyncStats = async (week: number) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-player-stats', {
+        body: null,
+        method: 'GET',
+      });
+
+      // Actually need to call with query params, so use fetch directly
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-player-stats?week=${week}&season=2024`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to sync stats');
+      }
+
+      toast({
+        title: "Stats synced successfully",
+        description: `Matched ${result.matched} players for ${getWeekTabLabel(week).abbrev}`,
+      });
+
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ['weekPicks'] });
+    } catch (error) {
+      console.error('Error syncing stats:', error);
+      toast({
+        title: "Error syncing stats",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -314,7 +384,7 @@ export default function Results() {
 
           {[1, 2, 3, 4].map((weekNum) => (
             <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
-              <WeekResults week={weekNum} />
+              <WeekResults week={weekNum} onSyncStats={handleSyncStats} />
 
               {/* Leaderboards Section */}
               <div className="mt-8">
