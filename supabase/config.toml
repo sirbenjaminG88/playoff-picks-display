@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.upsert-player-week-stats]
 verify_jwt = false
+
+[functions.sync-player-stats-for-week]
+verify_jwt = false
