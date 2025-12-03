@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, Loader2 } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
 import { useWeekPicks, GroupedPlayer } from "@/hooks/useWeekPicks";
-
+import { getWeekLabel, getWeekShortLabel } from "@/data/weekLabels";
 const getInitials = (name: string): string => {
   const parts = name.split(" ");
   if (parts.length >= 2) {
@@ -188,7 +188,7 @@ const WeekResults = ({ week }: { week: number }) => {
       <Card className="border-border">
         <CardContent className="py-8">
           <p className="text-muted-foreground text-center">
-            No picks submitted for Week {week} yet
+            No picks submitted for {getWeekLabel(week)} yet
           </p>
         </CardContent>
       </Card>
@@ -229,7 +229,7 @@ const WeekLeaderboard = ({ week }: { week: number }) => {
     return (
       <div className="py-8 text-center">
         <p className="text-muted-foreground">
-          No picks submitted for Week {week}
+          No picks submitted for {getWeekLabel(week)}
         </p>
       </div>
     );
@@ -289,10 +289,10 @@ export default function Results() {
         {/* Week Tabs */}
         <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
           <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/50 border border-border">
-            <TabsTrigger value="week-1">Week 1</TabsTrigger>
-            <TabsTrigger value="week-2">Week 2</TabsTrigger>
-            <TabsTrigger value="week-3">Week 3</TabsTrigger>
-            <TabsTrigger value="week-4">Week 4</TabsTrigger>
+            <TabsTrigger value="week-1">{getWeekShortLabel(1)}</TabsTrigger>
+            <TabsTrigger value="week-2">{getWeekShortLabel(2)}</TabsTrigger>
+            <TabsTrigger value="week-3">{getWeekShortLabel(3)}</TabsTrigger>
+            <TabsTrigger value="week-4">{getWeekShortLabel(4)}</TabsTrigger>
           </TabsList>
 
           {[1, 2, 3, 4].map((weekNum) => (
@@ -303,11 +303,11 @@ export default function Results() {
               <div className="mt-8">
                 <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
                   <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
-                    <TabsTrigger 
+                    <TabsTrigger
                       value="weekly"
                       className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                     >
-                      Week {weekNum} Leaderboard
+                      {getWeekShortLabel(weekNum)} Leaderboard
                     </TabsTrigger>
                     <TabsTrigger 
                       value="overall"
@@ -320,7 +320,7 @@ export default function Results() {
                   <TabsContent value="weekly" className="mt-0">
                     <Card className="border-border bg-card">
                       <CardHeader className="pb-4 px-6 pt-6">
-                        <CardTitle className="text-foreground text-xl">Week {weekNum} Standings</CardTitle>
+                        <CardTitle className="text-foreground text-xl">{getWeekLabel(weekNum)} Standings</CardTitle>
                       </CardHeader>
                       <CardContent className="px-6 pb-6">
                         <WeekLeaderboard week={weekNum} />
@@ -331,7 +331,7 @@ export default function Results() {
                   <TabsContent value="overall" className="mt-0">
                     <Card className="border-border bg-card">
                       <CardHeader className="pb-4 px-6 pt-6">
-                        <CardTitle className="text-foreground text-xl">Overall Standings (Through Week {weekNum})</CardTitle>
+                        <CardTitle className="text-foreground text-xl">Overall Standings (Through {getWeekLabel(weekNum)})</CardTitle>
                       </CardHeader>
                       <CardContent className="px-6 pb-6">
                         <OverallLeaderboard throughWeek={weekNum} />

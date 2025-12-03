@@ -25,6 +25,7 @@ import { getWeekStatus, getCurrentOpenWeek } from "@/lib/weekStatus";
 import { format } from "date-fns";
 import { Pick } from "@/domain/types";
 import { supabase } from "@/integrations/supabase/client";
+import { getWeekLabel, getWeekShortLabel } from "@/data/weekLabels";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -311,7 +312,7 @@ const Picks = () => {
       }));
 
       toast({
-        title: `Week ${weekToSubmit} picks submitted!`,
+        title: `${getWeekLabel(weekToSubmit)} picks submitted!`,
         description: "Your picks have been saved to the database and locked.",
       });
     } catch (err) {
@@ -371,7 +372,7 @@ const Picks = () => {
       }));
 
       toast({
-        title: `Week ${weekToReset} picks cleared`,
+        title: `${getWeekLabel(weekToReset)} picks cleared`,
         description: "You can now make new selections.",
       });
     } catch (err) {
@@ -515,13 +516,13 @@ const Picks = () => {
                         e.preventDefault();
                         toast({
                           title: "Week not available",
-                          description: `Week ${week.weekNumber} picks open on ${format(new Date(week.openAt), "PPP 'at' p")}`,
+                          description: `${getWeekLabel(week.weekNumber)} picks open on ${format(new Date(week.openAt), "PPP 'at' p")}`,
                         });
                         return;
                       }
                     }}
                   >
-                    Week {week.weekNumber}
+                    {getWeekShortLabel(week.weekNumber)}
                   </TabsTrigger>
                 );
               })}
@@ -555,8 +556,8 @@ const Picks = () => {
                       <Alert className="mb-4 border-border bg-muted/20">
                         <Lock className="h-4 w-4" />
                         <AlertDescription>
-                          <div className="font-semibold mb-1 text-foreground">Week {weekNum} picks are not open yet.</div>
-                          <div className="text-sm text-muted-foreground">Week {weekNum} opens on {format(new Date(week.openAt), "PPPP 'at' p")}.</div>
+                          <div className="font-semibold mb-1 text-foreground">{getWeekLabel(weekNum)} picks are not open yet.</div>
+                          <div className="text-sm text-muted-foreground">{getWeekLabel(weekNum)} opens on {format(new Date(week.openAt), "PPPP 'at' p")}.</div>
                         </AlertDescription>
                       </Alert>
                     )}
@@ -565,7 +566,7 @@ const Picks = () => {
                       <Alert className="mb-4 bg-primary/10 border-primary/30">
                         <Info className="h-4 w-4 text-primary" />
                         <AlertDescription>
-                          <div className="font-semibold mb-1 text-primary">Make your picks for Week {weekNum}</div>
+                          <div className="font-semibold mb-1 text-primary">Make your picks for {getWeekLabel(weekNum)}</div>
                           <div className="text-sm text-muted-foreground">Picks are due by {format(new Date(week.deadlineAt), "PPPP 'at' p")}.</div>
                         </AlertDescription>
                       </Alert>
@@ -575,7 +576,7 @@ const Picks = () => {
                       <Alert className="mb-4 bg-primary/10 border-primary/30">
                         <CheckCircle2 className="h-4 w-4 text-primary" />
                         <AlertDescription>
-                          <div className="font-semibold mb-1 text-primary">Your picks for Week {weekNum} have been submitted.</div>
+                          <div className="font-semibold mb-1 text-primary">Your picks for {getWeekLabel(weekNum)} have been submitted.</div>
                           <div className="text-sm text-muted-foreground">
                             Submitted on {weekPicks.submittedAt ? format(new Date(weekPicks.submittedAt), "PPP 'at' p") : "just now"}. You can't change picks after submitting.
                           </div>
@@ -587,14 +588,14 @@ const Picks = () => {
                       <Alert className="mb-4 border-destructive/50 bg-destructive/10" variant="destructive">
                         <Info className="h-4 w-4" />
                         <AlertDescription>
-                          <div className="font-semibold mb-1">Week {weekNum} is complete.</div>
+                          <div className="font-semibold mb-1">{getWeekLabel(weekNum)} is complete.</div>
                           <div className="text-sm">You didn't submit picks for this week.</div>
                         </AlertDescription>
                       </Alert>
                     )}
                     
                     <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold">Week {weekNum} Picks</h2>
+                      <h2 className="text-2xl font-bold">{getWeekLabel(weekNum)} Picks</h2>
                       {/* Admin reset button */}
                       {(weekPicks.qb || weekPicks.rb || weekPicks.flex || weekPicks.submitted) && (
                         <Button
@@ -607,7 +608,7 @@ const Picks = () => {
                           }}
                         >
                           <Trash2 className="w-3 h-3 mr-1" />
-                          Admin: Reset Week {weekNum}
+                          Admin: Reset {getWeekShortLabel(weekNum)}
                         </Button>
                       )}
                     </div>
@@ -925,10 +926,10 @@ const Picks = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Submit picks for Week {weekToSubmit}?
+              Submit picks for {weekToSubmit !== null ? getWeekLabel(weekToSubmit) : ""}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to submit your picks for Week {weekToSubmit}?
+              Are you sure you want to submit your picks for {weekToSubmit !== null ? getWeekLabel(weekToSubmit) : "this week"}?
               This action cannot be changed once submitted.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -982,10 +983,10 @@ const Picks = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Reset picks for Week {weekToReset}?
+              Reset picks for {weekToReset !== null ? getWeekLabel(weekToReset) : ""}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to clear your picks for Week {weekToReset}? 
+              Are you sure you want to clear your picks for {weekToReset !== null ? getWeekLabel(weekToReset) : "this week"}? 
               This only affects your account and cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
