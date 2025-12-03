@@ -15,6 +15,7 @@ interface PlayerStats {
   rec_yds: number;
   rec_tds: number;
   fumbles_lost: number;
+  two_pt_conversions: number;
 }
 
 interface ScoringSettings {
@@ -51,6 +52,7 @@ function extractStats(response: any): PlayerStats {
     rec_yds: 0,
     rec_tds: 0,
     fumbles_lost: 0,
+    two_pt_conversions: 0,
   };
 
   if (!response?.response?.[0]?.groups) {
@@ -59,6 +61,11 @@ function extractStats(response: any): PlayerStats {
   }
 
   const groups = response.response[0].groups;
+
+  // Track 2-pt conversions from each group
+  let passingTwoPt = 0;
+  let rushingTwoPt = 0;
+  let receivingTwoPt = 0;
 
   for (const group of groups) {
     const groupName = group.name?.toLowerCase() || '';
@@ -76,6 +83,7 @@ function extractStats(response: any): PlayerStats {
       if (groupName === 'rushing') {
         if (statName === 'yards') stats.rush_yds = value;
         if (statName === 'rushing touch downs') stats.rush_tds = value;
+        if (statName === 'two pt') rushingTwoPt = value;
       }
 
       // Passing stats
@@ -83,12 +91,14 @@ function extractStats(response: any): PlayerStats {
         if (statName === 'yards') stats.pass_yds = value;
         if (statName === 'passing touch downs') stats.pass_tds = value;
         if (statName === 'interceptions') stats.interceptions = value;
+        if (statName === 'two pt') passingTwoPt = value;
       }
 
       // Receiving stats
       if (groupName === 'receiving') {
         if (statName === 'yards') stats.rec_yds = value;
         if (statName === 'receiving touch downs') stats.rec_tds = value;
+        if (statName === 'two pt') receivingTwoPt = value;
       }
 
       // Fumbles
@@ -97,6 +107,9 @@ function extractStats(response: any): PlayerStats {
       }
     }
   }
+
+  // Total 2-pt conversions from all groups (Yahoo-style: passer, rusher, and receiver each get credit)
+  stats.two_pt_conversions = (passingTwoPt || 0) + (rushingTwoPt || 0) + (receivingTwoPt || 0);
 
   console.log('Extracted stats:', stats);
   return stats;
@@ -120,7 +133,9 @@ function calculateFantasyPoints(stats: PlayerStats, settings: ScoringSettings): 
     stats.rec_yds * recYdsMult +
     // Turnovers
     stats.interceptions * settings.interception_points +
-    stats.fumbles_lost * settings.fumble_lost_points
+    stats.fumbles_lost * settings.fumble_lost_points +
+    // 2-pt conversions
+    stats.two_pt_conversions * settings.two_pt_conversion_pts
   );
 }
 
