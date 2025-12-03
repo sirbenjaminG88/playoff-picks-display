@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.sync-player-stats-for-week]
 verify_jwt = false
+
+[functions.sync-season-players]
+verify_jwt = false
