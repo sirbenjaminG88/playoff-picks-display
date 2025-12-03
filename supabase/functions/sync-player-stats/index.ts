@@ -169,8 +169,8 @@ serve(async (req) => {
             if (name === 'receiving yards' || name === 'rec yards') rec_yds += value;
             if (name === 'receiving touchdowns' || name === 'rec td' || name === 'rec touchdowns') rec_tds += value;
             
-            // Fumbles
-            if (name === 'fumbles lost') fumbles_lost += value;
+            // Fumbles - API returns "lost" in the fumbles group
+            if (name === 'fumbles lost' || name === 'lost') fumbles_lost += value;
           }
         }
       }
