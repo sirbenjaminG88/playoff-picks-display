@@ -3,16 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Users } from "lucide-react";
+import { Users, Calendar } from "lucide-react";
 
 const Admin = () => {
   const { toast } = useToast();
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [isLoadingTest, setIsLoadingTest] = useState(false);
+  const [isLoadingGames, setIsLoadingGames] = useState(false);
   const [teamsResult, setTeamsResult] = useState<any>(null);
   const [playersResult, setPlayersResult] = useState<any>(null);
   const [testResult, setTestResult] = useState<any>(null);
+  const [gamesResult, setGamesResult] = useState<any>(null);
 
   const syncPlayoffTeams = async () => {
     setIsLoadingTeams(true);
@@ -132,6 +134,43 @@ const Admin = () => {
       });
     } finally {
       setIsLoadingTest(false);
+    }
+  };
+
+  const syncPlayoffGames = async () => {
+    setIsLoadingGames(true);
+    setGamesResult(null);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playoff-games`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: `Synced ${data.inserted + data.updated} playoff games (${data.inserted} new, ${data.updated} updated).`,
+        });
+        setGamesResult(data);
+      } else {
+        throw new Error(data.error || 'Failed to sync games');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sync playoff games",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingGames(false);
     }
   };
 
@@ -268,6 +307,50 @@ const Admin = () => {
                 <pre className="text-xs overflow-auto max-h-96 bg-background p-4 rounded border">
                   {JSON.stringify(testResult, null, 2)}
                 </pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Sync 2024 NFL Playoff Schedule
+            </CardTitle>
+            <CardDescription>
+              Fetch all playoff games from API-Sports and store them for stats lookup
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={syncPlayoffGames} 
+              disabled={isLoadingGames}
+              size="lg"
+            >
+              {isLoadingGames ? "Syncing..." : "Sync Playoff Games"}
+            </Button>
+
+            {gamesResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Sync Results:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Total Games from API: {gamesResult.totalGamesFromApi}</li>
+                  <li>Games Inserted: {gamesResult.inserted}</li>
+                  <li>Games Updated: {gamesResult.updated}</li>
+                  <li>Games Skipped: {gamesResult.skipped}</li>
+                </ul>
+                
+                {gamesResult.skippedGames && gamesResult.skippedGames.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold mb-2 text-muted-foreground">Skipped Games:</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      {gamesResult.skippedGames.map((game: string, idx: number) => (
+                        <li key={idx}>{game}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

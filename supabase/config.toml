@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.sync-player-stats]
 verify_jwt = false
+
+[functions.sync-playoff-games]
+verify_jwt = false
