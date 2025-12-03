@@ -15,6 +15,7 @@ interface PlayerStats {
   rec_yds: number;
   rec_tds: number;
   fumbles_lost: number;
+  two_pt_conversions: number;
 }
 
 interface ScoringSettings {
@@ -51,6 +52,7 @@ function extractStats(response: any): PlayerStats {
     rec_yds: 0,
     rec_tds: 0,
     fumbles_lost: 0,
+    two_pt_conversions: 0,
   };
 
   if (!response?.response?.[0]?.groups) {
@@ -58,6 +60,11 @@ function extractStats(response: any): PlayerStats {
   }
 
   const groups = response.response[0].groups;
+
+  // Track 2-pt conversions from each group
+  let passingTwoPt = 0;
+  let rushingTwoPt = 0;
+  let receivingTwoPt = 0;
 
   for (const group of groups) {
     const groupName = group.name?.toLowerCase() || '';
@@ -74,17 +81,20 @@ function extractStats(response: any): PlayerStats {
       if (groupName === 'rushing') {
         if (statName === 'yards') stats.rush_yds = value;
         if (statName === 'rushing touch downs') stats.rush_tds = value;
+        if (statName === 'two pt') rushingTwoPt = value;
       }
 
       if (groupName === 'passing') {
         if (statName === 'yards') stats.pass_yds = value;
         if (statName === 'passing touch downs') stats.pass_tds = value;
         if (statName === 'interceptions') stats.interceptions = value;
+        if (statName === 'two pt') passingTwoPt = value;
       }
 
       if (groupName === 'receiving') {
         if (statName === 'yards') stats.rec_yds = value;
         if (statName === 'receiving touch downs') stats.rec_tds = value;
+        if (statName === 'two pt') receivingTwoPt = value;
       }
 
       if (groupName === 'fumbles') {
@@ -92,6 +102,9 @@ function extractStats(response: any): PlayerStats {
       }
     }
   }
+
+  // Total 2-pt conversions from all groups (Yahoo-style: passer, rusher, and receiver each get credit)
+  stats.two_pt_conversions = (passingTwoPt || 0) + (rushingTwoPt || 0) + (receivingTwoPt || 0);
 
   return stats;
 }
@@ -114,7 +127,9 @@ function calculateFantasyPoints(stats: PlayerStats, settings: ScoringSettings): 
     stats.rec_yds * recYdsMult +
     // Turnovers
     stats.interceptions * settings.interception_points +
-    stats.fumbles_lost * settings.fumble_lost_points
+    stats.fumbles_lost * settings.fumble_lost_points +
+    // 2-pt conversions
+    stats.two_pt_conversions * settings.two_pt_conversion_pts
   );
 }
 
@@ -152,7 +167,7 @@ async function fetchAndUpsertPlayerStats(
   playerId: number,
   gameId: number,
   scoringSettings: ScoringSettings
-): Promise<{ success: boolean; fantasyPoints: number }> {
+): Promise<{ success: boolean; fantasyPoints: number; twoPtConversions: number }> {
   
   const apiUrl = `https://v1.american-football.api-sports.io/games/statistics/players?id=${gameId}&player=${playerId}`;
   
@@ -190,10 +205,10 @@ async function fetchAndUpsertPlayerStats(
 
   if (error) {
     console.error(`Upsert error for player ${playerId}:`, error.message);
-    return { success: false, fantasyPoints: 0 };
+    return { success: false, fantasyPoints: 0, twoPtConversions: 0 };
   }
 
-  return { success: true, fantasyPoints };
+  return { success: true, fantasyPoints, twoPtConversions: stats.two_pt_conversions };
 }
 
 serve(async (req) => {
@@ -253,6 +268,7 @@ serve(async (req) => {
       player_name: string;
       game_id: number;
       fantasy_points: number;
+      two_pt_conversions: number;
       status: string;
     }> = [];
 
@@ -273,14 +289,13 @@ serve(async (req) => {
           player_name: 'Unknown',
           game_id: 0,
           fantasy_points: 0,
+          two_pt_conversions: 0,
           status: 'player_not_found',
         });
         continue;
       }
 
       // Step 3: Find the game for this team in this week
-      // Note: team_id in playoff_players is the external API team ID
-      // We need to find the internal playoff_teams.id first
       const { data: teamData } = await supabase
         .from('playoff_teams')
         .select('id')
@@ -295,6 +310,7 @@ serve(async (req) => {
           player_name: playerData.name,
           game_id: 0,
           fantasy_points: 0,
+          two_pt_conversions: 0,
           status: 'team_not_found',
         });
         continue;
@@ -315,6 +331,7 @@ serve(async (req) => {
           player_name: playerData.name,
           game_id: 0,
           fantasy_points: 0,
+          two_pt_conversions: 0,
           status: 'game_not_found',
         });
         continue;
@@ -323,7 +340,7 @@ serve(async (req) => {
       // Step 4: Fetch stats and upsert
       console.log(`Fetching stats for ${playerData.name} (${playerId}) in game ${gameData.game_id}`);
       
-      const { success, fantasyPoints } = await fetchAndUpsertPlayerStats(
+      const { success, fantasyPoints, twoPtConversions } = await fetchAndUpsertPlayerStats(
         supabase,
         apiKey,
         season,
@@ -340,6 +357,7 @@ serve(async (req) => {
           player_name: playerData.name,
           game_id: gameData.game_id,
           fantasy_points: fantasyPoints,
+          two_pt_conversions: twoPtConversions,
           status: 'success',
         });
       } else {
@@ -348,6 +366,7 @@ serve(async (req) => {
           player_name: playerData.name,
           game_id: gameData.game_id,
           fantasy_points: 0,
+          two_pt_conversions: 0,
           status: 'upsert_failed',
         });
       }
