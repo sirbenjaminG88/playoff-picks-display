@@ -2,10 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AuthRedirect } from "@/components/AuthRedirect";
 import Index from "./pages/Index";
 import Results from "./pages/Results";
 import Picks from "./pages/Picks";
@@ -26,7 +27,7 @@ const App = () => (
         <AuthProvider>
           <div className="min-h-screen pb-16">
             <Routes>
-              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/" element={<AuthRedirect />} />
               <Route path="/home" element={<Index />} />
               <Route path="/signin" element={<SignIn />} />
               <Route path="/profile-setup" element={<ProfileSetup />} />
