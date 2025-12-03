@@ -12,6 +12,10 @@ import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { isAdminUser, SeasonOption, SEASON_OPTIONS } from "@/lib/adminCheck";
+import { useQuery } from "@tanstack/react-query";
 const getInitials = (name: string): string => {
   const parts = name.split(" ");
   if (parts.length >= 2) {
@@ -337,10 +341,186 @@ const WeekLeaderboard = ({ week }: { week: number }) => {
   );
 };
 
+// 2025 Regular Season Results (Admin Only)
+function RegularSeasonResults() {
+  // Fetch available weeks from regular_season_games
+  const { data: weeks, isLoading: weeksLoading } = useQuery({
+    queryKey: ['regularSeasonWeeks', 2025],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('regular_season_games')
+        .select('week')
+        .eq('season', 2025)
+        .eq('season_type', 'REG')
+        .order('week', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Get unique weeks
+      const uniqueWeeks = [...new Set(data.map(g => g.week))];
+      return uniqueWeeks;
+    },
+  });
+
+  const [activeWeek, setActiveWeek] = useState<number | null>(null);
+
+  // Set initial week when data loads
+  if (weeks && weeks.length > 0 && activeWeek === null) {
+    setActiveWeek(weeks[0]);
+  }
+
+  if (weeksLoading) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-12 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!weeks || weeks.length === 0) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-8">
+          <p className="text-muted-foreground text-center">
+            No games found for 2025 Regular Season
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Week Tabs */}
+      <Tabs value={activeWeek ? `week-${activeWeek}` : undefined} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
+        <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
+          {weeks.map((weekNum) => (
+            <TabsTrigger 
+              key={weekNum}
+              value={`week-${weekNum}`} 
+              className="flex-1 min-w-[60px] px-2 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <span className="text-xs font-bold">Week {weekNum}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {weeks.map((weekNum) => (
+          <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
+            <RegularSeasonWeekGames week={weekNum} />
+          </TabsContent>
+        ))}
+      </Tabs>
+    </div>
+  );
+}
+
+// Component to show games for a specific week in 2025 regular season
+function RegularSeasonWeekGames({ week }: { week: number }) {
+  const { data: games, isLoading } = useQuery({
+    queryKey: ['regularSeasonGames', 2025, week],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('regular_season_games')
+        .select('*')
+        .eq('season', 2025)
+        .eq('season_type', 'REG')
+        .eq('week', week)
+        .order('game_date', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-8 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!games || games.length === 0) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-8">
+          <p className="text-muted-foreground text-center">
+            No games found for Week {week}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+        Week {week} Games
+      </h2>
+      <div className="space-y-3">
+        {games.map((game) => {
+          const homeAbbr = game.home_team_abbr || game.home_team_name.substring(0, 3).toUpperCase();
+          const awayAbbr = game.away_team_abbr || game.away_team_name.substring(0, 3).toUpperCase();
+          const homeColors = teamColorMap[homeAbbr] ?? teamColorMap.DEFAULT;
+          const awayColors = teamColorMap[awayAbbr] ?? teamColorMap.DEFAULT;
+          
+          return (
+            <Card key={game.id} className="border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span 
+                      className="px-2.5 py-1 rounded-full text-xs font-semibold"
+                      style={{ backgroundColor: awayColors.bg, color: awayColors.text }}
+                    >
+                      {awayAbbr}
+                    </span>
+                    <span className="text-sm text-muted-foreground">@</span>
+                    <span 
+                      className="px-2.5 py-1 rounded-full text-xs font-semibold"
+                      style={{ backgroundColor: homeColors.bg, color: homeColors.text }}
+                    >
+                      {homeAbbr}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-foreground">
+                      {game.game_date ? new Date(game.game_date).toLocaleDateString('en-US', { 
+                        weekday: 'short', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      }) : 'TBD'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {game.status || 'Scheduled'}
+                    </p>
+                  </div>
+                </div>
+                {game.venue && (
+                  <p className="text-xs text-muted-foreground mt-2">{game.venue}</p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Results() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
+  const [selectedSeason, setSelectedSeason] = useState<SeasonOption>("2024-playoffs");
   const queryClient = useQueryClient();
+  const { email } = useCurrentUser();
+  const isAdmin = isAdminUser(email);
 
   const handleSyncStats = async (week: number) => {
     try {
@@ -376,81 +556,111 @@ export default function Results() {
     }
   };
 
+  // Block non-admin users from 2025 view
+  const effectiveSeason = isAdmin ? selectedSeason : "2024-playoffs";
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-foreground">Results</h1>
-          <p className="text-muted-foreground">Weekly scores and overall standings</p>
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <h1 className="text-4xl font-bold text-foreground">Results</h1>
+            
+            {/* Admin-only Season Selector */}
+            {isAdmin && (
+              <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as SeasonOption)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select season" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SEASON_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <p className="text-muted-foreground">
+            {effectiveSeason === "2025-regular" 
+              ? "2025 Regular Season Schedule (Beta)" 
+              : "Weekly scores and overall standings"}
+          </p>
         </div>
 
-        {/* Week Tabs */}
-        <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
-          <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
-            {[1, 2, 3, 4].map((weekNum) => {
-              const tabLabel = getWeekTabLabel(weekNum);
-              return (
-                <TabsTrigger 
-                  key={weekNum}
-                  value={`week-${weekNum}`} 
-                  className="flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">{tabLabel.abbrev}</span>
-                  <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{tabLabel.dates}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+        {/* 2025 Regular Season View (Admin Only) */}
+        {effectiveSeason === "2025-regular" ? (
+          <RegularSeasonResults />
+        ) : (
+          /* 2024 Playoffs View (Default) */
+          <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
+            <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
+              {[1, 2, 3, 4].map((weekNum) => {
+                const tabLabel = getWeekTabLabel(weekNum);
+                return (
+                  <TabsTrigger 
+                    key={weekNum}
+                    value={`week-${weekNum}`} 
+                    className="flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">{tabLabel.abbrev}</span>
+                    <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{tabLabel.dates}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
 
-          {[1, 2, 3, 4].map((weekNum) => (
-            <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
-              <WeekResults week={weekNum} onSyncStats={handleSyncStats} />
+            {[1, 2, 3, 4].map((weekNum) => (
+              <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
+                <WeekResults week={weekNum} onSyncStats={handleSyncStats} />
 
-              {/* Leaderboards Section */}
-              <div className="mt-8">
-                <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
-                  <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
-                    <TabsTrigger
-                      value="weekly"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    >
-                      {getWeekLabel(weekNum)} Leaderboard
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="overall"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    >
-                      Overall Leaderboard
-                    </TabsTrigger>
-                  </TabsList>
+                {/* Leaderboards Section */}
+                <div className="mt-8">
+                  <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
+                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
+                      <TabsTrigger
+                        value="weekly"
+                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        {getWeekLabel(weekNum)} Leaderboard
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="overall"
+                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Overall Leaderboard
+                      </TabsTrigger>
+                    </TabsList>
 
-                  <TabsContent value="weekly" className="mt-0">
-                    <Card className="border-border bg-card">
-                      <CardHeader className="pb-4 px-6 pt-6">
-                        <CardTitle className="text-foreground text-xl">{getWeekLabel(weekNum)} Standings</CardTitle>
-                      </CardHeader>
-                      <CardContent className="px-6 pb-6">
-                        <WeekLeaderboard week={weekNum} />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+                    <TabsContent value="weekly" className="mt-0">
+                      <Card className="border-border bg-card">
+                        <CardHeader className="pb-4 px-6 pt-6">
+                          <CardTitle className="text-foreground text-xl">{getWeekLabel(weekNum)} Standings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-6 pb-6">
+                          <WeekLeaderboard week={weekNum} />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
 
-                  <TabsContent value="overall" className="mt-0">
-                    <Card className="border-border bg-card">
-                      <CardHeader className="pb-4 px-6 pt-6">
-                        <CardTitle className="text-foreground text-xl">Overall Standings (Through {getWeekLabel(weekNum)})</CardTitle>
-                      </CardHeader>
-                      <CardContent className="px-6 pb-6">
-                        <OverallLeaderboard throughWeek={weekNum} />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+                    <TabsContent value="overall" className="mt-0">
+                      <Card className="border-border bg-card">
+                        <CardHeader className="pb-4 px-6 pt-6">
+                          <CardTitle className="text-foreground text-xl">Overall Standings (Through {getWeekLabel(weekNum)})</CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-6 pb-6">
+                          <OverallLeaderboard throughWeek={weekNum} />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
       </div>
     </div>
   );
