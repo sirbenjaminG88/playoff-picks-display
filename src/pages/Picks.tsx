@@ -137,6 +137,22 @@ const Picks = () => {
       }
 
       if (data && data.length > 0) {
+        // Get unique player_ids to fetch their images
+        const playerIds = [...new Set(data.map((p) => p.player_id))];
+        
+        // Fetch player images from playoff_players
+        const { data: players } = await supabase
+          .from("playoff_players")
+          .select("player_id, image_url")
+          .in("player_id", playerIds)
+          .eq("season", CURRENT_SEASON);
+
+        // Create a map of player_id to image_url
+        const playerImageMap = new Map<number, string | null>();
+        players?.forEach((p) => {
+          playerImageMap.set(p.player_id, p.image_url);
+        });
+
         // Group picks by week
         const picksByWeekMap: Record<number, WeekPicks> = {
           1: { submitted: false },
@@ -159,7 +175,7 @@ const Picks = () => {
             team_name: pick.team_name,
             team_id: pick.team_id,
             number: null,
-            image_url: null,
+            image_url: playerImageMap.get(pick.player_id) ?? null,
           };
 
           if (pick.position_slot === "QB") {
