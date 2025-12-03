@@ -1,10 +1,4 @@
-// Admin email for accessing beta features
-const ADMIN_EMAIL = "benjaminmgold@gmail.com";
-
-export function isAdminUser(email: string | null | undefined): boolean {
-  return email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-}
-
+// Season configuration types and options
 export type SeasonOption = "2024-playoffs" | "2025-regular";
 
 export interface SeasonConfig {

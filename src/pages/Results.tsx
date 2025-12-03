@@ -13,8 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { isAdminUser, SeasonOption, SEASON_OPTIONS } from "@/lib/adminCheck";
+import { useAuth } from "@/contexts/AuthContext";
+import { SeasonOption, SEASON_OPTIONS } from "@/lib/adminCheck";
 import { useQuery } from "@tanstack/react-query";
 const getInitials = (name: string): string => {
   const parts = name.split(" ");
@@ -519,8 +519,7 @@ export default function Results() {
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
   const [selectedSeason, setSelectedSeason] = useState<SeasonOption>("2024-playoffs");
   const queryClient = useQueryClient();
-  const { email } = useCurrentUser();
-  const isAdmin = isAdminUser(email);
+  const { isAdmin } = useAuth();
 
   const handleSyncStats = async (week: number) => {
     try {
