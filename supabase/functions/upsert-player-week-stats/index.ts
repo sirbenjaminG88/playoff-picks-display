@@ -17,6 +17,30 @@ interface PlayerStats {
   fumbles_lost: number;
 }
 
+interface ScoringSettings {
+  pass_yds_per_point: number;
+  rush_yds_per_point: number;
+  rec_yds_per_point: number;
+  pass_td_points: number;
+  rush_td_points: number;
+  rec_td_points: number;
+  interception_points: number;
+  fumble_lost_points: number;
+  two_pt_conversion_pts: number;
+}
+
+const DEFAULT_SCORING: ScoringSettings = {
+  pass_yds_per_point: 25,
+  rush_yds_per_point: 10,
+  rec_yds_per_point: 10,
+  pass_td_points: 5,
+  rush_td_points: 6,
+  rec_td_points: 6,
+  interception_points: -2,
+  fumble_lost_points: -2,
+  two_pt_conversion_pts: 2,
+};
+
 function extractStats(response: any): PlayerStats {
   const stats: PlayerStats = {
     pass_yds: 0,
@@ -78,17 +102,52 @@ function extractStats(response: any): PlayerStats {
   return stats;
 }
 
-function calculateFantasyPoints(stats: PlayerStats): number {
+function calculateFantasyPoints(stats: PlayerStats, settings: ScoringSettings): number {
+  // Convert "yards per point" to multipliers
+  const passYdsMult = 1 / settings.pass_yds_per_point;
+  const rushYdsMult = 1 / settings.rush_yds_per_point;
+  const recYdsMult = 1 / settings.rec_yds_per_point;
+
   return (
-    stats.pass_tds * 4 +
-    stats.pass_yds * 0.04 +
-    stats.interceptions * -2 +
-    stats.rush_tds * 6 +
-    stats.rush_yds * 0.1 +
-    stats.rec_tds * 6 +
-    stats.rec_yds * 0.1 +
-    stats.fumbles_lost * -2
+    // Passing
+    stats.pass_tds * settings.pass_td_points +
+    stats.pass_yds * passYdsMult +
+    // Rushing
+    stats.rush_tds * settings.rush_td_points +
+    stats.rush_yds * rushYdsMult +
+    // Receiving
+    stats.rec_tds * settings.rec_td_points +
+    stats.rec_yds * recYdsMult +
+    // Turnovers
+    stats.interceptions * settings.interception_points +
+    stats.fumbles_lost * settings.fumble_lost_points
   );
+}
+
+async function getActiveScoringSettings(supabase: any): Promise<ScoringSettings> {
+  const { data, error } = await supabase
+    .from('scoring_settings')
+    .select('*')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.log('No active scoring settings found, using defaults');
+    return DEFAULT_SCORING;
+  }
+
+  console.log('Using scoring settings:', data.name);
+  return {
+    pass_yds_per_point: Number(data.pass_yds_per_point),
+    rush_yds_per_point: Number(data.rush_yds_per_point),
+    rec_yds_per_point: Number(data.rec_yds_per_point),
+    pass_td_points: Number(data.pass_td_points),
+    rush_td_points: Number(data.rush_td_points),
+    rec_td_points: Number(data.rec_td_points),
+    interception_points: Number(data.interception_points),
+    fumble_lost_points: Number(data.fumble_lost_points),
+    two_pt_conversion_pts: Number(data.two_pt_conversion_pts),
+  };
 }
 
 serve(async (req) => {
@@ -123,6 +182,9 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch active scoring settings
+    const scoringSettings = await getActiveScoringSettings(supabase);
+
     // Optional: Check if player exists in playoff_players
     const { data: playerData } = await supabase
       .from('playoff_players')
@@ -153,8 +215,8 @@ serve(async (req) => {
     // Extract stats from response
     const stats = extractStats(apiResponse);
     
-    // Calculate fantasy points
-    const fantasyPoints = calculateFantasyPoints(stats);
+    // Calculate fantasy points using configurable settings
+    const fantasyPoints = calculateFantasyPoints(stats, scoringSettings);
     console.log(`Calculated fantasy points: ${fantasyPoints}`);
 
     // Upsert into player_week_stats
@@ -195,6 +257,7 @@ serve(async (req) => {
       player_name: playerData?.name || 'Unknown',
       stats,
       fantasy_points_standard: fantasyPoints,
+      scoring_settings_used: scoringSettings,
     };
 
     console.log('Upsert successful:', summary);

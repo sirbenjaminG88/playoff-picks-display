@@ -230,6 +230,57 @@ export type Database = {
         }
         Relationships: []
       }
+      scoring_settings: {
+        Row: {
+          created_at: string
+          fumble_lost_points: number
+          id: string
+          interception_points: number
+          is_active: boolean
+          name: string
+          pass_td_points: number
+          pass_yds_per_point: number
+          rec_td_points: number
+          rec_yds_per_point: number
+          rush_td_points: number
+          rush_yds_per_point: number
+          two_pt_conversion_pts: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fumble_lost_points?: number
+          id?: string
+          interception_points?: number
+          is_active?: boolean
+          name: string
+          pass_td_points?: number
+          pass_yds_per_point?: number
+          rec_td_points?: number
+          rec_yds_per_point?: number
+          rush_td_points?: number
+          rush_yds_per_point?: number
+          two_pt_conversion_pts?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fumble_lost_points?: number
+          id?: string
+          interception_points?: number
+          is_active?: boolean
+          name?: string
+          pass_td_points?: number
+          pass_yds_per_point?: number
+          rec_td_points?: number
+          rec_yds_per_point?: number
+          rush_td_points?: number
+          rush_yds_per_point?: number
+          two_pt_conversion_pts?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_picks: {
         Row: {
           created_at: string
