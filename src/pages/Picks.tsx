@@ -485,7 +485,7 @@ const Picks = () => {
           <div className="text-center py-12 text-muted-foreground">Loading players...</div>
         ) : (
           <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v)} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-8 h-auto p-1 bg-muted/50 border border-border">
+            <TabsList className="w-full flex overflow-x-auto mb-8 h-auto p-1 bg-muted/50 border border-border gap-1">
               {playoffWeeks.map((week) => {
                 const weekNum = week.weekNumber;
                 const weekPicks = picksByWeek[weekNum];
@@ -508,7 +508,7 @@ const Picks = () => {
                     value={value}
                     disabled={isFuture}
                     className={cn(
-                      "text-sm sm:text-base font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                      "flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm font-semibold whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
                       isFuture && "opacity-50 cursor-not-allowed"
                     )}
                     onClick={(e) => {
