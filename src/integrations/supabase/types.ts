@@ -24,6 +24,7 @@ export type Database = {
           pass_tds: number | null
           pass_yds: number | null
           player_id: number
+          player_name: string | null
           raw_json: Json | null
           rec_tds: number | null
           rec_yds: number | null
@@ -42,6 +43,7 @@ export type Database = {
           pass_tds?: number | null
           pass_yds?: number | null
           player_id: number
+          player_name?: string | null
           raw_json?: Json | null
           rec_tds?: number | null
           rec_yds?: number | null
@@ -60,6 +62,7 @@ export type Database = {
           pass_tds?: number | null
           pass_yds?: number | null
           player_id?: number
+          player_name?: string | null
           raw_json?: Json | null
           rec_tds?: number | null
           rec_yds?: number | null
