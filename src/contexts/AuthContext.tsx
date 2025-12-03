@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Profile {
   id: string;
-  email: string;
   display_name: string | null;
   avatar_url: string | null;
   created_at: string;
@@ -30,9 +29,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
+    // Use public_profiles view to avoid exposing email
     const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
+      .from("public_profiles")
+      .select("id, display_name, avatar_url, created_at")
       .eq("id", userId)
       .single();
 
