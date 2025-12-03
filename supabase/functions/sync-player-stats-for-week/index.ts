@@ -98,7 +98,8 @@ function extractStats(response: any): PlayerStats {
       }
 
       if (groupName === 'fumbles') {
-        if (statName === 'fumbles lost') stats.fumbles_lost = value;
+        // API returns "lost" not "fumbles lost" in the fumbles group
+        if (statName === 'lost' || statName === 'fumbles lost') stats.fumbles_lost = value;
       }
     }
   }
