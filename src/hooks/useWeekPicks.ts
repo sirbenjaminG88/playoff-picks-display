@@ -4,6 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 const LEAGUE_ID = "playoff-league-2024";
 const SEASON = 2024;
 
+export interface PlayerWeekStats {
+  pass_yds: number;
+  pass_tds: number;
+  interceptions: number;
+  rush_yds: number;
+  rush_tds: number;
+  rec_yds: number;
+  rec_tds: number;
+  fumbles_lost: number;
+  fantasy_points_standard: number;
+}
+
 export interface GroupedPlayer {
   playerId: number;
   playerName: string;
@@ -15,6 +27,7 @@ export interface GroupedPlayer {
   selectedBy: string[];
   points: number;
   hasStats: boolean;
+  stats: PlayerWeekStats | null;
 }
 
 export interface WeekPicksData {
@@ -55,10 +68,10 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
     console.error("Error fetching player images:", playersError);
   }
 
-  // Fetch player stats for this week
+  // Fetch player stats for this week - include all stat fields
   const { data: stats, error: statsError } = await supabase
     .from("player_week_stats")
-    .select("player_id, fantasy_points_standard")
+    .select("player_id, pass_yds, pass_tds, interceptions, rush_yds, rush_tds, rec_yds, rec_tds, fumbles_lost, fantasy_points_standard")
     .in("player_id", playerIds)
     .eq("season", SEASON)
     .eq("week", week);
@@ -73,9 +86,19 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
     playerImageMap.set(p.player_id, p.image_url);
   });
 
-  const playerStatsMap = new Map<number, number>();
+  const playerStatsMap = new Map<number, PlayerWeekStats>();
   stats?.forEach((s) => {
-    playerStatsMap.set(s.player_id, s.fantasy_points_standard || 0);
+    playerStatsMap.set(s.player_id, {
+      pass_yds: s.pass_yds || 0,
+      pass_tds: s.pass_tds || 0,
+      interceptions: s.interceptions || 0,
+      rush_yds: s.rush_yds || 0,
+      rush_tds: s.rush_tds || 0,
+      rec_yds: s.rec_yds || 0,
+      rec_tds: s.rec_tds || 0,
+      fumbles_lost: s.fumbles_lost || 0,
+      fantasy_points_standard: s.fantasy_points_standard || 0,
+    });
   });
 
   // Group by position_slot and player_id
@@ -85,8 +108,8 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
 
     filtered.forEach((pick) => {
       const existing = grouped.get(pick.player_id);
-      const statsPoints = playerStatsMap.get(pick.player_id);
-      const hasStats = statsPoints !== undefined;
+      const playerStats = playerStatsMap.get(pick.player_id);
+      const hasStats = playerStats !== undefined;
       
       if (existing) {
         if (!existing.selectedBy.includes(pick.user_id)) {
@@ -102,8 +125,9 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
           positionSlot: pick.position_slot,
           imageUrl: playerImageMap.get(pick.player_id) ?? null,
           selectedBy: [pick.user_id],
-          points: hasStats ? statsPoints : 0,
+          points: hasStats ? playerStats.fantasy_points_standard : 0,
           hasStats,
+          stats: playerStats ?? null,
         });
       }
     });
