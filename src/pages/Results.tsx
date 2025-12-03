@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, Loader2 } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
 import { useWeekPicks, GroupedPlayer } from "@/hooks/useWeekPicks";
-import { getWeekLabel, getWeekShortLabel } from "@/data/weekLabels";
+import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 const getInitials = (name: string): string => {
   const parts = name.split(" ");
   if (parts.length >= 2) {
@@ -289,10 +289,19 @@ export default function Results() {
         {/* Week Tabs */}
         <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
           <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
-            <TabsTrigger value="week-1" className="flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm whitespace-nowrap">{getWeekShortLabel(1)}</TabsTrigger>
-            <TabsTrigger value="week-2" className="flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm whitespace-nowrap">{getWeekShortLabel(2)}</TabsTrigger>
-            <TabsTrigger value="week-3" className="flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm whitespace-nowrap">{getWeekShortLabel(3)}</TabsTrigger>
-            <TabsTrigger value="week-4" className="flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm whitespace-nowrap">{getWeekShortLabel(4)}</TabsTrigger>
+            {[1, 2, 3, 4].map((weekNum) => {
+              const tabLabel = getWeekTabLabel(weekNum);
+              return (
+                <TabsTrigger 
+                  key={weekNum}
+                  value={`week-${weekNum}`} 
+                  className="flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">{tabLabel.abbrev}</span>
+                  <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{tabLabel.dates}</span>
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
 
           {[1, 2, 3, 4].map((weekNum) => (
@@ -307,7 +316,7 @@ export default function Results() {
                       value="weekly"
                       className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                     >
-                      {getWeekShortLabel(weekNum)} Leaderboard
+                      {getWeekLabel(weekNum)} Leaderboard
                     </TabsTrigger>
                     <TabsTrigger 
                       value="overall"
