@@ -20,67 +20,34 @@ const getInitials = (name: string): string => {
   return name.substring(0, 2).toUpperCase();
 };
 
+// Stat tile component for the grid layout
+const StatTile = ({ label, value }: { label: string; value: number | string }) => (
+  <div className="rounded-lg bg-muted/30 border border-border/50 p-3">
+    <p className="text-xs text-muted-foreground mb-1">{label}</p>
+    <p className="text-2xl font-bold text-foreground">{value}</p>
+  </div>
+);
+
 // Stats breakdown component for expanded player cards
 const StatsBreakdown = ({ stats }: { stats: PlayerWeekStats | null }) => {
   if (!stats) {
     return (
-      <div className="rounded-xl bg-muted/20 border border-border p-4">
-        <p className="text-sm text-muted-foreground text-center">
-          Stats will appear here once games have been played.
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground text-center py-4">
+        Stats will appear here once games have been played.
+      </p>
     );
   }
 
-  const hasPassing = stats.pass_yds > 0 || stats.pass_tds > 0 || stats.interceptions > 0;
-  const hasRushing = stats.rush_yds > 0 || stats.rush_tds > 0;
-  const hasReceiving = stats.rec_yds > 0 || stats.rec_tds > 0;
-  const totalTurnovers = stats.interceptions + stats.fumbles_lost;
-
   return (
-    <div className="rounded-xl bg-muted/20 border border-border p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Left Column: Passing & Rushing */}
-        <div className="space-y-3">
-          {hasPassing && (
-            <div>
-              <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Passing</h5>
-              <p className="text-sm font-medium text-foreground">
-                {stats.pass_yds} yds • {stats.pass_tds} TD • {stats.interceptions} INT
-              </p>
-            </div>
-          )}
-          {hasRushing && (
-            <div>
-              <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Rushing</h5>
-              <p className="text-sm font-medium text-foreground">
-                {stats.rush_yds} yds • {stats.rush_tds} TD
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Receiving & Turnovers/Fantasy */}
-        <div className="space-y-3">
-          {hasReceiving && (
-            <div>
-              <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Receiving</h5>
-              <p className="text-sm font-medium text-foreground">
-                {stats.rec_yds} yds • {stats.rec_tds} TD
-              </p>
-            </div>
-          )}
-          <div>
-            <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Turnovers & Fantasy</h5>
-            <p className="text-sm font-medium text-foreground">
-              Turnovers: {totalTurnovers}
-            </p>
-            <p className="text-sm font-bold text-primary mt-1">
-              Fantasy: {stats.fantasy_points_standard.toFixed(1)} pts
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="grid grid-cols-2 gap-3">
+      <StatTile label="Pass Yards" value={Math.round(stats.pass_yds)} />
+      <StatTile label="Pass TDs" value={stats.pass_tds} />
+      <StatTile label="Interceptions" value={stats.interceptions} />
+      <StatTile label="Rush Yards" value={Math.round(stats.rush_yds)} />
+      <StatTile label="Rush TDs" value={stats.rush_tds} />
+      <StatTile label="Rec Yards" value={Math.round(stats.rec_yds)} />
+      <StatTile label="Rec TDs" value={stats.rec_tds} />
+      <StatTile label="Fumbles Lost" value={stats.fumbles_lost} />
     </div>
   );
 };
