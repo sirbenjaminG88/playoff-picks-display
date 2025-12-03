@@ -10,7 +10,7 @@ export const WEEK_LABELS: Record<number, string> = {
 export const WEEK_SHORT_LABELS: Record<number, string> = {
   1: "Wild Card",
   2: "Divisional",
-  3: "Conf. Champs",
+  3: "Championships",
   4: "Super Bowl",
 };
 

@@ -288,11 +288,11 @@ export default function Results() {
 
         {/* Week Tabs */}
         <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
-          <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/50 border border-border">
-            <TabsTrigger value="week-1">{getWeekShortLabel(1)}</TabsTrigger>
-            <TabsTrigger value="week-2">{getWeekShortLabel(2)}</TabsTrigger>
-            <TabsTrigger value="week-3">{getWeekShortLabel(3)}</TabsTrigger>
-            <TabsTrigger value="week-4">{getWeekShortLabel(4)}</TabsTrigger>
+          <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
+            <TabsTrigger value="week-1" className="flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm whitespace-nowrap">{getWeekShortLabel(1)}</TabsTrigger>
+            <TabsTrigger value="week-2" className="flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm whitespace-nowrap">{getWeekShortLabel(2)}</TabsTrigger>
+            <TabsTrigger value="week-3" className="flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm whitespace-nowrap">{getWeekShortLabel(3)}</TabsTrigger>
+            <TabsTrigger value="week-4" className="flex-1 min-w-0 px-2 py-2 text-xs sm:text-sm whitespace-nowrap">{getWeekShortLabel(4)}</TabsTrigger>
           </TabsList>
 
           {[1, 2, 3, 4].map((weekNum) => (
