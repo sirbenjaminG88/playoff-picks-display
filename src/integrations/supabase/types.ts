@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      player_week_stats: {
+        Row: {
+          created_at: string
+          fantasy_points_standard: number | null
+          fumbles_lost: number | null
+          id: string
+          interceptions: number | null
+          pass_tds: number | null
+          pass_yds: number | null
+          player_id: number
+          raw_json: Json | null
+          rec_tds: number | null
+          rec_yds: number | null
+          rush_tds: number | null
+          rush_yds: number | null
+          season: number
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          fantasy_points_standard?: number | null
+          fumbles_lost?: number | null
+          id?: string
+          interceptions?: number | null
+          pass_tds?: number | null
+          pass_yds?: number | null
+          player_id: number
+          raw_json?: Json | null
+          rec_tds?: number | null
+          rec_yds?: number | null
+          rush_tds?: number | null
+          rush_yds?: number | null
+          season?: number
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          fantasy_points_standard?: number | null
+          fumbles_lost?: number | null
+          id?: string
+          interceptions?: number | null
+          pass_tds?: number | null
+          pass_yds?: number | null
+          player_id?: number
+          raw_json?: Json | null
+          rec_tds?: number | null
+          rec_yds?: number | null
+          rush_tds?: number | null
+          rush_yds?: number | null
+          season?: number
+          updated_at?: string
+          week?: number
+        }
+        Relationships: []
+      }
       playoff_players: {
         Row: {
           created_at: string
