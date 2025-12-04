@@ -183,6 +183,34 @@ const Picks = () => {
       }
 
       if (data && data.length > 0) {
+        // Get unique player IDs to fetch their images
+        const playerIds = [...new Set(data.map(p => p.player_id))];
+        
+        // Fetch player images
+        let playerImageMap = new Map<number, string | null>();
+        
+        if (isRegularSeason) {
+          const { data: players } = await supabase
+            .from("players")
+            .select("api_player_id, image_url")
+            .eq("season", season)
+            .in("api_player_id", playerIds.map(String));
+          
+          players?.forEach(p => {
+            playerImageMap.set(parseInt(p.api_player_id), p.image_url);
+          });
+        } else {
+          const { data: players } = await supabase
+            .from("playoff_players")
+            .select("player_id, image_url")
+            .eq("season", season)
+            .in("player_id", playerIds);
+          
+          players?.forEach(p => {
+            playerImageMap.set(p.player_id, p.image_url);
+          });
+        }
+
         // Group picks by week
         const picksByWeekMap: Record<number, WeekPicks> = {};
         
@@ -207,7 +235,7 @@ const Picks = () => {
             teamAbbr: getTeamAbbrev(pick.team_name),
             teamId: pick.team_id,
             number: null,
-            imageUrl: null,
+            imageUrl: playerImageMap.get(pick.player_id) ?? null,
           };
 
           if (pick.position_slot === "QB") {
