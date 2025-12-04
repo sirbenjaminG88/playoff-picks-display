@@ -50,6 +50,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
 
     const fetchMemberships = async () => {
       setLoading(true);
+      console.log("[LeagueContext] Fetching memberships for user:", user.id);
       try {
         // Fetch user's league memberships with league data
         const { data, error } = await supabase
@@ -64,10 +65,14 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
           `)
           .eq("user_id", user.id);
 
+        console.log("[LeagueContext] Query result:", { data, error });
+
         if (error) {
-          console.error("Error fetching league memberships:", error);
+          console.error("[LeagueContext] Error fetching league memberships:", error);
           setMemberships([]);
         } else if (data) {
+          console.log("[LeagueContext] Raw data:", JSON.stringify(data, null, 2));
+          
           // Transform the data to flatten the league object
           const transformedMemberships: LeagueMembership[] = data.map((m: any) => ({
             id: m.id,
@@ -78,6 +83,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
             league: m.league as League,
           }));
           
+          console.log("[LeagueContext] Transformed memberships:", transformedMemberships);
           setMemberships(transformedMemberships);
 
           // Default to the beta league or first league
@@ -85,11 +91,13 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
             const betaLeague = transformedMemberships.find(
               m => m.league.name === "2025 Regular Season Beta Test"
             );
-            setCurrentLeagueId(betaLeague?.league_id || transformedMemberships[0].league_id);
+            const selectedId = betaLeague?.league_id || transformedMemberships[0].league_id;
+            console.log("[LeagueContext] Setting currentLeagueId to:", selectedId);
+            setCurrentLeagueId(selectedId);
           }
         }
       } catch (err) {
-        console.error("Error fetching memberships:", err);
+        console.error("[LeagueContext] Error fetching memberships:", err);
         setMemberships([]);
       } finally {
         setLoading(false);
