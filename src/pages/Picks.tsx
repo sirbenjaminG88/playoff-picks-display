@@ -125,31 +125,21 @@ const Picks = () => {
 
   // Initialize picksByWeek structure when weeks are available
   // This should only set up empty entries for weeks that don't exist yet
+  // NOTE: This effect should NOT reset picks loaded from the database
   useEffect(() => {
     if (activeWeeks.length === 0) return;
     
     const weekNums = activeWeeks.map(w => w.weekNumber);
     
     setPicksByWeek(prev => {
-      // Check if we already have any picks loaded - if so, don't reset
-      const hasAnyPicks = Object.values(prev).some(w => w.qb || w.rb || w.flex || w.submitted);
-      if (hasAnyPicks) {
-        // Just ensure all weeks exist, preserving existing data
-        const updated = { ...prev };
-        for (const w of weekNums) {
-          if (!updated[w]) {
-            updated[w] = { submitted: false };
-          }
-        }
-        return updated;
-      }
-      
-      // Initial setup - create empty entries for all weeks
-      const newPicks: Record<number, WeekPicks> = {};
+      // Always preserve existing data - just ensure all weeks exist
+      const updated = { ...prev };
       for (const w of weekNums) {
-        newPicks[w] = prev[w] || { submitted: false };
+        if (!updated[w]) {
+          updated[w] = { submitted: false };
+        }
       }
-      return newPicks;
+      return updated;
     });
     
     // Also ensure activeWeek is valid for current weeks
@@ -197,17 +187,31 @@ const Picks = () => {
 
     const fetchUserPicks = async () => {
       const season = isRegularSeason ? 2025 : 2024;
+      const leagueId = currentLeague.id;
+      
+      console.log("[Picks] Fetching picks for:", { userId: user.id, leagueId, season });
       
       const { data, error } = await supabase
         .from("user_picks")
         .select("*")
         .eq("auth_user_id", user.id)
-        .eq("league_id", currentLeague.id)
+        .eq("league_id", leagueId)
         .eq("season", season);
 
       if (error) {
-        console.error("Error fetching user picks:", error);
+        console.error("[Picks] Error fetching user picks:", error);
         return;
+      }
+
+      console.log("[Picks] Fetched picks:", data?.length, "rows");
+
+      // Initialize picksByWeek structure with empty weeks first
+      const picksByWeekMap: Record<number, WeekPicks> = {};
+      
+      // Use BETA weeks for regular season, or activeWeeks
+      const weekNums = isRegularSeason ? [14, 15, 16, 17] : activeWeeks.map(w => w.weekNumber);
+      for (const w of weekNums) {
+        picksByWeekMap[w] = { submitted: false };
       }
 
       if (data && data.length > 0) {
@@ -237,15 +241,6 @@ const Picks = () => {
           players?.forEach(p => {
             playerImageMap.set(p.player_id, p.image_url);
           });
-        }
-
-        // Group picks by week
-        const picksByWeekMap: Record<number, WeekPicks> = {};
-        
-        // Initialize with empty weeks
-        const weekNums = activeWeeks.map(w => w.weekNumber);
-        for (const w of weekNums) {
-          picksByWeekMap[w] = { submitted: false };
         }
 
         data.forEach((pick) => {
@@ -278,13 +273,21 @@ const Picks = () => {
           picksByWeekMap[week].submitted = true;
           picksByWeekMap[week].submittedAt = pick.submitted_at;
         });
-
-        setPicksByWeek(picksByWeekMap);
+        
+        console.log("[Picks] Processed picks by week:", Object.keys(picksByWeekMap).map(k => ({
+          week: k,
+          qb: picksByWeekMap[Number(k)]?.qb?.name,
+          rb: picksByWeekMap[Number(k)]?.rb?.name,
+          flex: picksByWeekMap[Number(k)]?.flex?.name,
+          submitted: picksByWeekMap[Number(k)]?.submitted
+        })));
       }
+
+      setPicksByWeek(picksByWeekMap);
     };
 
     fetchUserPicks();
-  }, [user?.id, currentLeague, isRegularSeason, activeWeeks]);
+  }, [user?.id, currentLeague?.id, isRegularSeason]);
 
   // Convert players to unified format
   const allPlayers: UnifiedPlayer[] = useMemo(() => {
