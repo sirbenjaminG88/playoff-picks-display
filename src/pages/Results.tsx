@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Loader2, RefreshCw, Radio } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ChevronDown, Loader2, RefreshCw, Radio, Lock, Clock } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
 import { useWeekPicks, GroupedPlayer, PlayerWeekStats, UserProfile } from "@/hooks/useWeekPicks";
 import { useRegularSeasonPicks, GroupedPlayer as RegularGroupedPlayer, UserProfile as RegularUserProfile } from "@/hooks/useRegularSeasonPicks";
@@ -16,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSeason, SEASON_OPTIONS } from "@/contexts/SeasonContext";
 import { useLeague } from "@/contexts/LeagueContext";
+import { formatGameDateET } from "@/lib/timezone";
 
 // Beta weeks for 2025 regular season
 const REGULAR_SEASON_WEEKS = [14, 15, 16, 17];
@@ -353,6 +355,40 @@ const RegularSeasonWeekResults = ({
     );
   }
 
+  // Check if picks are revealed
+  if (data && !data.isRevealed && data.revealStatus) {
+    const { submittedCount, leagueMemberCount, firstGameKickoff } = data.revealStatus;
+    return (
+      <Card className="border-border">
+        <CardContent className="py-8">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="p-3 rounded-full bg-muted/50">
+              <Lock className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg mb-2 text-foreground">Picks Hidden Until Kickoff</h3>
+              <p className="text-muted-foreground mb-4">
+                Picks will be revealed when all league members have submitted, or when the first game kicks off.
+              </p>
+              <div className="flex flex-col gap-2 text-sm">
+                <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                  <Badge variant="outline">{submittedCount}/{leagueMemberCount}</Badge>
+                  <span>players have submitted picks</span>
+                </div>
+                {firstGameKickoff && (
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>First game: {formatGameDateET(firstGameKickoff)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const hasAnyPicks = data && (data.qbs.length > 0 || data.rbs.length > 0 || data.flex.length > 0);
 
   if (!hasAnyPicks) {
@@ -402,6 +438,20 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId }: { week: number; league
 
   if (isLoading || !data) {
     return null;
+  }
+
+  // If picks are not revealed, show locked message
+  if (!data.isRevealed) {
+    return (
+      <div className="py-8 text-center">
+        <div className="flex flex-col items-center gap-2">
+          <Lock className="h-5 w-5 text-muted-foreground" />
+          <p className="text-muted-foreground">
+            Leaderboard hidden until picks are revealed
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // Calculate points per user for this week
@@ -494,11 +544,13 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
     );
   }
 
-  // Aggregate points across all weeks
+  // Aggregate points across all weeks (only count revealed weeks)
   const userTotalPoints = new Map<string, number>();
 
   weekQueries.forEach((weekQuery) => {
     if (!weekQuery?.data) return;
+    // Skip weeks where picks are not revealed
+    if (!weekQuery.data.isRevealed) return;
     
     const allPlayers = [
       ...(weekQuery.data.qbs || []), 
