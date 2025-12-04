@@ -101,12 +101,6 @@ const Index = () => {
                 </Button>
               </Link>
             )}
-            
-            <Link to="/results">
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                View 2024-2025 Results
-              </Button>
-            </Link>
           </div>
         </div>
       </div>
