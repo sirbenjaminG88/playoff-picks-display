@@ -359,33 +359,58 @@ const RegularSeasonWeekResults = ({
   if (data && !data.isRevealed && data.revealStatus) {
     const { submittedCount, leagueMemberCount, firstGameKickoff } = data.revealStatus;
     return (
-      <Card className="border-border">
-        <CardContent className="py-8">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="p-3 rounded-full bg-muted/50">
-              <Lock className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg mb-2 text-foreground">Picks Hidden Until Kickoff</h3>
-              <p className="text-muted-foreground mb-4">
-                Picks will be revealed when all league members have submitted, or when the first game kicks off.
-              </p>
-              <div className="flex flex-col gap-2 text-sm">
-                <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                  <Badge variant="outline">{submittedCount}/{leagueMemberCount}</Badge>
-                  <span>players have submitted picks</span>
-                </div>
-                {firstGameKickoff && (
-                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>First game: {formatGameDateET(firstGameKickoff)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        {/* Info banner */}
+        <Alert className="bg-muted/30 border-border">
+          <Clock className="h-4 w-4" />
+          <AlertDescription>
+            <span className="font-medium text-foreground">Picks will be revealed after kickoff.</span>
+            <span className="text-muted-foreground ml-1">
+              {firstGameKickoff ? `First game: ${formatGameDateET(firstGameKickoff)}` : ''}
+            </span>
+            <span className="text-muted-foreground ml-2">
+              ({submittedCount}/{leagueMemberCount} submitted)
+            </span>
+          </AlertDescription>
+        </Alert>
+
+        {/* Position sections with hidden placeholder */}
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+            Quarterbacks
+          </h2>
+          <Card className="border-border bg-muted/10">
+            <CardContent className="py-6 text-center text-muted-foreground">
+              Hidden until kickoff
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+            Running Backs
+          </h2>
+          <Card className="border-border bg-muted/10">
+            <CardContent className="py-6 text-center text-muted-foreground">
+              Hidden until kickoff
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+            Flex (WR/TE)
+          </h2>
+          <Card className="border-border bg-muted/10">
+            <CardContent className="py-6 text-center text-muted-foreground">
+              Hidden until kickoff
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
@@ -440,16 +465,11 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId }: { week: number; league
     return null;
   }
 
-  // If picks are not revealed, show locked message
+  // If picks are not revealed, show simple message
   if (!data.isRevealed) {
     return (
-      <div className="py-8 text-center">
-        <div className="flex flex-col items-center gap-2">
-          <Lock className="h-5 w-5 text-muted-foreground" />
-          <p className="text-muted-foreground">
-            Leaderboard hidden until picks are revealed
-          </p>
-        </div>
+      <div className="py-6 text-center text-muted-foreground">
+        Hidden until kickoff
       </div>
     );
   }
@@ -699,7 +719,7 @@ const WeekLeaderboard = ({ week }: { week: number }) => {
 
 // 2025 Regular Season Fantasy Results
 function RegularSeasonResults() {
-  const { currentLeague, isCommissioner } = useLeague();
+  const { currentLeague, isCommissioner, loading: leagueLoading } = useLeague();
   const [activeWeek, setActiveWeek] = useState(14);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
   const [isLive, setIsLive] = useState(false);
@@ -776,6 +796,17 @@ function RegularSeasonResults() {
       });
     }
   };
+
+  // Show loading state while league is being fetched
+  if (leagueLoading) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-12 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!currentLeague) {
     return (
