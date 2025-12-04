@@ -192,8 +192,10 @@ const Picks = () => {
   }, [isRegularSeason]);
 
   // Fetch existing picks for the user
+  const { user } = useAuth();
+  
   useEffect(() => {
-    if (!profile?.display_name || !currentLeague) return;
+    if (!user?.id || !currentLeague) return;
 
     const fetchUserPicks = async () => {
       const season = isRegularSeason ? 2025 : 2024;
@@ -201,7 +203,7 @@ const Picks = () => {
       const { data, error } = await supabase
         .from("user_picks")
         .select("*")
-        .eq("user_id", profile.display_name)
+        .eq("auth_user_id", user.id)
         .eq("league_id", currentLeague.id)
         .eq("season", season);
 
@@ -284,7 +286,7 @@ const Picks = () => {
     };
 
     fetchUserPicks();
-  }, [profile?.display_name, currentLeague, isRegularSeason, activeWeeks]);
+  }, [user?.id, currentLeague, isRegularSeason, activeWeeks]);
 
   // Convert players to unified format
   const allPlayers: UnifiedPlayer[] = useMemo(() => {
@@ -373,7 +375,7 @@ const Picks = () => {
   };
 
   const handleConfirmSubmit = async () => {
-    if (weekToSubmit === null || !profile?.display_name || !currentLeague) return;
+    if (weekToSubmit === null || !user?.id || !profile?.display_name || !currentLeague) return;
 
     const weekPicks = picksByWeek[weekToSubmit];
     if (!weekPicks?.qb || !weekPicks?.rb || !weekPicks?.flex) return;
@@ -386,6 +388,7 @@ const Picks = () => {
       // Prepare the picks to insert
       const picksToInsert = [
         {
+          auth_user_id: user.id,
           user_id: profile.display_name,
           league_id: currentLeague.id,
           season: season,
@@ -398,6 +401,7 @@ const Picks = () => {
           position: weekPicks.qb.position,
         },
         {
+          auth_user_id: user.id,
           user_id: profile.display_name,
           league_id: currentLeague.id,
           season: season,
@@ -410,6 +414,7 @@ const Picks = () => {
           position: weekPicks.rb.position,
         },
         {
+          auth_user_id: user.id,
           user_id: profile.display_name,
           league_id: currentLeague.id,
           season: season,
@@ -426,7 +431,7 @@ const Picks = () => {
       const { error } = await supabase
         .from("user_picks")
         .upsert(picksToInsert, {
-          onConflict: "user_id,league_id,season,week,position_slot",
+          onConflict: "auth_user_id,league_id,season,week,position_slot",
         });
 
       if (error) {
@@ -475,7 +480,7 @@ const Picks = () => {
   };
 
   const handleConfirmReset = async () => {
-    if (weekToReset === null || !profile?.display_name || !currentLeague) return;
+    if (weekToReset === null || !user?.id || !currentLeague) return;
 
     setIsResetting(true);
 
@@ -485,7 +490,7 @@ const Picks = () => {
       const { error } = await supabase
         .from("user_picks")
         .delete()
-        .eq("user_id", profile.display_name)
+        .eq("auth_user_id", user.id)
         .eq("league_id", currentLeague.id)
         .eq("season", season)
         .eq("week", weekToReset);

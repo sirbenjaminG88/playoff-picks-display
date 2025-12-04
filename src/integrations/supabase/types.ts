@@ -521,6 +521,7 @@ export type Database = {
       }
       user_picks: {
         Row: {
+          auth_user_id: string | null
           created_at: string
           id: string
           league_id: string
@@ -537,6 +538,7 @@ export type Database = {
           week: number
         }
         Insert: {
+          auth_user_id?: string | null
           created_at?: string
           id?: string
           league_id?: string
@@ -553,6 +555,7 @@ export type Database = {
           week: number
         }
         Update: {
+          auth_user_id?: string | null
           created_at?: string
           id?: string
           league_id?: string
