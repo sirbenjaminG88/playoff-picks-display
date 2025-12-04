@@ -90,8 +90,8 @@ const Picks = () => {
   const [playoffPlayers, setPlayoffPlayers] = useState<PlayoffPlayer[]>([]);
   const [loadingPlayoffs, setLoadingPlayoffs] = useState(true);
 
-  // Determine which weeks to use
-  const activeWeeks = isRegularSeason ? regularDomainWeeks : playoffWeeks;
+  // Determine which weeks to use - ensure we always have a valid array
+  const activeWeeks = isRegularSeason ? (regularDomainWeeks.length > 0 ? regularDomainWeeks : []) : playoffWeeks;
   const defaultWeek = isRegularSeason ? "14" : (getCurrentOpenWeek(playoffWeeks, CURRENT_TIME)?.weekNumber?.toString() ?? "1");
 
   const [activeWeek, setActiveWeek] = useState<string>(defaultWeek);
@@ -118,12 +118,15 @@ const Picks = () => {
 
   // Reset active week when season changes
   useEffect(() => {
-    setActiveWeek(isRegularSeason ? "14" : "1");
+    const newDefaultWeek = isRegularSeason ? "14" : "1";
+    setActiveWeek(newDefaultWeek);
     setPicksByWeek({});
   }, [isRegularSeason]);
 
   // Initialize picksByWeek with empty entries for active weeks
   useEffect(() => {
+    if (activeWeeks.length === 0) return;
+    
     const weekNums = activeWeeks.map(w => w.weekNumber);
     setPicksByWeek(prev => {
       const newPicks: Record<number, WeekPicks> = {};
@@ -132,7 +135,13 @@ const Picks = () => {
       }
       return newPicks;
     });
-  }, [activeWeeks]);
+    
+    // Also ensure activeWeek is valid for current weeks
+    const validWeeks = weekNums.map(String);
+    if (!validWeeks.includes(activeWeek)) {
+      setActiveWeek(validWeeks[0] || (isRegularSeason ? "14" : "1"));
+    }
+  }, [activeWeeks, isRegularSeason]);
 
   // Fetch playoff players
   useEffect(() => {
@@ -651,8 +660,8 @@ const Picks = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {loadingPlayers ? (
-          <div className="text-center py-12 text-muted-foreground">Loading players...</div>
+        {loadingPlayers || activeWeeks.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">Loading...</div>
         ) : (
           <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v)} className="w-full">
             <TabsList className="w-full flex overflow-x-auto mb-8 h-auto p-1 bg-muted/50 border border-border gap-1">
