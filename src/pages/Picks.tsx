@@ -242,7 +242,7 @@ const Picks = () => {
         teamAbbr: p.team_abbr || "UNK",
         teamId: p.team_api_id || "0",
         number: p.jersey_number,
-        imageUrl: null, // Regular season players don't have images yet
+        imageUrl: p.image_url,
       }));
     } else {
       return playoffPlayers.map(p => ({
