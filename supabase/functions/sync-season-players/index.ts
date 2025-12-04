@@ -111,6 +111,12 @@ serve(async (req) => {
         const position = p.position;
         const jerseyNumber = p.jersey?.toString() ?? p.number?.toString() ?? null;
         const status = p.status ?? p.injury_status ?? null;
+        
+        // Extract image URL - API returns image field, filter out placeholder images
+        let imageUrl = p.image ?? null;
+        if (imageUrl && (imageUrl.includes('/0.png') || imageUrl.includes('players/0'))) {
+          imageUrl = null; // Filter out placeholder images
+        }
 
         const { error } = await supabase
           .from('players')
@@ -125,7 +131,8 @@ serve(async (req) => {
             team_name: teamName,
             team_abbr: teamAbbr,
             jersey_number: jerseyNumber,
-            status
+            status,
+            image_url: imageUrl
           }, {
             onConflict: 'season,api_player_id'
           });
