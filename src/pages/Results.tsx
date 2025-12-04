@@ -8,13 +8,18 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, Loader2, RefreshCw } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
 import { useWeekPicks, GroupedPlayer, PlayerWeekStats } from "@/hooks/useWeekPicks";
+import { useRegularSeasonPicks, GroupedPlayer as RegularGroupedPlayer } from "@/hooks/useRegularSeasonPicks";
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSeason, SEASON_OPTIONS } from "@/contexts/SeasonContext";
-import { useQuery } from "@tanstack/react-query";
+import { useLeague } from "@/contexts/LeagueContext";
+
+// Beta weeks for 2025 regular season
+const REGULAR_SEASON_WEEKS = [14, 15, 16, 17];
+
 const getInitials = (name: string): string => {
   const parts = name.split(" ");
   if (parts.length >= 2) {
@@ -58,29 +63,52 @@ const StatsBreakdown = ({ stats }: { stats: PlayerWeekStats | null }) => {
 // Map full team names to abbreviations for team color lookup
 const getTeamAbbreviation = (teamName: string): string => {
   const abbrevMap: Record<string, string> = {
-    "Buffalo Bills": "BUF",
-    "Kansas City Chiefs": "KC",
-    "Philadelphia Eagles": "PHI",
+    "Arizona Cardinals": "ARI",
+    "Atlanta Falcons": "ATL",
     "Baltimore Ravens": "BAL",
-    "San Francisco 49ers": "SF",
-    "Detroit Lions": "DET",
-    "Houston Texans": "HOU",
-    "Green Bay Packers": "GB",
-    "Miami Dolphins": "MIA",
-    "Dallas Cowboys": "DAL",
-    "Los Angeles Rams": "LAR",
-    "Tampa Bay Buccaneers": "TB",
+    "Buffalo Bills": "BUF",
+    "Carolina Panthers": "CAR",
+    "Chicago Bears": "CHI",
+    "Cincinnati Bengals": "CIN",
     "Cleveland Browns": "CLE",
+    "Dallas Cowboys": "DAL",
+    "Denver Broncos": "DEN",
+    "Detroit Lions": "DET",
+    "Green Bay Packers": "GB",
+    "Houston Texans": "HOU",
+    "Indianapolis Colts": "IND",
+    "Jacksonville Jaguars": "JAX",
+    "Kansas City Chiefs": "KC",
+    "Las Vegas Raiders": "LV",
+    "Los Angeles Chargers": "LAC",
+    "Los Angeles Rams": "LAR",
+    "Miami Dolphins": "MIA",
+    "Minnesota Vikings": "MIN",
+    "New England Patriots": "NE",
+    "New Orleans Saints": "NO",
+    "New York Giants": "NYG",
+    "New York Jets": "NYJ",
+    "Philadelphia Eagles": "PHI",
     "Pittsburgh Steelers": "PIT",
+    "San Francisco 49ers": "SF",
+    "Seattle Seahawks": "SEA",
+    "Tampa Bay Buccaneers": "TB",
+    "Tennessee Titans": "TEN",
+    "Washington Commanders": "WAS",
   };
   return abbrevMap[teamName] || teamName.substring(0, 3).toUpperCase();
 };
 
-const PlayerCard = ({ player }: { player: GroupedPlayer }) => {
+// Generic player card that works with both playoff and regular season data
+interface PlayerCardProps {
+  player: GroupedPlayer | RegularGroupedPlayer;
+}
+
+const PlayerCard = ({ player }: PlayerCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const isPopular = player.selectedBy.length > 1;
   const isUnique = player.selectedBy.length === 1;
-  const teamAbbrev = getTeamAbbreviation(player.teamName);
+  const teamAbbrev = 'teamAbbr' in player ? player.teamAbbr : getTeamAbbreviation(player.teamName);
   const teamColors = teamColorMap[teamAbbrev] ?? teamColorMap.DEFAULT;
 
   return (
@@ -179,7 +207,7 @@ const PositionSection = ({
   players 
 }: { 
   title: string; 
-  players: GroupedPlayer[];
+  players: (GroupedPlayer | RegularGroupedPlayer)[];
 }) => {
   if (players.length === 0) return null;
   
@@ -198,6 +226,7 @@ const PositionSection = ({
   );
 };
 
+// Playoff week results component
 const WeekResults = ({ week, onSyncStats }: { week: number; onSyncStats: (week: number) => void }) => {
   const { data, isLoading, error } = useWeekPicks(week);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -271,6 +300,229 @@ const WeekResults = ({ week, onSyncStats }: { week: number; onSyncStats: (week: 
   );
 };
 
+// Regular season week results component
+const RegularSeasonWeekResults = ({ week, leagueId }: { week: number; leagueId: string }) => {
+  const { data, isLoading, error } = useRegularSeasonPicks(week, leagueId);
+
+  if (isLoading) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-12 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-8">
+          <p className="text-destructive text-center">
+            Error loading picks: {error.message}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasAnyPicks = data && (data.qbs.length > 0 || data.rbs.length > 0 || data.flex.length > 0);
+
+  if (!hasAnyPicks) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-8">
+          <p className="text-muted-foreground text-center">
+            No picks have been submitted for Week {week} yet.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <PositionSection title="Quarterbacks" players={data.qbs} />
+      <PositionSection title="Running Backs" players={data.rbs} />
+      <PositionSection title="Flex (WR/TE)" players={data.flex} />
+    </div>
+  );
+};
+
+// Regular season leaderboard for a specific week
+const RegularSeasonWeekLeaderboard = ({ week, leagueId }: { week: number; leagueId: string }) => {
+  const { data, isLoading } = useRegularSeasonPicks(week, leagueId);
+
+  if (isLoading || !data) {
+    return null;
+  }
+
+  // Calculate points per user for this week
+  const userPoints = new Map<string, number>();
+  
+  [...data.qbs, ...data.rbs, ...data.flex].forEach((player) => {
+    player.selectedBy.forEach((userId) => {
+      const current = userPoints.get(userId) || 0;
+      userPoints.set(userId, current + player.points);
+    });
+  });
+
+  const leaderboard = Array.from(userPoints.entries())
+    .map(([userId, points]) => ({ userId, points }))
+    .sort((a, b) => b.points - a.points);
+
+  if (leaderboard.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">
+          No picks submitted for Week {week}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {leaderboard.map((entry, index) => (
+        <div
+          key={entry.userId}
+          className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+        >
+          <Badge 
+            variant="outline" 
+            className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
+          >
+            #{index + 1}
+          </Badge>
+
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <Avatar className="h-11 w-11">
+              <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                {getInitials(entry.userId)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-semibold text-sm text-foreground">
+              {entry.userId}
+            </span>
+          </div>
+
+          <div className="flex-1 min-w-0"></div>
+
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
+              {entry.points.toFixed(1)} pts
+            </Badge>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Regular season overall leaderboard
+const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWeek: number; leagueId: string }) => {
+  const week14 = useRegularSeasonPicks(14, leagueId);
+  const week15 = useRegularSeasonPicks(15, leagueId);
+  const week16 = useRegularSeasonPicks(16, leagueId);
+  const week17 = useRegularSeasonPicks(17, leagueId);
+
+  const allWeeks = [week14, week15, week16, week17].filter(w => {
+    const weekNum = REGULAR_SEASON_WEEKS[allWeeks.indexOf(w)] || 14;
+    return weekNum <= throughWeek;
+  });
+  
+  const weeksToInclude = REGULAR_SEASON_WEEKS.filter(w => w <= throughWeek);
+  const weekQueries = weeksToInclude.map(w => {
+    if (w === 14) return week14;
+    if (w === 15) return week15;
+    if (w === 16) return week16;
+    return week17;
+  });
+
+  const isLoading = weekQueries.some((w) => w.isLoading);
+
+  if (isLoading) {
+    return (
+      <div className="py-8 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Aggregate points across all weeks
+  const userTotalPoints = new Map<string, number>();
+
+  weekQueries.forEach((weekQuery) => {
+    if (!weekQuery.data) return;
+    
+    [...weekQuery.data.qbs, ...weekQuery.data.rbs, ...weekQuery.data.flex].forEach((player) => {
+      player.selectedBy.forEach((userId) => {
+        const current = userTotalPoints.get(userId) || 0;
+        userTotalPoints.set(userId, current + player.points);
+      });
+    });
+  });
+
+  const standings = Array.from(userTotalPoints.entries())
+    .map(([userId, totalPoints]) => ({ userId, totalPoints }))
+    .sort((a, b) => b.totalPoints - a.totalPoints);
+
+  if (standings.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">No standings available yet</p>
+      </div>
+    );
+  }
+
+  const leaderPoints = standings[0]?.totalPoints || 0;
+
+  return (
+    <div className="space-y-5">
+      {standings.map((standing, index) => {
+        const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
+        
+        return (
+          <div
+            key={standing.userId}
+            className="flex items-start gap-6 px-6 py-6 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors min-h-[100px]"
+          >
+            <div className="w-[44px] h-[44px] rounded-full bg-muted flex items-center justify-center shrink-0">
+              <span className="font-semibold text-base text-foreground">
+                #{index + 1}
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <Avatar className="h-[44px] w-[44px]">
+                <AvatarFallback className="bg-foreground/80 text-background font-bold text-[17px]">
+                  {getInitials(standing.userId)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-sm text-foreground">
+                {standing.userId}
+              </span>
+            </div>
+
+            <div className="flex-1 min-w-0"></div>
+
+            <div className="flex flex-col items-center gap-1.5 shrink-0">
+              <Badge className="text-base font-bold bg-primary text-primary-foreground px-4 py-1.5 h-[44px] flex items-center">
+                {standing.totalPoints.toFixed(1)} pts
+              </Badge>
+              {pointsBehind > 0 && (
+                <span className="text-[13px] text-muted-foreground font-medium">
+                  {pointsBehind.toFixed(1)} back
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 const WeekLeaderboard = ({ week }: { week: number }) => {
   const { data, isLoading } = useWeekPicks(week);
 
@@ -340,323 +592,86 @@ const WeekLeaderboard = ({ week }: { week: number }) => {
   );
 };
 
-// 2025 Regular Season Results (Admin Only)
+// 2025 Regular Season Fantasy Results
 function RegularSeasonResults() {
-  // Fetch available weeks from regular_season_games
-  const { data: weeks, isLoading: weeksLoading } = useQuery({
-    queryKey: ['regularSeasonWeeks', 2025],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('regular_season_games')
-        .select('week')
-        .eq('season', 2025)
-        .eq('season_type', 'REG')
-        .order('week', { ascending: true });
-      
-      if (error) throw error;
-      
-      // Get unique weeks
-      const uniqueWeeks = [...new Set(data.map(g => g.week))];
-      return uniqueWeeks;
-    },
-  });
-
-  const [activeWeek, setActiveWeek] = useState<number | null>(null);
-
-  // Set initial week when data loads
-  if (weeks && weeks.length > 0 && activeWeek === null) {
-    setActiveWeek(weeks[0]);
-  }
-
-  if (weeksLoading) {
-    return (
-      <Card className="border-border">
-        <CardContent className="py-12 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!weeks || weeks.length === 0) {
-    return (
-      <Card className="border-border">
-        <CardContent className="py-8">
-          <p className="text-muted-foreground text-center">
-            No games found for 2025 Regular Season
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Week Tabs */}
-      <Tabs value={activeWeek ? `week-${activeWeek}` : undefined} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
-        <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
-          {weeks.map((weekNum) => (
-            <TabsTrigger 
-              key={weekNum}
-              value={`week-${weekNum}`} 
-              className="flex-1 min-w-[60px] px-2 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <span className="text-xs font-bold">Week {weekNum}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {weeks.map((weekNum) => (
-          <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
-            <RegularSeasonWeekGames week={weekNum} />
-          </TabsContent>
-        ))}
-      </Tabs>
-    </div>
-  );
-}
-
-// Component to show games for a specific week in 2025 regular season
-function RegularSeasonWeekGames({ week }: { week: number }) {
-  const { data: games, isLoading } = useQuery({
-    queryKey: ['regularSeasonGames', 2025, week],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('regular_season_games')
-        .select('*')
-        .eq('season', 2025)
-        .eq('season_type', 'REG')
-        .eq('week', week)
-        .order('game_date', { ascending: true });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <Card className="border-border">
-        <CardContent className="py-8 flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!games || games.length === 0) {
-    return (
-      <Card className="border-border">
-        <CardContent className="py-8">
-          <p className="text-muted-foreground text-center">
-            No games found for Week {week}
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-        <span className="inline-block w-1 h-6 bg-primary rounded"></span>
-        Week {week} Games
-      </h2>
-      <div className="space-y-3">
-        {games.map((game) => {
-          const homeAbbr = game.home_team_abbr || game.home_team_name.substring(0, 3).toUpperCase();
-          const awayAbbr = game.away_team_abbr || game.away_team_name.substring(0, 3).toUpperCase();
-          const homeColors = teamColorMap[homeAbbr] ?? teamColorMap.DEFAULT;
-          const awayColors = teamColorMap[awayAbbr] ?? teamColorMap.DEFAULT;
-          
-          return (
-            <Card key={game.id} className="border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span 
-                      className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                      style={{ backgroundColor: awayColors.bg, color: awayColors.text }}
-                    >
-                      {awayAbbr}
-                    </span>
-                    <span className="text-sm text-muted-foreground">@</span>
-                    <span 
-                      className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                      style={{ backgroundColor: homeColors.bg, color: homeColors.text }}
-                    >
-                      {homeAbbr}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">
-                      {game.game_date ? new Date(game.game_date).toLocaleDateString('en-US', { 
-                        weekday: 'short', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      }) : 'TBD'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {game.status || 'Scheduled'}
-                    </p>
-                  </div>
-                </div>
-                {game.venue && (
-                  <p className="text-xs text-muted-foreground mt-2">{game.venue}</p>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-export default function Results() {
-  const [activeWeek, setActiveWeek] = useState(1);
+  const { currentLeague } = useLeague();
+  const [activeWeek, setActiveWeek] = useState(14);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
-  const { selectedSeason, setSelectedSeason, canSelectSeason } = useSeason();
-  const queryClient = useQueryClient();
 
-  const handleSyncStats = async (week: number) => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-player-stats-for-week?week=${week}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to sync stats');
-      }
-
-      toast({
-        title: "Stats synced successfully",
-        description: `Synced ${result.statsUpserted}/${result.playersProcessed} players for ${getWeekTabLabel(week).abbrev}`,
-      });
-
-      // Invalidate queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['weekPicks'] });
-    } catch (error) {
-      console.error('Error syncing stats:', error);
-      toast({
-        title: "Error syncing stats",
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: "destructive",
-      });
-    }
-  };
+  if (!currentLeague) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-8">
+          <p className="text-muted-foreground text-center">
+            Please join a league to view results.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="container max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <h1 className="text-4xl font-bold text-foreground">Results</h1>
-            
-            {/* Admin-only Season Selector */}
-            {canSelectSeason && (
-              <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select season" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SEASON_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          <p className="text-muted-foreground">
-            {selectedSeason === "2025-regular" 
-              ? "2025 Regular Season Schedule (Beta)" 
-              : "Weekly scores and overall standings"}
-          </p>
-        </div>
+    <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
+      <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
+        {REGULAR_SEASON_WEEKS.map((weekNum) => (
+          <TabsTrigger 
+            key={weekNum}
+            value={`week-${weekNum}`} 
+            className="flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">WK {weekNum}</span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
 
-        {/* 2025 Regular Season View */}
-        {selectedSeason === "2025-regular" ? (
-          <RegularSeasonResults />
-        ) : (
-          /* 2024 Playoffs View (Default) */
-          <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
-            <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
-              {[1, 2, 3, 4].map((weekNum) => {
-                const tabLabel = getWeekTabLabel(weekNum);
-                return (
-                  <TabsTrigger 
-                    key={weekNum}
-                    value={`week-${weekNum}`} 
-                    className="flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">{tabLabel.abbrev}</span>
-                    <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{tabLabel.dates}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+      {REGULAR_SEASON_WEEKS.map((weekNum) => (
+        <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
+          <RegularSeasonWeekResults week={weekNum} leagueId={currentLeague.id} />
 
-            {[1, 2, 3, 4].map((weekNum) => (
-              <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
-                <WeekResults week={weekNum} onSyncStats={handleSyncStats} />
+          {/* Leaderboards Section */}
+          <div className="mt-8">
+            <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
+                <TabsTrigger
+                  value="weekly"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  Week {weekNum} Leaderboard
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="overall"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  Overall Leaderboard
+                </TabsTrigger>
+              </TabsList>
 
-                {/* Leaderboards Section */}
-                <div className="mt-8">
-                  <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
-                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
-                      <TabsTrigger
-                        value="weekly"
-                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                      >
-                        {getWeekLabel(weekNum)} Leaderboard
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="overall"
-                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                      >
-                        Overall Leaderboard
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="weekly" className="mt-0">
-                      <Card className="border-border bg-card">
-                        <CardHeader className="pb-4 px-6 pt-6">
-                          <CardTitle className="text-foreground text-xl">{getWeekLabel(weekNum)} Standings</CardTitle>
-                        </CardHeader>
-                        <CardContent className="px-6 pb-6">
-                          <WeekLeaderboard week={weekNum} />
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="overall" className="mt-0">
-                      <Card className="border-border bg-card">
-                        <CardHeader className="pb-4 px-6 pt-6">
-                          <CardTitle className="text-foreground text-xl">Overall Standings (Through {getWeekLabel(weekNum)})</CardTitle>
-                        </CardHeader>
-                        <CardContent className="px-6 pb-6">
-                          <OverallLeaderboard throughWeek={weekNum} />
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </div>
+              <TabsContent value="weekly" className="mt-0">
+                <Card className="border-border bg-card">
+                  <CardHeader className="pb-4 px-6 pt-6">
+                    <CardTitle className="text-foreground text-xl">Week {weekNum} Standings</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-6 pb-6">
+                    <RegularSeasonWeekLeaderboard week={weekNum} leagueId={currentLeague.id} />
+                  </CardContent>
+                </Card>
               </TabsContent>
-            ))}
-          </Tabs>
-        )}
-      </div>
-    </div>
+
+              <TabsContent value="overall" className="mt-0">
+                <Card className="border-border bg-card">
+                  <CardHeader className="pb-4 px-6 pt-6">
+                    <CardTitle className="text-foreground text-xl">Overall Standings (Through Week {weekNum})</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-6 pb-6">
+                    <RegularSeasonOverallLeaderboard throughWeek={weekNum} leagueId={currentLeague.id} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }
 
@@ -748,6 +763,153 @@ function OverallLeaderboard({ throughWeek }: { throughWeek: number }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+export default function Results() {
+  const [activeWeek, setActiveWeek] = useState(1);
+  const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
+  const { selectedSeason, setSelectedSeason, canSelectSeason } = useSeason();
+  const queryClient = useQueryClient();
+
+  const handleSyncStats = async (week: number) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-player-stats-for-week?week=${week}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to sync stats');
+      }
+
+      toast({
+        title: "Stats synced successfully",
+        description: `Synced ${result.statsUpserted}/${result.playersProcessed} players for ${getWeekTabLabel(week).abbrev}`,
+      });
+
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ['weekPicks'] });
+    } catch (error) {
+      console.error('Error syncing stats:', error);
+      toast({
+        title: "Error syncing stats",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <div className="container max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <h1 className="text-4xl font-bold text-foreground">Results</h1>
+            
+            {/* Admin-only Season Selector */}
+            {canSelectSeason && (
+              <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as any)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select season" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SEASON_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <p className="text-muted-foreground">
+            {selectedSeason === "2025-regular" 
+              ? "2025 Regular Season Beta — Fantasy Results" 
+              : "Weekly scores and overall standings"}
+          </p>
+        </div>
+
+        {/* 2025 Regular Season Fantasy View */}
+        {selectedSeason === "2025-regular" ? (
+          <RegularSeasonResults />
+        ) : (
+          /* 2024 Playoffs View (Default) */
+          <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
+            <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
+              {[1, 2, 3, 4].map((weekNum) => {
+                const tabLabel = getWeekTabLabel(weekNum);
+                return (
+                  <TabsTrigger 
+                    key={weekNum}
+                    value={`week-${weekNum}`} 
+                    className="flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">{tabLabel.abbrev}</span>
+                    <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{tabLabel.dates}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+
+            {[1, 2, 3, 4].map((weekNum) => (
+              <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
+                <WeekResults week={weekNum} onSyncStats={handleSyncStats} />
+
+                {/* Leaderboards Section */}
+                <div className="mt-8">
+                  <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
+                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
+                      <TabsTrigger
+                        value="weekly"
+                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        {getWeekLabel(weekNum)} Leaderboard
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="overall"
+                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Overall Leaderboard
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="weekly" className="mt-0">
+                      <Card className="border-border bg-card">
+                        <CardHeader className="pb-4 px-6 pt-6">
+                          <CardTitle className="text-foreground text-xl">{getWeekLabel(weekNum)} Standings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-6 pb-6">
+                          <WeekLeaderboard week={weekNum} />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="overall" className="mt-0">
+                      <Card className="border-border bg-card">
+                        <CardHeader className="pb-4 px-6 pt-6">
+                          <CardTitle className="text-foreground text-xl">Overall Standings (Through {getWeekLabel(weekNum)})</CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-6 pb-6">
+                          <OverallLeaderboard throughWeek={weekNum} />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
+      </div>
     </div>
   );
 }
