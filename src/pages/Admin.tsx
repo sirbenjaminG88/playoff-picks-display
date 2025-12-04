@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Users, Calendar } from "lucide-react";
+import { Users, Calendar, UserCircle } from "lucide-react";
 
 const Admin = () => {
   const { toast } = useToast();
@@ -11,10 +11,12 @@ const Admin = () => {
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [isLoadingTest, setIsLoadingTest] = useState(false);
   const [isLoadingGames, setIsLoadingGames] = useState(false);
+  const [isLoadingRegSeasonPlayers, setIsLoadingRegSeasonPlayers] = useState(false);
   const [teamsResult, setTeamsResult] = useState<any>(null);
   const [playersResult, setPlayersResult] = useState<any>(null);
   const [testResult, setTestResult] = useState<any>(null);
   const [gamesResult, setGamesResult] = useState<any>(null);
+  const [regSeasonPlayersResult, setRegSeasonPlayersResult] = useState<any>(null);
 
   const syncPlayoffTeams = async () => {
     setIsLoadingTeams(true);
@@ -171,6 +173,44 @@ const Admin = () => {
       });
     } finally {
       setIsLoadingGames(false);
+    }
+  };
+
+  const syncRegSeasonPlayers = async () => {
+    setIsLoadingRegSeasonPlayers(true);
+    setRegSeasonPlayersResult(null);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-season-players`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ season: 2025 }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: `Synced ${data.playersSynced} regular season players from ${data.teamsProcessed} teams.`,
+        });
+        setRegSeasonPlayersResult(data);
+      } else {
+        throw new Error(data.error || 'Failed to sync regular season players');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sync regular season players",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingRegSeasonPlayers(false);
     }
   };
 
@@ -349,6 +389,61 @@ const Admin = () => {
                         <li key={idx}>{game}</li>
                       ))}
                     </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserCircle className="w-5 h-5" />
+              Sync 2025 Regular Season Players
+            </CardTitle>
+            <CardDescription>
+              Fetch all QB, RB, WR, and TE players for the 2025 regular season from API-Sports
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={syncRegSeasonPlayers} 
+              disabled={isLoadingRegSeasonPlayers}
+              size="lg"
+            >
+              {isLoadingRegSeasonPlayers ? "Syncing..." : "Sync Regular Season Players"}
+            </Button>
+
+            {regSeasonPlayersResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Sync Results:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Teams Processed: {regSeasonPlayersResult.teamsProcessed}</li>
+                  <li>Players Synced: {regSeasonPlayersResult.playersSynced}</li>
+                </ul>
+                
+                {regSeasonPlayersResult.positionBreakdown && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold mb-2">Position Breakdown:</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div className="p-2 bg-background rounded text-center">
+                        <div className="text-2xl font-bold">{regSeasonPlayersResult.positionBreakdown.QB || 0}</div>
+                        <div className="text-xs text-muted-foreground">Quarterbacks</div>
+                      </div>
+                      <div className="p-2 bg-background rounded text-center">
+                        <div className="text-2xl font-bold">{regSeasonPlayersResult.positionBreakdown.RB || 0}</div>
+                        <div className="text-xs text-muted-foreground">Running Backs</div>
+                      </div>
+                      <div className="p-2 bg-background rounded text-center">
+                        <div className="text-2xl font-bold">{regSeasonPlayersResult.positionBreakdown.WR || 0}</div>
+                        <div className="text-xs text-muted-foreground">Wide Receivers</div>
+                      </div>
+                      <div className="p-2 bg-background rounded text-center">
+                        <div className="text-2xl font-bold">{regSeasonPlayersResult.positionBreakdown.TE || 0}</div>
+                        <div className="text-xs text-muted-foreground">Tight Ends</div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
