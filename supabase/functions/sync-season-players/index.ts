@@ -111,6 +111,7 @@ serve(async (req) => {
         const position = p.position;
         const jerseyNumber = p.jersey?.toString() ?? p.number?.toString() ?? null;
         const status = p.status ?? p.injury_status ?? null;
+        const playerGroup = p.group ?? null; // e.g. "Offense", "Practice Squad", "Injured Reserve Or O"
         
         // Extract image URL - API returns image field, filter out placeholder images
         let imageUrl = p.image ?? null;
@@ -132,7 +133,8 @@ serve(async (req) => {
             team_abbr: teamAbbr,
             jersey_number: jerseyNumber,
             status,
-            image_url: imageUrl
+            image_url: imageUrl,
+            group: playerGroup
           }, {
             onConflict: 'season,api_player_id'
           });

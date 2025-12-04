@@ -44,12 +44,13 @@ export function useRegularSeasonData(season: number = 2025) {
       setError(null);
 
       try {
-        // Fetch players
+        // Fetch players - only active offense (exclude practice squad, IR, etc.)
         const { data: playersData, error: playersError } = await supabase
           .from("players")
           .select("id, api_player_id, full_name, position, team_name, team_abbr, team_api_id, jersey_number, image_url")
           .eq("season", season)
           .in("position", ["QB", "RB", "WR", "TE"])
+          .or("group.is.null,group.eq.Offense")
           .order("team_name")
           .order("full_name");
 

@@ -162,6 +162,7 @@ const Picks = () => {
         .from("playoff_players")
         .select("*")
         .eq("season", 2024)
+        .eq("group", "Offense")
         .order("team_name")
         .order("name");
 

@@ -150,6 +150,7 @@ export type Database = {
           created_at: string | null
           first_name: string | null
           full_name: string
+          group: string | null
           id: string
           image_url: string | null
           jersey_number: string | null
@@ -167,6 +168,7 @@ export type Database = {
           created_at?: string | null
           first_name?: string | null
           full_name: string
+          group?: string | null
           id?: string
           image_url?: string | null
           jersey_number?: string | null
@@ -184,6 +186,7 @@ export type Database = {
           created_at?: string | null
           first_name?: string | null
           full_name?: string
+          group?: string | null
           id?: string
           image_url?: string | null
           jersey_number?: string | null
