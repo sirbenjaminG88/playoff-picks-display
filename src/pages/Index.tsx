@@ -54,11 +54,8 @@ const Index = () => {
           <p className="text-2xl font-semibold text-foreground mb-3">
             Fantasy Football Doesn't Have to End.
           </p>
-          <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
             Keep playing through the NFL Playoffs in the most exciting four weeks of the season.
-          </p>
-          <p className="text-base text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Regular-season fantasy ends too soon. EMMA brings fantasy football into the playoffs—simple rules, high stakes, and no repeats.
           </p>
 
           {/* Features Grid */}
