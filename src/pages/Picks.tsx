@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,7 @@ import { formatDeadlineET, formatGameDateET } from "@/lib/timezone";
 import { Pick } from "@/domain/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
+import { useSeason, SEASON_OPTIONS } from "@/contexts/SeasonContext";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -59,6 +61,7 @@ const USE_DEBUG_TIME = true;
 const DEBUG_NOW = new Date("2025-01-10T12:00:00-05:00");
 
 const Picks = () => {
+  const { selectedSeason, setSelectedSeason, canSelectSeason } = useSeason();
   const CURRENT_TIME = USE_DEBUG_TIME ? DEBUG_NOW : new Date();
   const currentOpenWeek = getCurrentOpenWeek(playoffWeeks, CURRENT_TIME);
   const initialWeek = currentOpenWeek?.weekNumber.toString() ?? "1";
@@ -483,21 +486,53 @@ const Picks = () => {
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3 mb-2">
-            <ClipboardList className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold text-foreground">
-              EMMA
-            </h1>
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <div className="flex items-center gap-3">
+              <ClipboardList className="w-8 h-8 text-primary" />
+              <h1 className="text-4xl font-bold text-foreground">
+                EMMA
+              </h1>
+            </div>
+            
+            {/* Admin-only Season Selector */}
+            {canSelectSeason && (
+              <Select value={selectedSeason} onValueChange={setSelectedSeason}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select season" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SEASON_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <p className="text-muted-foreground">
-            Make Your Weekly Picks — Pick one QB, one RB, and one FLEX for each playoff week
+            {selectedSeason === "2025-regular"
+              ? "2025 Regular Season — Coming Soon"
+              : "Make Your Weekly Picks — Pick one QB, one RB, and one FLEX for each playoff week"}
           </p>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {loadingPlayers ? (
+        {selectedSeason === "2025-regular" ? (
+          /* 2025 Regular Season - Coming Soon */
+          <Card className="border-border">
+            <CardContent className="py-16 text-center">
+              <ClipboardList className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-2xl font-bold text-foreground mb-2">2025 Regular Season</h2>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Regular season picks will be available when the 2025 NFL season begins. 
+                Stay tuned for weekly matchups and player selections!
+              </p>
+            </CardContent>
+          </Card>
+        ) : loadingPlayers ? (
           <div className="text-center py-12 text-muted-foreground">Loading players...</div>
         ) : (
           <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v)} className="w-full">

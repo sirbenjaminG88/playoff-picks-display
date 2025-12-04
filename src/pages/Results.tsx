@@ -13,8 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/contexts/AuthContext";
-import { SeasonOption, SEASON_OPTIONS } from "@/lib/adminCheck";
+import { useSeason, SEASON_OPTIONS } from "@/contexts/SeasonContext";
 import { useQuery } from "@tanstack/react-query";
 const getInitials = (name: string): string => {
   const parts = name.split(" ");
@@ -517,9 +516,8 @@ function RegularSeasonWeekGames({ week }: { week: number }) {
 export default function Results() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
-  const [selectedSeason, setSelectedSeason] = useState<SeasonOption>("2024-playoffs");
+  const { selectedSeason, setSelectedSeason, canSelectSeason } = useSeason();
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
 
   const handleSyncStats = async (week: number) => {
     try {
@@ -555,9 +553,6 @@ export default function Results() {
     }
   };
 
-  // Block non-admin users from 2025 view
-  const effectiveSeason = isAdmin ? selectedSeason : "2024-playoffs";
-
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container max-w-4xl mx-auto px-4 py-8">
@@ -567,8 +562,8 @@ export default function Results() {
             <h1 className="text-4xl font-bold text-foreground">Results</h1>
             
             {/* Admin-only Season Selector */}
-            {isAdmin && (
-              <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as SeasonOption)}>
+            {canSelectSeason && (
+              <Select value={selectedSeason} onValueChange={setSelectedSeason}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select season" />
                 </SelectTrigger>
@@ -583,14 +578,14 @@ export default function Results() {
             )}
           </div>
           <p className="text-muted-foreground">
-            {effectiveSeason === "2025-regular" 
+            {selectedSeason === "2025-regular" 
               ? "2025 Regular Season Schedule (Beta)" 
               : "Weekly scores and overall standings"}
           </p>
         </div>
 
-        {/* 2025 Regular Season View (Admin Only) */}
-        {effectiveSeason === "2025-regular" ? (
+        {/* 2025 Regular Season View */}
+        {selectedSeason === "2025-regular" ? (
           <RegularSeasonResults />
         ) : (
           /* 2024 Playoffs View (Default) */
