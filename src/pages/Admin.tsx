@@ -237,12 +237,20 @@ const Admin = () => {
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Admin Panel</h1>
-        <Link to="/admin/players">
-          <Button variant="outline">
-            <Users className="w-4 h-4 mr-2" />
-            Browse Players
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link to="/admin/users">
+            <Button variant="outline">
+              <Users className="w-4 h-4 mr-2" />
+              Users & Leagues
+            </Button>
+          </Link>
+          <Link to="/admin/players">
+            <Button variant="outline">
+              <UserCircle className="w-4 h-4 mr-2" />
+              Browse Players
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-6">
