@@ -666,6 +666,7 @@ export type Database = {
     }
     Functions: {
       get_my_display_name: { Args: never; Returns: string }
+      get_user_league_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
