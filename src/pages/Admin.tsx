@@ -2,8 +2,9 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { Users, Calendar, UserCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, Calendar, UserCircle, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 const Admin = () => {
   const { toast } = useToast();
@@ -12,11 +13,27 @@ const Admin = () => {
   const [isLoadingTest, setIsLoadingTest] = useState(false);
   const [isLoadingGames, setIsLoadingGames] = useState(false);
   const [isLoadingRegSeasonPlayers, setIsLoadingRegSeasonPlayers] = useState(false);
+  const [regSeasonSyncStartTime, setRegSeasonSyncStartTime] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [teamsResult, setTeamsResult] = useState<any>(null);
   const [playersResult, setPlayersResult] = useState<any>(null);
   const [testResult, setTestResult] = useState<any>(null);
   const [gamesResult, setGamesResult] = useState<any>(null);
   const [regSeasonPlayersResult, setRegSeasonPlayersResult] = useState<any>(null);
+
+  // Timer for sync progress
+  useEffect(() => {
+    if (!isLoadingRegSeasonPlayers || !regSeasonSyncStartTime) {
+      setElapsedSeconds(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - regSeasonSyncStartTime) / 1000));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [isLoadingRegSeasonPlayers, regSeasonSyncStartTime]);
 
   const syncPlayoffTeams = async () => {
     setIsLoadingTeams(true);
@@ -179,6 +196,7 @@ const Admin = () => {
   const syncRegSeasonPlayers = async () => {
     setIsLoadingRegSeasonPlayers(true);
     setRegSeasonPlayersResult(null);
+    setRegSeasonSyncStartTime(Date.now());
 
     try {
       const response = await fetch(
@@ -197,7 +215,7 @@ const Admin = () => {
       if (data.success) {
         toast({
           title: "Success!",
-          description: `Synced ${data.playersSynced} regular season players from ${data.teamsProcessed} teams.`,
+          description: `Synced ${data.playersUpserted} regular season players from ${data.totalTeams} teams.`,
         });
         setRegSeasonPlayersResult(data);
       } else {
@@ -211,6 +229,7 @@ const Admin = () => {
       });
     } finally {
       setIsLoadingRegSeasonPlayers(false);
+      setRegSeasonSyncStartTime(null);
     }
   };
 
@@ -412,38 +431,45 @@ const Admin = () => {
               disabled={isLoadingRegSeasonPlayers}
               size="lg"
             >
-              {isLoadingRegSeasonPlayers ? "Syncing..." : "Sync Regular Season Players"}
+              {isLoadingRegSeasonPlayers ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Syncing...
+                </>
+              ) : "Sync Regular Season Players"}
             </Button>
+
+            {isLoadingRegSeasonPlayers && (
+              <div className="mt-4 p-4 bg-muted rounded-lg space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Processing 34 NFL teams...</span>
+                  <span className="font-mono">{Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}</span>
+                </div>
+                <Progress value={Math.min((elapsedSeconds / 150) * 100, 95)} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  Estimated time: ~2-3 minutes (fetching player rosters and photos from API)
+                </p>
+              </div>
+            )}
 
             {regSeasonPlayersResult && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <h3 className="font-semibold mb-2">Sync Results:</h3>
                 <ul className="space-y-1 text-sm">
-                  <li>Teams Processed: {regSeasonPlayersResult.teamsProcessed}</li>
-                  <li>Players Synced: {regSeasonPlayersResult.playersSynced}</li>
+                  <li>Teams Processed: {regSeasonPlayersResult.totalTeams}</li>
+                  <li>Total Players Fetched: {regSeasonPlayersResult.totalPlayersFetched}</li>
+                  <li>Offensive Players Found: {regSeasonPlayersResult.offensivePlayersFound}</li>
+                  <li>Players Upserted: {regSeasonPlayersResult.playersUpserted}</li>
                 </ul>
                 
-                {regSeasonPlayersResult.positionBreakdown && (
+                {regSeasonPlayersResult.errors && regSeasonPlayersResult.errors.length > 0 && (
                   <div className="mt-4">
-                    <h4 className="font-semibold mb-2">Position Breakdown:</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      <div className="p-2 bg-background rounded text-center">
-                        <div className="text-2xl font-bold">{regSeasonPlayersResult.positionBreakdown.QB || 0}</div>
-                        <div className="text-xs text-muted-foreground">Quarterbacks</div>
-                      </div>
-                      <div className="p-2 bg-background rounded text-center">
-                        <div className="text-2xl font-bold">{regSeasonPlayersResult.positionBreakdown.RB || 0}</div>
-                        <div className="text-xs text-muted-foreground">Running Backs</div>
-                      </div>
-                      <div className="p-2 bg-background rounded text-center">
-                        <div className="text-2xl font-bold">{regSeasonPlayersResult.positionBreakdown.WR || 0}</div>
-                        <div className="text-xs text-muted-foreground">Wide Receivers</div>
-                      </div>
-                      <div className="p-2 bg-background rounded text-center">
-                        <div className="text-2xl font-bold">{regSeasonPlayersResult.positionBreakdown.TE || 0}</div>
-                        <div className="text-xs text-muted-foreground">Tight Ends</div>
-                      </div>
-                    </div>
+                    <h4 className="font-semibold mb-2 text-destructive">Errors:</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      {regSeasonPlayersResult.errors.slice(0, 5).map((err: string, i: number) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
