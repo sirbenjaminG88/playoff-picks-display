@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SeasonProvider } from "@/contexts/SeasonContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthRedirect } from "@/components/AuthRedirect";
 import Index from "./pages/Index";
@@ -25,8 +26,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <div className="min-h-screen pb-16">
-            <Routes>
+          <SeasonProvider>
+            <div className="min-h-screen pb-16">
+              <Routes>
               <Route path="/" element={<AuthRedirect />} />
               <Route path="/home" element={<Index />} />
               <Route path="/signin" element={<SignIn />} />
@@ -63,11 +65,12 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <BottomNav />
-          </div>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <BottomNav />
+            </div>
+          </SeasonProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
