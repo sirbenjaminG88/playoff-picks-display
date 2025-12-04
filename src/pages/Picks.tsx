@@ -72,8 +72,8 @@ const DEBUG_NOW = new Date("2025-01-10T12:00:00-05:00");
 
 const Picks = () => {
   const { selectedSeason, setSelectedSeason, canSelectSeason, seasonConfig } = useSeason();
-  const { currentLeague, isCommissioner } = useLeague();
-  const { profile, user } = useAuth();
+  const { currentLeague, isCommissioner, loading: leagueLoading } = useLeague();
+  const { profile, user, loading: authLoading } = useAuth();
   
   const isRegularSeason = selectedSeason === "2025-regular";
   const CURRENT_TIME = USE_DEBUG_TIME ? DEBUG_NOW : new Date();
@@ -183,7 +183,21 @@ const Picks = () => {
 
   // Fetch existing picks for the user
   useEffect(() => {
-    if (!user?.id || !currentLeague) return;
+    // Wait for auth and league to finish loading
+    if (authLoading || leagueLoading) {
+      console.log("[Picks] Still loading auth/league...", { authLoading, leagueLoading });
+      return;
+    }
+    
+    if (!user?.id) {
+      console.log("[Picks] No user ID");
+      return;
+    }
+    
+    if (!currentLeague?.id) {
+      console.log("[Picks] No current league", { currentLeague });
+      return;
+    }
 
     const fetchUserPicks = async () => {
       const season = isRegularSeason ? 2025 : 2024;
@@ -203,7 +217,7 @@ const Picks = () => {
         return;
       }
 
-      console.log("[Picks] Fetched picks:", data?.length, "rows");
+      console.log("[Picks] Fetched picks:", data?.length, "rows", data);
 
       // Initialize picksByWeek structure with empty weeks first
       const picksByWeekMap: Record<number, WeekPicks> = {};
@@ -287,7 +301,7 @@ const Picks = () => {
     };
 
     fetchUserPicks();
-  }, [user?.id, currentLeague?.id, isRegularSeason]);
+  }, [user?.id, currentLeague?.id, isRegularSeason, authLoading, leagueLoading]);
 
   // Convert players to unified format
   const allPlayers: UnifiedPlayer[] = useMemo(() => {
