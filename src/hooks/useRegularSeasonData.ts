@@ -11,6 +11,7 @@ export interface RegularSeasonPlayer {
   team_abbr: string | null;
   team_api_id: string | null;
   jersey_number: string | null;
+  image_url: string | null;
 }
 
 export interface RegularSeasonWeek {
@@ -46,7 +47,7 @@ export function useRegularSeasonData(season: number = 2025) {
         // Fetch players
         const { data: playersData, error: playersError } = await supabase
           .from("players")
-          .select("id, api_player_id, full_name, position, team_name, team_abbr, team_api_id, jersey_number")
+          .select("id, api_player_id, full_name, position, team_name, team_abbr, team_api_id, jersey_number, image_url")
           .eq("season", season)
           .in("position", ["QB", "RB", "WR", "TE"])
           .order("team_name")

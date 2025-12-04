@@ -144,6 +144,7 @@ export type Database = {
           first_name: string | null
           full_name: string
           id: string
+          image_url: string | null
           jersey_number: string | null
           last_name: string | null
           position: string
@@ -160,6 +161,7 @@ export type Database = {
           first_name?: string | null
           full_name: string
           id?: string
+          image_url?: string | null
           jersey_number?: string | null
           last_name?: string | null
           position: string
@@ -176,6 +178,7 @@ export type Database = {
           first_name?: string | null
           full_name?: string
           id?: string
+          image_url?: string | null
           jersey_number?: string | null
           last_name?: string | null
           position?: string
