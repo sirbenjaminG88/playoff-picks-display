@@ -426,20 +426,18 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
   const week16 = useRegularSeasonPicks(16, leagueId);
   const week17 = useRegularSeasonPicks(17, leagueId);
 
-  const allWeeks = [week14, week15, week16, week17].filter(w => {
-    const weekNum = REGULAR_SEASON_WEEKS[allWeeks.indexOf(w)] || 14;
-    return weekNum <= throughWeek;
-  });
-  
-  const weeksToInclude = REGULAR_SEASON_WEEKS.filter(w => w <= throughWeek);
-  const weekQueries = weeksToInclude.map(w => {
-    if (w === 14) return week14;
-    if (w === 15) return week15;
-    if (w === 16) return week16;
-    return week17;
-  });
+  // Build week queries based on throughWeek
+  const weekQueriesMap: Record<number, typeof week14> = {
+    14: week14,
+    15: week15,
+    16: week16,
+    17: week17,
+  };
 
-  const isLoading = weekQueries.some((w) => w.isLoading);
+  const weeksToInclude = REGULAR_SEASON_WEEKS.filter(w => w <= throughWeek);
+  const weekQueries = weeksToInclude.map(w => weekQueriesMap[w]);
+
+  const isLoading = weekQueries.some((w) => w?.isLoading);
 
   if (isLoading) {
     return (
@@ -453,12 +451,18 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
   const userTotalPoints = new Map<string, number>();
 
   weekQueries.forEach((weekQuery) => {
-    if (!weekQuery.data) return;
+    if (!weekQuery?.data) return;
     
-    [...weekQuery.data.qbs, ...weekQuery.data.rbs, ...weekQuery.data.flex].forEach((player) => {
+    const allPlayers = [
+      ...(weekQuery.data.qbs || []), 
+      ...(weekQuery.data.rbs || []), 
+      ...(weekQuery.data.flex || [])
+    ];
+    
+    allPlayers.forEach((player) => {
       player.selectedBy.forEach((userId) => {
         const current = userTotalPoints.get(userId) || 0;
-        userTotalPoints.set(userId, current + player.points);
+        userTotalPoints.set(userId, current + (player.points || 0));
       });
     });
   });
@@ -470,7 +474,9 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
   if (standings.length === 0) {
     return (
       <div className="py-8 text-center">
-        <p className="text-muted-foreground">No standings available yet</p>
+        <p className="text-muted-foreground">
+          No stats yet. Overall leaderboard will appear once games are played.
+        </p>
       </div>
     );
   }
@@ -682,8 +688,17 @@ function OverallLeaderboard({ throughWeek }: { throughWeek: number }) {
   const week3 = useWeekPicks(3);
   const week4 = useWeekPicks(4);
 
-  const allWeeks = [week1, week2, week3, week4].slice(0, throughWeek);
-  const isLoading = allWeeks.some((w) => w.isLoading);
+  const weekQueriesMap: Record<number, typeof week1> = {
+    1: week1,
+    2: week2,
+    3: week3,
+    4: week4,
+  };
+
+  const weeksToInclude = [1, 2, 3, 4].filter(w => w <= throughWeek);
+  const weekQueries = weeksToInclude.map(w => weekQueriesMap[w]);
+
+  const isLoading = weekQueries.some((w) => w?.isLoading);
 
   if (isLoading) {
     return (
@@ -696,13 +711,19 @@ function OverallLeaderboard({ throughWeek }: { throughWeek: number }) {
   // Aggregate points across all weeks
   const userTotalPoints = new Map<string, number>();
 
-  allWeeks.forEach((weekQuery) => {
-    if (!weekQuery.data) return;
+  weekQueries.forEach((weekQuery) => {
+    if (!weekQuery?.data) return;
     
-    [...weekQuery.data.qbs, ...weekQuery.data.rbs, ...weekQuery.data.flex].forEach((player) => {
+    const allPlayers = [
+      ...(weekQuery.data.qbs || []), 
+      ...(weekQuery.data.rbs || []), 
+      ...(weekQuery.data.flex || [])
+    ];
+    
+    allPlayers.forEach((player) => {
       player.selectedBy.forEach((userId) => {
         const current = userTotalPoints.get(userId) || 0;
-        userTotalPoints.set(userId, current + player.points);
+        userTotalPoints.set(userId, current + (player.points || 0));
       });
     });
   });
@@ -714,7 +735,9 @@ function OverallLeaderboard({ throughWeek }: { throughWeek: number }) {
   if (standings.length === 0) {
     return (
       <div className="py-8 text-center">
-        <p className="text-muted-foreground">No standings available yet</p>
+        <p className="text-muted-foreground">
+          No stats yet. Overall leaderboard will appear once games are played.
+        </p>
       </div>
     );
   }
