@@ -24,10 +24,13 @@ import { teamColorMap } from "@/lib/teamColors";
 import { playoffWeeks } from "@/data/playoffWeeks";
 import { getWeekStatus, getCurrentOpenWeek } from "@/lib/weekStatus";
 import { formatDeadlineET, formatGameDateET } from "@/lib/timezone";
-import { Pick } from "@/domain/types";
+import { Pick, Week } from "@/domain/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 import { useSeason, SEASON_OPTIONS } from "@/contexts/SeasonContext";
+import { useLeague } from "@/contexts/LeagueContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRegularSeasonData, RegularSeasonPlayer } from "@/hooks/useRegularSeasonData";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -42,41 +45,57 @@ interface PlayoffPlayer {
   image_url: string | null;
 }
 
+// Unified player type for both modes
+interface UnifiedPlayer {
+  id: string;
+  playerId: number | string;
+  name: string;
+  position: string;
+  teamName: string;
+  teamAbbr: string;
+  teamId: number | string;
+  number: string | null;
+  imageUrl: string | null;
+}
+
 type WeekPicks = {
-  qb?: PlayoffPlayer;
-  rb?: PlayoffPlayer;
-  flex?: PlayoffPlayer;
+  qb?: UnifiedPlayer;
+  rb?: UnifiedPlayer;
+  flex?: UnifiedPlayer;
   submitted: boolean;
   submittedAt?: string;
 };
 
-// Hard-coded for testing
-const CURRENT_SEASON = 2024;
-const CURRENT_WEEK = 1;
-const currentUserId = "ben";
-const currentLeagueId = "playoff-league-2024";
-
 // Debug time override - set to true to test Week 1 as open
-const USE_DEBUG_TIME = true;
+const USE_DEBUG_TIME = false;
 const DEBUG_NOW = new Date("2025-01-10T12:00:00-05:00");
 
 const Picks = () => {
-  const { selectedSeason, setSelectedSeason, canSelectSeason } = useSeason();
+  const { selectedSeason, setSelectedSeason, canSelectSeason, seasonConfig } = useSeason();
+  const { currentLeague, isCommissioner } = useLeague();
+  const { profile } = useAuth();
+  
+  const isRegularSeason = selectedSeason === "2025-regular";
   const CURRENT_TIME = USE_DEBUG_TIME ? DEBUG_NOW : new Date();
-  const currentOpenWeek = getCurrentOpenWeek(playoffWeeks, CURRENT_TIME);
-  const initialWeek = currentOpenWeek?.weekNumber.toString() ?? "1";
 
-  const [activeWeek, setActiveWeek] = useState<string>(initialWeek);
-  const [picksByWeek, setPicksByWeek] = useState<Record<number, WeekPicks>>({
-    1: { submitted: false },
-    2: { submitted: false },
-    3: { submitted: false },
-    4: { submitted: false },
-  });
+  // Regular season data
+  const { 
+    players: regularSeasonPlayers, 
+    weeks: regularSeasonWeeks, 
+    domainWeeks: regularDomainWeeks,
+    loading: loadingRegularSeason 
+  } = useRegularSeasonData(2025);
 
-  // Players from Supabase
-  const [allPlayers, setAllPlayers] = useState<PlayoffPlayer[]>([]);
-  const [loadingPlayers, setLoadingPlayers] = useState(true);
+  // Playoff data
+  const [playoffPlayers, setPlayoffPlayers] = useState<PlayoffPlayer[]>([]);
+  const [loadingPlayoffs, setLoadingPlayoffs] = useState(true);
+
+  // Determine which weeks to use
+  const activeWeeks = isRegularSeason ? regularDomainWeeks : playoffWeeks;
+  const defaultWeek = isRegularSeason ? "14" : (getCurrentOpenWeek(playoffWeeks, CURRENT_TIME)?.weekNumber.toString() ?? "1");
+
+  const [activeWeek, setActiveWeek] = useState<string>(defaultWeek);
+  const [picksByWeek, setPicksByWeek] = useState<Record<number, WeekPicks>>({});
 
   // Sheet state for player selection
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -97,14 +116,34 @@ const Picks = () => {
   const [weekToReset, setWeekToReset] = useState<number | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
-  // Fetch players from playoff_players table
+  // Reset active week when season changes
   useEffect(() => {
+    setActiveWeek(isRegularSeason ? "14" : "1");
+    setPicksByWeek({});
+  }, [isRegularSeason]);
+
+  // Initialize picksByWeek with empty entries for active weeks
+  useEffect(() => {
+    const weekNums = activeWeeks.map(w => w.weekNumber);
+    setPicksByWeek(prev => {
+      const newPicks: Record<number, WeekPicks> = {};
+      for (const w of weekNums) {
+        newPicks[w] = prev[w] || { submitted: false };
+      }
+      return newPicks;
+    });
+  }, [activeWeeks]);
+
+  // Fetch playoff players
+  useEffect(() => {
+    if (isRegularSeason) return;
+    
     const fetchPlayers = async () => {
-      setLoadingPlayers(true);
+      setLoadingPlayoffs(true);
       const { data, error } = await supabase
         .from("playoff_players")
         .select("*")
-        .eq("season", CURRENT_SEASON)
+        .eq("season", 2024)
         .order("team_name")
         .order("name");
 
@@ -116,23 +155,27 @@ const Picks = () => {
           variant: "destructive",
         });
       } else {
-        setAllPlayers(data || []);
+        setPlayoffPlayers(data || []);
       }
-      setLoadingPlayers(false);
+      setLoadingPlayoffs(false);
     };
 
     fetchPlayers();
-  }, []);
+  }, [isRegularSeason]);
 
   // Fetch existing picks for the user
   useEffect(() => {
+    if (!profile?.display_name || !currentLeague) return;
+
     const fetchUserPicks = async () => {
+      const season = isRegularSeason ? 2025 : 2024;
+      
       const { data, error } = await supabase
         .from("user_picks")
         .select("*")
-        .eq("user_id", currentUserId)
-        .eq("league_id", currentLeagueId)
-        .eq("season", CURRENT_SEASON);
+        .eq("user_id", profile.display_name)
+        .eq("league_id", currentLeague.id)
+        .eq("season", season);
 
       if (error) {
         console.error("Error fetching user picks:", error);
@@ -140,29 +183,14 @@ const Picks = () => {
       }
 
       if (data && data.length > 0) {
-        // Get unique player_ids to fetch their images
-        const playerIds = [...new Set(data.map((p) => p.player_id))];
-        
-        // Fetch player images from playoff_players
-        const { data: players } = await supabase
-          .from("playoff_players")
-          .select("player_id, image_url")
-          .in("player_id", playerIds)
-          .eq("season", CURRENT_SEASON);
-
-        // Create a map of player_id to image_url
-        const playerImageMap = new Map<number, string | null>();
-        players?.forEach((p) => {
-          playerImageMap.set(p.player_id, p.image_url);
-        });
-
         // Group picks by week
-        const picksByWeekMap: Record<number, WeekPicks> = {
-          1: { submitted: false },
-          2: { submitted: false },
-          3: { submitted: false },
-          4: { submitted: false },
-        };
+        const picksByWeekMap: Record<number, WeekPicks> = {};
+        
+        // Initialize with empty weeks
+        const weekNums = activeWeeks.map(w => w.weekNumber);
+        for (const w of weekNums) {
+          picksByWeekMap[w] = { submitted: false };
+        }
 
         data.forEach((pick) => {
           const week = pick.week;
@@ -170,15 +198,16 @@ const Picks = () => {
             picksByWeekMap[week] = { submitted: false };
           }
 
-          const player: PlayoffPlayer = {
+          const player: UnifiedPlayer = {
             id: pick.id,
-            player_id: pick.player_id,
+            playerId: pick.player_id,
             name: pick.player_name,
             position: pick.position,
-            team_name: pick.team_name,
-            team_id: pick.team_id,
+            teamName: pick.team_name,
+            teamAbbr: getTeamAbbrev(pick.team_name),
+            teamId: pick.team_id,
             number: null,
-            image_url: playerImageMap.get(pick.player_id) ?? null,
+            imageUrl: null,
           };
 
           if (pick.position_slot === "QB") {
@@ -199,7 +228,38 @@ const Picks = () => {
     };
 
     fetchUserPicks();
-  }, []);
+  }, [profile?.display_name, currentLeague, isRegularSeason, activeWeeks]);
+
+  // Convert players to unified format
+  const allPlayers: UnifiedPlayer[] = useMemo(() => {
+    if (isRegularSeason) {
+      return regularSeasonPlayers.map(p => ({
+        id: p.id,
+        playerId: parseInt(p.api_player_id, 10) || p.api_player_id,
+        name: p.full_name,
+        position: p.position,
+        teamName: p.team_name || "Unknown",
+        teamAbbr: p.team_abbr || "UNK",
+        teamId: p.team_api_id || "0",
+        number: p.jersey_number,
+        imageUrl: null, // Regular season players don't have images yet
+      }));
+    } else {
+      return playoffPlayers.map(p => ({
+        id: p.id,
+        playerId: p.player_id,
+        name: p.name,
+        position: p.position,
+        teamName: p.team_name,
+        teamAbbr: getTeamAbbrev(p.team_name),
+        teamId: p.team_id,
+        number: p.number,
+        imageUrl: p.image_url,
+      }));
+    }
+  }, [isRegularSeason, regularSeasonPlayers, playoffPlayers]);
+
+  const loadingPlayers = isRegularSeason ? loadingRegularSeason : loadingPlayoffs;
 
   const handleOpenSheet = (weekNumber: number, positionSlot: PositionSlot, label: string) => {
     setSheetConfig({ weekNumber, positionSlot, label });
@@ -208,19 +268,20 @@ const Picks = () => {
   };
 
   // Helper to get all player IDs picked in previous weeks by current user
-  const getAlreadyPickedPlayerIds = (currentWeekNum: number): Set<number> => {
-    const pickedIds = new Set<number>();
+  const getAlreadyPickedPlayerIds = (currentWeekNum: number): Set<number | string> => {
+    const pickedIds = new Set<number | string>();
     // Only look at weeks BEFORE the current week
-    for (let w = 1; w < currentWeekNum; w++) {
-      const picks = picksByWeek[w];
-      if (picks.qb) pickedIds.add(picks.qb.player_id);
-      if (picks.rb) pickedIds.add(picks.rb.player_id);
-      if (picks.flex) pickedIds.add(picks.flex.player_id);
+    for (const week of activeWeeks) {
+      if (week.weekNumber >= currentWeekNum) continue;
+      const picks = picksByWeek[week.weekNumber];
+      if (picks?.qb) pickedIds.add(picks.qb.playerId);
+      if (picks?.rb) pickedIds.add(picks.rb.playerId);
+      if (picks?.flex) pickedIds.add(picks.flex.playerId);
     }
     return pickedIds;
   };
 
-  const handleSelectPlayer = (player: PlayoffPlayer) => {
+  const handleSelectPlayer = (player: UnifiedPlayer) => {
     if (!sheetConfig) return;
 
     const { weekNumber, positionSlot } = sheetConfig;
@@ -241,7 +302,7 @@ const Picks = () => {
   const handleSubmitClick = (weekNumber: number) => {
     const weekPicks = picksByWeek[weekNumber];
 
-    if (!weekPicks.qb || !weekPicks.rb || !weekPicks.flex) {
+    if (!weekPicks?.qb || !weekPicks?.rb || !weekPicks?.flex) {
       toast({
         title: "Incomplete picks",
         description: "Please select a player for all three positions before submitting.",
@@ -256,50 +317,52 @@ const Picks = () => {
   };
 
   const handleConfirmSubmit = async () => {
-    if (weekToSubmit === null) return;
+    if (weekToSubmit === null || !profile?.display_name || !currentLeague) return;
 
     const weekPicks = picksByWeek[weekToSubmit];
-    if (!weekPicks.qb || !weekPicks.rb || !weekPicks.flex) return;
+    if (!weekPicks?.qb || !weekPicks?.rb || !weekPicks?.flex) return;
 
     setIsSubmitting(true);
 
     try {
+      const season = isRegularSeason ? 2025 : 2024;
+      
       // Prepare the picks to insert
       const picksToInsert = [
         {
-          user_id: currentUserId,
-          league_id: currentLeagueId,
-          season: CURRENT_SEASON,
+          user_id: profile.display_name,
+          league_id: currentLeague.id,
+          season: season,
           week: weekToSubmit,
           position_slot: "QB",
-          player_id: weekPicks.qb.player_id,
+          player_id: typeof weekPicks.qb.playerId === 'string' ? parseInt(weekPicks.qb.playerId, 10) : weekPicks.qb.playerId,
           player_name: weekPicks.qb.name,
-          team_id: weekPicks.qb.team_id,
-          team_name: weekPicks.qb.team_name,
+          team_id: typeof weekPicks.qb.teamId === 'string' ? parseInt(weekPicks.qb.teamId, 10) : weekPicks.qb.teamId,
+          team_name: weekPicks.qb.teamName,
           position: weekPicks.qb.position,
         },
         {
-          user_id: currentUserId,
-          league_id: currentLeagueId,
-          season: CURRENT_SEASON,
+          user_id: profile.display_name,
+          league_id: currentLeague.id,
+          season: season,
           week: weekToSubmit,
           position_slot: "RB",
-          player_id: weekPicks.rb.player_id,
+          player_id: typeof weekPicks.rb.playerId === 'string' ? parseInt(weekPicks.rb.playerId, 10) : weekPicks.rb.playerId,
           player_name: weekPicks.rb.name,
-          team_id: weekPicks.rb.team_id,
-          team_name: weekPicks.rb.team_name,
+          team_id: typeof weekPicks.rb.teamId === 'string' ? parseInt(weekPicks.rb.teamId, 10) : weekPicks.rb.teamId,
+          team_name: weekPicks.rb.teamName,
           position: weekPicks.rb.position,
         },
         {
-          user_id: currentUserId,
-          league_id: currentLeagueId,
-          season: CURRENT_SEASON,
+          user_id: profile.display_name,
+          league_id: currentLeague.id,
+          season: season,
           week: weekToSubmit,
           position_slot: "FLEX",
-          player_id: weekPicks.flex.player_id,
+          player_id: typeof weekPicks.flex.playerId === 'string' ? parseInt(weekPicks.flex.playerId, 10) : weekPicks.flex.playerId,
           player_name: weekPicks.flex.name,
-          team_id: weekPicks.flex.team_id,
-          team_name: weekPicks.flex.team_name,
+          team_id: typeof weekPicks.flex.teamId === 'string' ? parseInt(weekPicks.flex.teamId, 10) : weekPicks.flex.teamId,
+          team_name: weekPicks.flex.teamName,
           position: weekPicks.flex.position,
         },
       ];
@@ -330,9 +393,10 @@ const Picks = () => {
         },
       }));
 
+      const weekLabel = isRegularSeason ? `Week ${weekToSubmit}` : getWeekLabel(weekToSubmit);
       toast({
-        title: `${getWeekLabel(weekToSubmit)} picks submitted!`,
-        description: "Your picks have been saved to the database and locked.",
+        title: `${weekLabel} picks submitted!`,
+        description: "Your picks have been saved and locked.",
       });
     } catch (err) {
       console.error("Error submitting picks:", err);
@@ -355,17 +419,19 @@ const Picks = () => {
   };
 
   const handleConfirmReset = async () => {
-    if (weekToReset === null) return;
+    if (weekToReset === null || !profile?.display_name || !currentLeague) return;
 
     setIsResetting(true);
 
     try {
+      const season = isRegularSeason ? 2025 : 2024;
+      
       const { error } = await supabase
         .from("user_picks")
         .delete()
-        .eq("user_id", currentUserId)
-        .eq("league_id", currentLeagueId)
-        .eq("season", CURRENT_SEASON)
+        .eq("user_id", profile.display_name)
+        .eq("league_id", currentLeague.id)
+        .eq("season", season)
         .eq("week", weekToReset);
 
       if (error) {
@@ -390,8 +456,9 @@ const Picks = () => {
         },
       }));
 
+      const weekLabel = isRegularSeason ? `Week ${weekToReset}` : getWeekLabel(weekToReset);
       toast({
-        title: `${getWeekLabel(weekToReset)} picks cleared`,
+        title: `${weekLabel} picks cleared`,
         description: "You can now make new selections.",
       });
     } catch (err) {
@@ -409,10 +476,10 @@ const Picks = () => {
   };
 
   // Filter players for the sheet
-  const getFilteredPlayers = (): PlayoffPlayer[] => {
+  const getFilteredPlayers = (): UnifiedPlayer[] => {
     if (!sheetConfig) return [];
 
-    const { weekNumber, positionSlot } = sheetConfig;
+    const { positionSlot } = sheetConfig;
 
     // Filter by position
     let filtered = allPlayers;
@@ -429,13 +496,15 @@ const Picks = () => {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (p) =>
-          p.name.toLowerCase().includes(searchLower) || p.team_name.toLowerCase().includes(searchLower)
+          p.name.toLowerCase().includes(searchLower) || 
+          p.teamName.toLowerCase().includes(searchLower) ||
+          p.teamAbbr.toLowerCase().includes(searchLower)
       );
     }
 
     // Sort by team_name then name
     return filtered.sort((a, b) => {
-      const teamCompare = a.team_name.localeCompare(b.team_name);
+      const teamCompare = a.teamName.localeCompare(b.teamName);
       if (teamCompare !== 0) return teamCompare;
       return a.name.localeCompare(b.name);
     });
@@ -461,24 +530,58 @@ const Picks = () => {
 
   // Get team abbreviation for display
   const getTeamAbbrev = (teamName: string): string => {
-    // Map full team names to abbreviations
     const abbrevMap: Record<string, string> = {
+      "Arizona Cardinals": "ARI",
+      "Atlanta Falcons": "ATL",
       "Baltimore Ravens": "BAL",
       "Buffalo Bills": "BUF",
+      "Carolina Panthers": "CAR",
+      "Chicago Bears": "CHI",
+      "Cincinnati Bengals": "CIN",
+      "Cleveland Browns": "CLE",
+      "Dallas Cowboys": "DAL",
       "Denver Broncos": "DEN",
       "Detroit Lions": "DET",
       "Green Bay Packers": "GB",
       "Houston Texans": "HOU",
+      "Indianapolis Colts": "IND",
+      "Jacksonville Jaguars": "JAX",
       "Kansas City Chiefs": "KC",
+      "Las Vegas Raiders": "LV",
       "Los Angeles Chargers": "LAC",
       "Los Angeles Rams": "LAR",
+      "Miami Dolphins": "MIA",
       "Minnesota Vikings": "MIN",
+      "New England Patriots": "NE",
+      "New Orleans Saints": "NO",
+      "New York Giants": "NYG",
+      "New York Jets": "NYJ",
       "Philadelphia Eagles": "PHI",
       "Pittsburgh Steelers": "PIT",
+      "San Francisco 49ers": "SF",
+      "Seattle Seahawks": "SEA",
       "Tampa Bay Buccaneers": "TB",
+      "Tennessee Titans": "TEN",
       "Washington Commanders": "WAS",
     };
     return abbrevMap[teamName] || teamName.substring(0, 3).toUpperCase();
+  };
+
+  // Get week label based on mode
+  const getDisplayWeekLabel = (weekNum: number): string => {
+    if (isRegularSeason) {
+      return `Week ${weekNum}`;
+    }
+    return getWeekLabel(weekNum);
+  };
+
+  // Get tab label based on mode
+  const getDisplayTabLabel = (weekNum: number): { abbrev: string; dates: string } => {
+    if (isRegularSeason) {
+      const weekData = regularSeasonWeeks.find(w => w.week === weekNum);
+      return weekData?.tabLabel || { abbrev: `WK ${weekNum}`, dates: "" };
+    }
+    return getWeekTabLabel(weekNum);
   };
 
   return (
@@ -496,7 +599,7 @@ const Picks = () => {
             
             {/* Admin-only Season Selector */}
             {canSelectSeason && (
-              <Select value={selectedSeason} onValueChange={setSelectedSeason}>
+              <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as any)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select season" />
                 </SelectTrigger>
@@ -511,8 +614,8 @@ const Picks = () => {
             )}
           </div>
           <p className="text-muted-foreground">
-            {selectedSeason === "2025-regular"
-              ? "2025 Regular Season — Coming Soon"
+            {isRegularSeason
+              ? "2025 Regular Season Beta — Pick 1 QB, 1 RB, and 1 FLEX each week"
               : "Make Your Weekly Picks — Pick one QB, one RB, and one FLEX for each playoff week"}
           </p>
         </div>
@@ -520,26 +623,14 @@ const Picks = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {selectedSeason === "2025-regular" ? (
-          /* 2025 Regular Season - Coming Soon */
-          <Card className="border-border">
-            <CardContent className="py-16 text-center">
-              <ClipboardList className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">2025 Regular Season</h2>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Regular season picks will be available when the 2025 NFL season begins. 
-                Stay tuned for weekly matchups and player selections!
-              </p>
-            </CardContent>
-          </Card>
-        ) : loadingPlayers ? (
+        {loadingPlayers ? (
           <div className="text-center py-12 text-muted-foreground">Loading players...</div>
         ) : (
           <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v)} className="w-full">
             <TabsList className="w-full flex overflow-x-auto mb-8 h-auto p-1 bg-muted/50 border border-border gap-1">
-              {playoffWeeks.map((week) => {
+              {activeWeeks.map((week) => {
                 const weekNum = week.weekNumber;
-                const weekPicks = picksByWeek[weekNum];
+                const weekPicks = picksByWeek[weekNum] || { submitted: false };
                 
                 // Convert local picks to Pick[] format for status check
                 const userPicksForWeek: Pick[] = [];
@@ -552,6 +643,7 @@ const Picks = () => {
                 const status = getWeekStatus({ week, userPicksForWeek, now: CURRENT_TIME });
                 const value = week.weekNumber.toString();
                 const isFuture = status === "FUTURE_LOCKED";
+                const tabLabel = getDisplayTabLabel(weekNum);
 
                 return (
                   <TabsTrigger
@@ -567,22 +659,22 @@ const Picks = () => {
                         e.preventDefault();
                         toast({
                           title: "Week not available",
-                          description: `${getWeekLabel(week.weekNumber)} picks open on ${formatGameDateET(week.openAt)}`,
+                          description: `${getDisplayWeekLabel(week.weekNumber)} picks open on ${formatGameDateET(week.openAt)}`,
                         });
                         return;
                       }
                     }}
                   >
-                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">{getWeekTabLabel(week.weekNumber).abbrev}</span>
-                    <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{getWeekTabLabel(week.weekNumber).dates}</span>
+                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">{tabLabel.abbrev}</span>
+                    <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{tabLabel.dates}</span>
                   </TabsTrigger>
                 );
               })}
             </TabsList>
 
-            {playoffWeeks.map((week) => {
+            {activeWeeks.map((week) => {
               const weekNum = week.weekNumber;
-              const weekPicks = picksByWeek[weekNum];
+              const weekPicks = picksByWeek[weekNum] || { submitted: false };
               const isSubmitted = weekPicks.submitted;
               const allSlotsSelected = weekPicks.qb && weekPicks.rb && weekPicks.flex;
               
@@ -599,6 +691,7 @@ const Picks = () => {
               const isPastNoPicks = status === "PAST_NO_PICKS";
               const isFuture = status === "FUTURE_LOCKED";
               const isSubmittedState = status === "SUBMITTED";
+              const weekLabel = getDisplayWeekLabel(weekNum);
 
               return (
                 <TabsContent key={week.id} value={weekNum.toString()} className="mt-0">
@@ -608,8 +701,8 @@ const Picks = () => {
                       <Alert className="mb-4 border-border bg-muted/20">
                         <Lock className="h-4 w-4" />
                         <AlertDescription>
-                          <div className="font-semibold mb-1 text-foreground">{getWeekLabel(weekNum)} picks are not open yet.</div>
-                          <div className="text-sm text-muted-foreground">{getWeekLabel(weekNum)} opens on {formatGameDateET(week.openAt)}.</div>
+                          <div className="font-semibold mb-1 text-foreground">{weekLabel} picks are not open yet.</div>
+                          <div className="text-sm text-muted-foreground">{weekLabel} opens on {formatGameDateET(week.openAt)}.</div>
                         </AlertDescription>
                       </Alert>
                     )}
@@ -618,7 +711,7 @@ const Picks = () => {
                       <Alert className="mb-4 bg-primary/10 border-primary/30">
                         <Info className="h-4 w-4 text-primary" />
                         <AlertDescription>
-                          <div className="font-semibold mb-1 text-primary">Make your picks for {getWeekLabel(weekNum)}</div>
+                          <div className="font-semibold mb-1 text-primary">Make your picks for {weekLabel}</div>
                           <div className="text-sm text-muted-foreground">Picks are due by {formatGameDateET(week.deadlineAt)}.</div>
                         </AlertDescription>
                       </Alert>
@@ -628,7 +721,7 @@ const Picks = () => {
                       <Alert className="mb-4 bg-primary/10 border-primary/30">
                         <CheckCircle2 className="h-4 w-4 text-primary" />
                         <AlertDescription>
-                          <div className="font-semibold mb-1 text-primary">Your picks for {getWeekLabel(weekNum)} have been submitted.</div>
+                          <div className="font-semibold mb-1 text-primary">Your picks for {weekLabel} have been submitted.</div>
                           <div className="text-sm text-muted-foreground">
                             Submitted on {weekPicks.submittedAt ? formatGameDateET(weekPicks.submittedAt) : "just now"}. You can't change picks after submitting.
                           </div>
@@ -640,16 +733,16 @@ const Picks = () => {
                       <Alert className="mb-4 border-destructive/50 bg-destructive/10" variant="destructive">
                         <Info className="h-4 w-4" />
                         <AlertDescription>
-                          <div className="font-semibold mb-1">{getWeekLabel(weekNum)} is complete.</div>
+                          <div className="font-semibold mb-1">{weekLabel} is complete.</div>
                           <div className="text-sm">You didn't submit picks for this week.</div>
                         </AlertDescription>
                       </Alert>
                     )}
                     
                     <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold">{getWeekLabel(weekNum)} Picks</h2>
+                      <h2 className="text-2xl font-bold">{weekLabel} Picks</h2>
                       {/* Admin reset button */}
-                      {(weekPicks.qb || weekPicks.rb || weekPicks.flex || weekPicks.submitted) && (
+                      {isCommissioner && (weekPicks.qb || weekPicks.rb || weekPicks.flex || weekPicks.submitted) && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -660,7 +753,7 @@ const Picks = () => {
                           }}
                         >
                           <Trash2 className="w-3 h-3 mr-1" />
-                          Admin: Reset {getWeekLabel(weekNum)}
+                          Reset {weekLabel}
                         </Button>
                       )}
                     </div>
@@ -684,8 +777,8 @@ const Picks = () => {
                         <div className="flex items-center gap-3">
                           {weekPicks.qb && (
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-foreground/80 flex items-center justify-center text-xs font-semibold shrink-0 text-background">
-                              {weekPicks.qb.image_url ? (
-                                <img src={weekPicks.qb.image_url} alt={weekPicks.qb.name} className="w-full h-full object-cover" />
+                              {weekPicks.qb.imageUrl ? (
+                                <img src={weekPicks.qb.imageUrl} alt={weekPicks.qb.name} className="w-full h-full object-cover" />
                               ) : (
                                 <span>{getPlayerInitials(weekPicks.qb.name)}</span>
                               )}
@@ -696,7 +789,7 @@ const Picks = () => {
                             {weekPicks.qb ? (
                               <div>
                                 <p className="font-semibold">{weekPicks.qb.name}</p>
-                                <p className="text-sm text-muted-foreground">{weekPicks.qb.team_name}</p>
+                                <p className="text-sm text-muted-foreground">{weekPicks.qb.teamName}</p>
                               </div>
                             ) : isPastNoPicks ? (
                               <p className="text-muted-foreground italic">No picks submitted</p>
@@ -736,8 +829,8 @@ const Picks = () => {
                         <div className="flex items-center gap-3">
                           {weekPicks.rb && (
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-foreground/80 flex items-center justify-center text-xs font-semibold shrink-0 text-background">
-                              {weekPicks.rb.image_url ? (
-                                <img src={weekPicks.rb.image_url} alt={weekPicks.rb.name} className="w-full h-full object-cover" />
+                              {weekPicks.rb.imageUrl ? (
+                                <img src={weekPicks.rb.imageUrl} alt={weekPicks.rb.name} className="w-full h-full object-cover" />
                               ) : (
                                 <span>{getPlayerInitials(weekPicks.rb.name)}</span>
                               )}
@@ -748,7 +841,7 @@ const Picks = () => {
                             {weekPicks.rb ? (
                               <div>
                                 <p className="font-semibold">{weekPicks.rb.name}</p>
-                                <p className="text-sm text-muted-foreground">{weekPicks.rb.team_name}</p>
+                                <p className="text-sm text-muted-foreground">{weekPicks.rb.teamName}</p>
                               </div>
                             ) : isPastNoPicks ? (
                               <p className="text-muted-foreground italic">No picks submitted</p>
@@ -778,8 +871,8 @@ const Picks = () => {
                     </h3>
                     <Card
                       className={cn(
-                        "transition-all",
-                        isOpen && "cursor-pointer hover:shadow-md hover:border-primary/50",
+                        "transition-all border-border",
+                        isOpen && "cursor-pointer hover:bg-muted/10 hover:border-primary/50",
                         (isFuture || isPastNoPicks) && "opacity-60"
                       )}
                       onClick={() => isOpen && handleOpenSheet(weekNum, "FLEX", "Flex (WR/TE)")}
@@ -788,8 +881,8 @@ const Picks = () => {
                         <div className="flex items-center gap-3">
                           {weekPicks.flex && (
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-foreground/80 flex items-center justify-center text-xs font-semibold shrink-0 text-background">
-                              {weekPicks.flex.image_url ? (
-                                <img src={weekPicks.flex.image_url} alt={weekPicks.flex.name} className="w-full h-full object-cover" />
+                              {weekPicks.flex.imageUrl ? (
+                                <img src={weekPicks.flex.imageUrl} alt={weekPicks.flex.name} className="w-full h-full object-cover" />
                               ) : (
                                 <span>{getPlayerInitials(weekPicks.flex.name)}</span>
                               )}
@@ -800,7 +893,7 @@ const Picks = () => {
                             {weekPicks.flex ? (
                               <div>
                                 <p className="font-semibold">{weekPicks.flex.name}</p>
-                                <p className="text-sm text-muted-foreground">{weekPicks.flex.team_name}</p>
+                                <p className="text-sm text-muted-foreground">{weekPicks.flex.teamName}</p>
                               </div>
                             ) : isPastNoPicks ? (
                               <p className="text-muted-foreground italic">No picks submitted</p>
@@ -825,26 +918,26 @@ const Picks = () => {
                   {/* Summary and Submit Section */}
                   <Card className="mt-8">
                     <CardHeader>
-                      <CardTitle>Your picks for Week {weekNum}</CardTitle>
+                      <CardTitle>Your picks for {weekLabel}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between py-2 px-3 rounded bg-muted/50">
                           <span className="font-medium">QB:</span>
                           <span className="text-muted-foreground">
-                            {weekPicks.qb ? `${weekPicks.qb.name} (${getTeamAbbrev(weekPicks.qb.team_name)})` : "Not selected yet"}
+                            {weekPicks.qb ? `${weekPicks.qb.name} (${weekPicks.qb.teamAbbr})` : "Not selected yet"}
                           </span>
                         </div>
                         <div className="flex items-center justify-between py-2 px-3 rounded bg-muted/50">
                           <span className="font-medium">RB:</span>
                           <span className="text-muted-foreground">
-                            {weekPicks.rb ? `${weekPicks.rb.name} (${getTeamAbbrev(weekPicks.rb.team_name)})` : "Not selected yet"}
+                            {weekPicks.rb ? `${weekPicks.rb.name} (${weekPicks.rb.teamAbbr})` : "Not selected yet"}
                           </span>
                         </div>
                         <div className="flex items-center justify-between py-2 px-3 rounded bg-muted/50">
                           <span className="font-medium">FLEX:</span>
                           <span className="text-muted-foreground">
-                            {weekPicks.flex ? `${weekPicks.flex.name} (${getTeamAbbrev(weekPicks.flex.team_name)})` : "Not selected yet"}
+                            {weekPicks.flex ? `${weekPicks.flex.name} (${weekPicks.flex.teamAbbr})` : "Not selected yet"}
                           </span>
                         </div>
                       </div>
@@ -857,7 +950,7 @@ const Picks = () => {
                             className="w-full"
                             size="lg"
                           >
-                            Submit picks for Week {weekNum}
+                            Submit picks for {weekLabel}
                           </Button>
                           <p className="text-sm text-muted-foreground text-center">
                             Once you submit picks for this week, they can't be changed.
@@ -890,7 +983,7 @@ const Picks = () => {
         <SheetContent side="bottom" className="flex flex-col max-h-[80vh] bg-card border-t border-border">
           <SheetHeader>
             <SheetTitle className="text-foreground">
-              {sheetConfig && `Select a ${sheetConfig.label} for Week ${sheetConfig.weekNumber}`}
+              {sheetConfig && `Select a ${sheetConfig.label} for ${getDisplayWeekLabel(sheetConfig.weekNumber)}`}
             </SheetTitle>
           </SheetHeader>
 
@@ -908,10 +1001,9 @@ const Picks = () => {
           <div className="overflow-y-auto max-h-[65vh] pb-4">
             <div className="space-y-2 pr-2">
               {getFilteredPlayers().map((player) => {
-                const teamAbbrev = getTeamAbbrev(player.team_name);
-                const colors = teamColorMap[teamAbbrev] ?? teamColorMap.DEFAULT;
+                const colors = teamColorMap[player.teamAbbr] ?? teamColorMap.DEFAULT;
                 const alreadyPickedIds = sheetConfig ? getAlreadyPickedPlayerIds(sheetConfig.weekNumber) : new Set();
-                const isAlreadyPicked = alreadyPickedIds.has(player.player_id);
+                const isAlreadyPicked = alreadyPickedIds.has(player.playerId);
                 
                 return (
                   <div
@@ -928,8 +1020,8 @@ const Picks = () => {
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {/* Avatar with fallback */}
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-foreground/80 flex items-center justify-center text-xs font-semibold shrink-0 text-background">
-                          {player.image_url ? (
-                            <img src={player.image_url} alt={player.name} className="w-full h-full object-cover" />
+                          {player.imageUrl ? (
+                            <img src={player.imageUrl} alt={player.name} className="w-full h-full object-cover" />
                           ) : (
                             <span>{getPlayerInitials(player.name)}</span>
                           )}
@@ -956,7 +1048,7 @@ const Picks = () => {
                         className="px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 opacity-90"
                         style={{ backgroundColor: colors.bg, color: colors.text }}
                       >
-                        {teamAbbrev}
+                        {player.teamAbbr}
                       </span>
                     </div>
                   </div>
@@ -978,10 +1070,10 @@ const Picks = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Submit picks for {weekToSubmit !== null ? getWeekLabel(weekToSubmit) : ""}?
+              Submit picks for {weekToSubmit !== null ? getDisplayWeekLabel(weekToSubmit) : ""}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to submit your picks for {weekToSubmit !== null ? getWeekLabel(weekToSubmit) : "this week"}?
+              Are you sure you want to submit your picks for {weekToSubmit !== null ? getDisplayWeekLabel(weekToSubmit) : "this week"}?
               This action cannot be changed once submitted.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -992,7 +1084,7 @@ const Picks = () => {
                 <span className="font-medium">QB:</span>{" "}
                 {picksByWeek[weekToSubmit]?.qb ? (
                   <>
-                    {picksByWeek[weekToSubmit].qb!.name} – {picksByWeek[weekToSubmit].qb!.team_name}
+                    {picksByWeek[weekToSubmit].qb!.name} – {picksByWeek[weekToSubmit].qb!.teamName}
                   </>
                 ) : (
                   "Not selected"
@@ -1002,7 +1094,7 @@ const Picks = () => {
                 <span className="font-medium">RB:</span>{" "}
                 {picksByWeek[weekToSubmit]?.rb ? (
                   <>
-                    {picksByWeek[weekToSubmit].rb!.name} – {picksByWeek[weekToSubmit].rb!.team_name}
+                    {picksByWeek[weekToSubmit].rb!.name} – {picksByWeek[weekToSubmit].rb!.teamName}
                   </>
                 ) : (
                   "Not selected"
@@ -1012,7 +1104,7 @@ const Picks = () => {
                 <span className="font-medium">FLEX:</span>{" "}
                 {picksByWeek[weekToSubmit]?.flex ? (
                   <>
-                    {picksByWeek[weekToSubmit].flex!.name} – {picksByWeek[weekToSubmit].flex!.team_name}
+                    {picksByWeek[weekToSubmit].flex!.name} – {picksByWeek[weekToSubmit].flex!.teamName}
                   </>
                 ) : (
                   "Not selected"
@@ -1035,10 +1127,10 @@ const Picks = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Reset picks for {weekToReset !== null ? getWeekLabel(weekToReset) : ""}?
+              Reset picks for {weekToReset !== null ? getDisplayWeekLabel(weekToReset) : ""}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to clear your picks for {weekToReset !== null ? getWeekLabel(weekToReset) : "this week"}? 
+              Are you sure you want to clear your picks for {weekToReset !== null ? getDisplayWeekLabel(weekToReset) : "this week"}? 
               This only affects your account and cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
