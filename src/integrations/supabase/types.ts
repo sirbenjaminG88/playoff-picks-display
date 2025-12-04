@@ -489,6 +489,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_logs: {
+        Row: {
+          id: string
+          notes: string | null
+          players_updated: number | null
+          season: number
+          success: boolean | null
+          synced_at: string | null
+          week: number
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          players_updated?: number | null
+          season: number
+          success?: boolean | null
+          synced_at?: string | null
+          week: number
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          players_updated?: number | null
+          season?: number
+          success?: boolean | null
+          synced_at?: string | null
+          week?: number
+        }
+        Relationships: []
+      }
       user_picks: {
         Row: {
           created_at: string

@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Loader2, RefreshCw } from "lucide-react";
+import { ChevronDown, Loader2, RefreshCw, Radio } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
 import { useWeekPicks, GroupedPlayer, PlayerWeekStats, UserProfile } from "@/hooks/useWeekPicks";
 import { useRegularSeasonPicks, GroupedPlayer as RegularGroupedPlayer, UserProfile as RegularUserProfile } from "@/hooks/useRegularSeasonPicks";
@@ -310,8 +310,26 @@ const WeekResults = ({ week, onSyncStats }: { week: number; onSyncStats: (week: 
 };
 
 // Regular season week results component
-const RegularSeasonWeekResults = ({ week, leagueId }: { week: number; leagueId: string }) => {
+const RegularSeasonWeekResults = ({ 
+  week, 
+  leagueId,
+  isAdmin,
+  onSyncStats 
+}: { 
+  week: number; 
+  leagueId: string;
+  isAdmin?: boolean;
+  onSyncStats?: (week: number) => void;
+}) => {
   const { data, isLoading, error } = useRegularSeasonPicks(week, leagueId);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    if (!onSyncStats) return;
+    setIsSyncing(true);
+    await onSyncStats(week);
+    setIsSyncing(false);
+  };
 
   if (isLoading) {
     return (
@@ -351,6 +369,26 @@ const RegularSeasonWeekResults = ({ week, leagueId }: { week: number; leagueId: 
 
   return (
     <div className="space-y-6">
+      {/* Admin Sync Button */}
+      {isAdmin && onSyncStats && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="text-xs"
+          >
+            {isSyncing ? (
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+            ) : (
+              <RefreshCw className="w-3 h-3 mr-1" />
+            )}
+            Sync Stats Now (Admin)
+          </Button>
+        </div>
+      )}
+      
       <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} />
       <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} />
       <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} />
@@ -609,9 +647,83 @@ const WeekLeaderboard = ({ week }: { week: number }) => {
 
 // 2025 Regular Season Fantasy Results
 function RegularSeasonResults() {
-  const { currentLeague } = useLeague();
+  const { currentLeague, isCommissioner } = useLeague();
   const [activeWeek, setActiveWeek] = useState(14);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
+  const [isLive, setIsLive] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Realtime subscription for live stat updates
+  useEffect(() => {
+    if (!currentLeague) return;
+
+    console.log('Setting up realtime subscription for player_week_stats...');
+    
+    const channel = supabase
+      .channel('player-stats-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'player_week_stats',
+          filter: `season=eq.2025`,
+        },
+        (payload) => {
+          console.log('Realtime update received:', payload);
+          setIsLive(true);
+          
+          // Invalidate queries to refetch updated data
+          queryClient.invalidateQueries({ queryKey: ['regularSeasonPicks'] });
+          
+          // Reset live indicator after 3 seconds
+          setTimeout(() => setIsLive(false), 3000);
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [currentLeague, queryClient]);
+
+  // Handle manual sync
+  const handleSyncStats = async (week: number) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-live-stats?week=${week}&force=true`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Failed to sync stats');
+      }
+
+      toast({
+        title: "Stats synced successfully",
+        description: `Synced ${result.statsUpserted}/${result.playersProcessed} players for Week ${week}`,
+      });
+
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ['regularSeasonPicks'] });
+    } catch (error) {
+      console.error('Error syncing stats:', error);
+      toast({
+        title: "Error syncing stats",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    }
+  };
 
   if (!currentLeague) {
     return (
@@ -626,67 +738,82 @@ function RegularSeasonResults() {
   }
 
   return (
-    <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
-      <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
+    <div>
+      {/* Live indicator */}
+      {isLive && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-primary animate-pulse">
+          <Radio className="w-4 h-4" />
+          <span>Live update received</span>
+        </div>
+      )}
+      
+      <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
+        <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
+          {REGULAR_SEASON_WEEKS.map((weekNum) => (
+            <TabsTrigger 
+              key={weekNum}
+              value={`week-${weekNum}`} 
+              className="flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">WK {weekNum}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
         {REGULAR_SEASON_WEEKS.map((weekNum) => (
-          <TabsTrigger 
-            key={weekNum}
-            value={`week-${weekNum}`} 
-            className="flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">WK {weekNum}</span>
-          </TabsTrigger>
+          <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
+            <RegularSeasonWeekResults 
+              week={weekNum} 
+              leagueId={currentLeague.id}
+              isAdmin={isCommissioner}
+              onSyncStats={handleSyncStats}
+            />
+
+            {/* Leaderboards Section */}
+            <div className="mt-8">
+              <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
+                <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
+                  <TabsTrigger
+                    value="weekly"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    Week {weekNum} Leaderboard
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="overall"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    Overall Leaderboard
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="weekly" className="mt-0">
+                  <Card className="border-border bg-card">
+                    <CardHeader className="pb-4 px-6 pt-6">
+                      <CardTitle className="text-foreground text-xl">Week {weekNum} Standings</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-6 pb-6">
+                      <RegularSeasonWeekLeaderboard week={weekNum} leagueId={currentLeague.id} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="overall" className="mt-0">
+                  <Card className="border-border bg-card">
+                    <CardHeader className="pb-4 px-6 pt-6">
+                      <CardTitle className="text-foreground text-xl">Overall Standings (Through Week {weekNum})</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-6 pb-6">
+                      <RegularSeasonOverallLeaderboard throughWeek={weekNum} leagueId={currentLeague.id} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </TabsContent>
         ))}
-      </TabsList>
-
-      {REGULAR_SEASON_WEEKS.map((weekNum) => (
-        <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
-          <RegularSeasonWeekResults week={weekNum} leagueId={currentLeague.id} />
-
-          {/* Leaderboards Section */}
-          <div className="mt-8">
-            <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
-              <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
-                <TabsTrigger
-                  value="weekly"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  Week {weekNum} Leaderboard
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="overall"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  Overall Leaderboard
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="weekly" className="mt-0">
-                <Card className="border-border bg-card">
-                  <CardHeader className="pb-4 px-6 pt-6">
-                    <CardTitle className="text-foreground text-xl">Week {weekNum} Standings</CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-6">
-                    <RegularSeasonWeekLeaderboard week={weekNum} leagueId={currentLeague.id} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="overall" className="mt-0">
-                <Card className="border-border bg-card">
-                  <CardHeader className="pb-4 px-6 pt-6">
-                    <CardTitle className="text-foreground text-xl">Overall Standings (Through Week {weekNum})</CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-6">
-                    <RegularSeasonOverallLeaderboard throughWeek={weekNum} leagueId={currentLeague.id} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </TabsContent>
-      ))}
-    </Tabs>
+      </Tabs>
+    </div>
   );
 }
 
