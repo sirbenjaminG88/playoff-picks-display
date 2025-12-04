@@ -52,35 +52,38 @@ const Index = () => {
             EMMA
           </h1>
           <p className="text-2xl font-semibold text-foreground mb-3">
-            Extra Month of More Action
+            Fantasy Football Doesn't Have to End.
           </p>
-          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
-            The ultimate fantasy football playoff showdown. Four competitors, four weeks, one champion.
+          <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
+            Keep playing through the NFL Playoffs in the most exciting four weeks of the season.
+          </p>
+          <p className="text-base text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Regular-season fantasy ends too soon. EMMA brings fantasy football into the playoffs—simple rules, high stakes, and no repeats.
           </p>
 
           {/* Features Grid */}
           <div className="grid md:grid-cols-3 gap-6 mb-12">
             <div className="bg-card border-2 border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
               <Users className="w-8 h-8 text-primary mx-auto mb-3" />
-              <h3 className="font-bold text-lg mb-2">4 Competitors</h3>
+              <h3 className="font-bold text-lg mb-2">Play With Any League Size</h3>
               <p className="text-sm text-muted-foreground">
-                Elite fantasy managers battle for supremacy
+                Invite friends, coworkers, or your full fantasy league—EMMA works with any number of players.
               </p>
             </div>
 
             <div className="bg-card border-2 border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
               <BarChart3 className="w-8 h-8 text-primary mx-auto mb-3" />
-              <h3 className="font-bold text-lg mb-2">Weekly Picks</h3>
+              <h3 className="font-bold text-lg mb-2">Use-'Em-Once Weekly Picks</h3>
               <p className="text-sm text-muted-foreground">
-                QB, RB, and WR/TE selections each playoff week
+                Choose a QB, RB, and WR/TE each playoff week — but once you pick a player, they're gone for the rest of the playoffs.
               </p>
             </div>
 
             <div className="bg-card border-2 border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
               <Trophy className="w-8 h-8 text-accent mx-auto mb-3" />
-              <h3 className="font-bold text-lg mb-2">No Repeats</h3>
+              <h3 className="font-bold text-lg mb-2">Win the Postseason</h3>
               <p className="text-sm text-muted-foreground">
-                Once a player is used, they're out for good
+                Rack up fantasy points each week. Highest total after the playoffs wins it all.
               </p>
             </div>
           </div>
