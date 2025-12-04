@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { usePickRevealStatus, PickRevealStatus } from "./usePickRevealStatus";
 
 export interface PlayerWeekStats {
   pass_yds: number;
@@ -39,6 +40,9 @@ export interface RegularSeasonPicksData {
   flex: GroupedPlayer[];
   allUsers: string[];
   userProfiles: Map<string, UserProfile>;
+  // Pick reveal status
+  revealStatus?: PickRevealStatus;
+  isRevealed: boolean;
 }
 
 // Team abbreviation map
@@ -80,8 +84,21 @@ const getTeamAbbrev = (teamName: string): string => {
   return abbrevMap[teamName] || teamName.substring(0, 3).toUpperCase();
 };
 
-async function fetchRegularSeasonPicks(week: number, leagueId: string): Promise<RegularSeasonPicksData> {
+async function fetchRegularSeasonPicks(week: number, leagueId: string, revealStatus?: PickRevealStatus): Promise<RegularSeasonPicksData> {
   const SEASON = 2025;
+
+  // If picks are not revealed yet, return empty data with status
+  if (revealStatus && !revealStatus.isRevealed) {
+    return { 
+      qbs: [], 
+      rbs: [], 
+      flex: [], 
+      allUsers: [], 
+      userProfiles: new Map(),
+      revealStatus,
+      isRevealed: false,
+    };
+  }
 
   // Fetch user picks for 2025 regular season
   const { data: picks, error: picksError } = await supabase
@@ -96,7 +113,7 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string): Promise<
   }
 
   if (!picks || picks.length === 0) {
-    return { qbs: [], rbs: [], flex: [], allUsers: [], userProfiles: new Map() };
+    return { qbs: [], rbs: [], flex: [], allUsers: [], userProfiles: new Map(), revealStatus, isRevealed: true };
   }
 
   // Get unique player_ids to fetch their stats and images
@@ -211,13 +228,18 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string): Promise<
     flex: groupByPositionAndPlayer(picks, "FLEX"),
     allUsers,
     userProfiles,
+    revealStatus,
+    isRevealed: true,
   };
 }
 
 export function useRegularSeasonPicks(week: number, leagueId: string | null) {
+  // First check reveal status
+  const revealQuery = usePickRevealStatus(week, leagueId);
+  
   return useQuery({
-    queryKey: ["regularSeasonPicks", week, leagueId],
-    queryFn: () => fetchRegularSeasonPicks(week, leagueId!),
-    enabled: !!leagueId && week >= 14 && week <= 17,
+    queryKey: ["regularSeasonPicks", week, leagueId, revealQuery.data?.isRevealed],
+    queryFn: () => fetchRegularSeasonPicks(week, leagueId!, revealQuery.data),
+    enabled: !!leagueId && week >= 14 && week <= 17 && revealQuery.isSuccess,
   });
 }
