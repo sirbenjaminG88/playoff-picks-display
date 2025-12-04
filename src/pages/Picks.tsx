@@ -120,15 +120,31 @@ const Picks = () => {
   useEffect(() => {
     const newDefaultWeek = isRegularSeason ? "14" : "1";
     setActiveWeek(newDefaultWeek);
-    setPicksByWeek({});
+    // Don't reset picksByWeek here - let the fetch effect handle it
   }, [isRegularSeason]);
 
-  // Initialize picksByWeek with empty entries for active weeks
+  // Initialize picksByWeek structure when weeks are available
+  // This should only set up empty entries for weeks that don't exist yet
   useEffect(() => {
     if (activeWeeks.length === 0) return;
     
     const weekNums = activeWeeks.map(w => w.weekNumber);
+    
     setPicksByWeek(prev => {
+      // Check if we already have any picks loaded - if so, don't reset
+      const hasAnyPicks = Object.values(prev).some(w => w.qb || w.rb || w.flex || w.submitted);
+      if (hasAnyPicks) {
+        // Just ensure all weeks exist, preserving existing data
+        const updated = { ...prev };
+        for (const w of weekNums) {
+          if (!updated[w]) {
+            updated[w] = { submitted: false };
+          }
+        }
+        return updated;
+      }
+      
+      // Initial setup - create empty entries for all weeks
       const newPicks: Record<number, WeekPicks> = {};
       for (const w of weekNums) {
         newPicks[w] = prev[w] || { submitted: false };
@@ -137,10 +153,13 @@ const Picks = () => {
     });
     
     // Also ensure activeWeek is valid for current weeks
-    const validWeeks = weekNums.map(String);
-    if (!validWeeks.includes(activeWeek)) {
-      setActiveWeek(validWeeks[0] || (isRegularSeason ? "14" : "1"));
-    }
+    setActiveWeek(prev => {
+      const validWeeks = weekNums.map(String);
+      if (!validWeeks.includes(prev)) {
+        return validWeeks[0] || (isRegularSeason ? "14" : "1");
+      }
+      return prev;
+    });
   }, [activeWeeks, isRegularSeason]);
 
   // Fetch playoff players
