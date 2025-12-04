@@ -73,7 +73,7 @@ const DEBUG_NOW = new Date("2025-01-10T12:00:00-05:00");
 const Picks = () => {
   const { selectedSeason, setSelectedSeason, canSelectSeason, seasonConfig } = useSeason();
   const { currentLeague, isCommissioner } = useLeague();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   
   const isRegularSeason = selectedSeason === "2025-regular";
   const CURRENT_TIME = USE_DEBUG_TIME ? DEBUG_NOW : new Date();
@@ -192,8 +192,6 @@ const Picks = () => {
   }, [isRegularSeason]);
 
   // Fetch existing picks for the user
-  const { user } = useAuth();
-  
   useEffect(() => {
     if (!user?.id || !currentLeague) return;
 
