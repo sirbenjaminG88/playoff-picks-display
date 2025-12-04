@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useAuth } from "./AuthContext";
+import { useLeague } from "./LeagueContext";
 
 export type SeasonOption = "2024-playoffs" | "2025-regular";
 
@@ -19,28 +20,47 @@ interface SeasonContextType {
   selectedSeason: SeasonOption;
   setSelectedSeason: (season: SeasonOption) => void;
   seasonConfig: SeasonConfig;
-  canSelectSeason: boolean; // true only for admins
+  canSelectSeason: boolean; // true only for commissioners
 }
 
 const SeasonContext = createContext<SeasonContextType | undefined>(undefined);
 
 export function SeasonProvider({ children }: { children: ReactNode }) {
   const { isAdmin } = useAuth();
+  const { currentLeague, isCommissioner } = useLeague();
   
-  // Non-admins are always forced to 2025-regular
-  const defaultSeason: SeasonOption = "2025-regular";
-  const [selectedSeason, setSelectedSeasonInternal] = useState<SeasonOption>(defaultSeason);
-
-  // When admin status changes, reset to default for non-admins
-  useEffect(() => {
-    if (!isAdmin) {
-      setSelectedSeasonInternal("2025-regular");
+  // Determine default season based on current league
+  const getDefaultSeason = (): SeasonOption => {
+    if (currentLeague) {
+      if (currentLeague.season === 2025 && currentLeague.season_type === "REG") {
+        return "2025-regular";
+      }
+      if (currentLeague.season === 2024) {
+        return "2024-playoffs";
+      }
     }
-  }, [isAdmin]);
+    // Default to 2025 regular season for beta
+    return "2025-regular";
+  };
+
+  const [selectedSeason, setSelectedSeasonInternal] = useState<SeasonOption>(getDefaultSeason());
+
+  // Update season when league changes
+  useEffect(() => {
+    if (currentLeague) {
+      const defaultSeason = getDefaultSeason();
+      // Only auto-update if user is not a commissioner (commissioners can toggle)
+      if (!isCommissioner && !isAdmin) {
+        setSelectedSeasonInternal(defaultSeason);
+      }
+    }
+  }, [currentLeague, isCommissioner, isAdmin]);
+
+  // Commissioners and admins can toggle seasons
+  const canToggle = isCommissioner || isAdmin;
 
   const setSelectedSeason = (season: SeasonOption) => {
-    // Only admins can change the season
-    if (isAdmin) {
+    if (canToggle) {
       setSelectedSeasonInternal(season);
     }
   };
@@ -52,7 +72,7 @@ export function SeasonProvider({ children }: { children: ReactNode }) {
       selectedSeason, 
       setSelectedSeason, 
       seasonConfig,
-      canSelectSeason: isAdmin 
+      canSelectSeason: canToggle 
     }}>
       {children}
     </SeasonContext.Provider>

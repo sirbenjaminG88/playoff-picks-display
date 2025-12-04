@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      league_members: {
+        Row: {
+          id: string
+          joined_at: string | null
+          league_id: string
+          role: Database["public"]["Enums"]["league_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          league_id: string
+          role?: Database["public"]["Enums"]["league_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          league_id?: string
+          role?: Database["public"]["Enums"]["league_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "league_members_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "league_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leagues: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          season: number
+          season_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          season: number
+          season_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          season?: number
+          season_type?: string
+        }
+        Relationships: []
+      }
       player_week_stats: {
         Row: {
           created_at: string
@@ -485,6 +548,30 @@ export type Database = {
         }
         Relationships: []
       }
+      users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          display_name: string | null
+          email: string
+          id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email: string
+          id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_profiles: {
@@ -521,6 +608,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "player"
+      league_role: "commissioner" | "player"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -649,6 +737,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "player"],
+      league_role: ["commissioner", "player"],
     },
   },
 } as const

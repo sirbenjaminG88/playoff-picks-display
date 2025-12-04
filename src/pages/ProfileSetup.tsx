@@ -116,6 +116,7 @@ const ProfileSetup = () => {
         avatarUrl = await uploadAvatar();
       }
 
+      // Update profiles table (backwards compatibility)
       const { error: updateError } = await supabase
         .from("profiles")
         .update({
@@ -136,6 +137,15 @@ const ProfileSetup = () => {
 
         if (insertError) throw insertError;
       }
+
+      // Also update users table
+      await supabase
+        .from("users")
+        .update({
+          display_name: displayName.trim(),
+          avatar_url: avatarUrl,
+        })
+        .eq("id", user.id);
 
       await refreshProfile();
       
