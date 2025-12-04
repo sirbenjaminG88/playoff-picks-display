@@ -51,6 +51,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "league_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_league_memberships"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       leagues: {
@@ -597,6 +604,31 @@ export type Database = {
           id?: string | null
         }
         Relationships: []
+      }
+      v_league_memberships: {
+        Row: {
+          app_role: Database["public"]["Enums"]["app_role"] | null
+          avatar_url: string | null
+          display_name: string | null
+          email: string | null
+          joined_at: string | null
+          league_id: string | null
+          league_name: string | null
+          league_role: Database["public"]["Enums"]["league_role"] | null
+          membership_id: string | null
+          season: number | null
+          season_type: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "league_members_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
