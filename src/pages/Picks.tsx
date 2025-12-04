@@ -181,6 +181,16 @@ const Picks = () => {
     fetchPlayers();
   }, [isRegularSeason]);
 
+  // DEBUG state for showing query results
+  const [debugInfo, setDebugInfo] = useState<{
+    authUserId: string | null;
+    leagueId: string | null;
+    season: number;
+    week: number;
+    rows: any[];
+    error: any;
+  } | null>(null);
+
   // Fetch existing picks for the user
   useEffect(() => {
     // Wait for auth and league to finish loading
@@ -202,9 +212,38 @@ const Picks = () => {
     const fetchUserPicks = async () => {
       const season = isRegularSeason ? 2025 : 2024;
       const leagueId = currentLeague.id;
+      const currentWeekNum = parseInt(activeWeek, 10);
       
       console.log("[Picks] Fetching picks for:", { userId: user.id, leagueId, season });
       
+      // DEBUG: Run the exact query you specified
+      const debugQuery = await supabase
+        .from("user_picks")
+        .select("id, league_id, season, week, position_slot, player_name, auth_user_id")
+        .eq("auth_user_id", user.id)
+        .eq("league_id", leagueId)
+        .eq("season", season)
+        .eq("week", currentWeekNum);
+      
+      console.log('DEBUG existing picks', {
+        authUserId: user.id,
+        leagueId: leagueId,
+        season: season,
+        week: currentWeekNum,
+        rows: debugQuery.data,
+        error: debugQuery.error,
+      });
+      
+      setDebugInfo({
+        authUserId: user.id,
+        leagueId: leagueId,
+        season: season,
+        week: currentWeekNum,
+        rows: debugQuery.data || [],
+        error: debugQuery.error,
+      });
+      
+      // Now fetch ALL picks for this season (not just one week)
       const { data, error } = await supabase
         .from("user_picks")
         .select("*")
@@ -290,6 +329,7 @@ const Picks = () => {
         
         console.log("[Picks] Processed picks by week:", Object.keys(picksByWeekMap).map(k => ({
           week: k,
+          weekAsNumber: Number(k),
           qb: picksByWeekMap[Number(k)]?.qb?.name,
           rb: picksByWeekMap[Number(k)]?.rb?.name,
           flex: picksByWeekMap[Number(k)]?.flex?.name,
@@ -301,7 +341,7 @@ const Picks = () => {
     };
 
     fetchUserPicks();
-  }, [user?.id, currentLeague?.id, isRegularSeason, authLoading, leagueLoading]);
+  }, [user?.id, currentLeague?.id, isRegularSeason, authLoading, leagueLoading, activeWeek]);
 
   // Convert players to unified format
   const allPlayers: UnifiedPlayer[] = useMemo(() => {
@@ -1222,6 +1262,32 @@ const Picks = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* DEBUG BLOCK - REMOVE AFTER DEBUGGING */}
+      {debugInfo && (
+        <div className="fixed bottom-4 left-4 right-4 bg-yellow-900/90 text-yellow-100 p-4 rounded-lg text-xs font-mono z-50 max-w-md">
+          <div className="font-bold mb-2">DEBUG: Query Results for Week {debugInfo.week}</div>
+          <div>auth_user_id: {debugInfo.authUserId}</div>
+          <div>league_id: {debugInfo.leagueId}</div>
+          <div>season: {debugInfo.season}</div>
+          <div>week: {debugInfo.week}</div>
+          <div className="mt-2 font-bold">Rows returned: {debugInfo.rows.length}</div>
+          {debugInfo.error && <div className="text-red-300">Error: {JSON.stringify(debugInfo.error)}</div>}
+          <div className="mt-2">
+            <div>QB: {debugInfo.rows.find(r => r.position_slot === "QB")?.player_name || "none"}</div>
+            <div>RB: {debugInfo.rows.find(r => r.position_slot === "RB")?.player_name || "none"}</div>
+            <div>FLEX: {debugInfo.rows.find(r => r.position_slot === "FLEX")?.player_name || "none"}</div>
+          </div>
+          <div className="mt-2 text-[10px] opacity-70">
+            picksByWeek[{parseInt(activeWeek, 10)}]: {JSON.stringify({
+              qb: picksByWeek[parseInt(activeWeek, 10)]?.qb?.name || "undefined",
+              rb: picksByWeek[parseInt(activeWeek, 10)]?.rb?.name || "undefined",
+              flex: picksByWeek[parseInt(activeWeek, 10)]?.flex?.name || "undefined",
+              submitted: picksByWeek[parseInt(activeWeek, 10)]?.submitted
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
