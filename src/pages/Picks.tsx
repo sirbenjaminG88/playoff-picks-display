@@ -92,7 +92,7 @@ const Picks = () => {
 
   // Determine which weeks to use
   const activeWeeks = isRegularSeason ? regularDomainWeeks : playoffWeeks;
-  const defaultWeek = isRegularSeason ? "14" : (getCurrentOpenWeek(playoffWeeks, CURRENT_TIME)?.weekNumber.toString() ?? "1");
+  const defaultWeek = isRegularSeason ? "14" : (getCurrentOpenWeek(playoffWeeks, CURRENT_TIME)?.weekNumber?.toString() ?? "1");
 
   const [activeWeek, setActiveWeek] = useState<string>(defaultWeek);
   const [picksByWeek, setPicksByWeek] = useState<Record<number, WeekPicks>>({});
