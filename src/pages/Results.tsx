@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Loader2, RefreshCw } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
-import { useWeekPicks, GroupedPlayer, PlayerWeekStats } from "@/hooks/useWeekPicks";
-import { useRegularSeasonPicks, GroupedPlayer as RegularGroupedPlayer } from "@/hooks/useRegularSeasonPicks";
+import { useWeekPicks, GroupedPlayer, PlayerWeekStats, UserProfile } from "@/hooks/useWeekPicks";
+import { useRegularSeasonPicks, GroupedPlayer as RegularGroupedPlayer, UserProfile as RegularUserProfile } from "@/hooks/useRegularSeasonPicks";
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -102,9 +102,10 @@ const getTeamAbbreviation = (teamName: string): string => {
 // Generic player card that works with both playoff and regular season data
 interface PlayerCardProps {
   player: GroupedPlayer | RegularGroupedPlayer;
+  userProfiles?: Map<string, UserProfile | RegularUserProfile>;
 }
 
-const PlayerCard = ({ player }: PlayerCardProps) => {
+const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const isPopular = player.selectedBy.length > 1;
   const isUnique = player.selectedBy.length === 1;
@@ -175,13 +176,19 @@ const PlayerCard = ({ player }: PlayerCardProps) => {
             {/* Picked By Row */}
             <div className="flex items-center gap-2 ml-[60px] mt-3">
               <div className="flex -space-x-2">
-                {player.selectedBy.map((userId) => (
-                  <Avatar key={userId} className="h-6 w-6 border-2 border-card">
-                    <AvatarFallback className="bg-foreground/80 text-background text-[10px] font-medium">
-                      {getInitials(userId)}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
+                {player.selectedBy.map((userId) => {
+                  const profile = userProfiles?.get(userId);
+                  return (
+                    <Avatar key={userId} className="h-6 w-6 border-2 border-card">
+                      {profile?.avatarUrl ? (
+                        <AvatarImage src={profile.avatarUrl} alt={userId} />
+                      ) : null}
+                      <AvatarFallback className="bg-foreground/80 text-background text-[10px] font-medium">
+                        {getInitials(userId)}
+                      </AvatarFallback>
+                    </Avatar>
+                  );
+                })}
               </div>
               <span className="text-sm text-muted-foreground">
                 {player.selectedBy.join(", ")}
@@ -204,10 +211,12 @@ const PlayerCard = ({ player }: PlayerCardProps) => {
 
 const PositionSection = ({ 
   title, 
-  players 
+  players,
+  userProfiles
 }: { 
   title: string; 
   players: (GroupedPlayer | RegularGroupedPlayer)[];
+  userProfiles?: Map<string, UserProfile | RegularUserProfile>;
 }) => {
   if (players.length === 0) return null;
   
@@ -219,7 +228,7 @@ const PositionSection = ({
       </h2>
       <div className="space-y-3">
         {players.map((player) => (
-          <PlayerCard key={player.playerId} player={player} />
+          <PlayerCard key={player.playerId} player={player} userProfiles={userProfiles} />
         ))}
       </div>
     </div>
@@ -293,9 +302,9 @@ const WeekResults = ({ week, onSyncStats }: { week: number; onSyncStats: (week: 
         </Button>
       </div>
       
-      <PositionSection title="Quarterbacks" players={data.qbs} />
-      <PositionSection title="Running Backs" players={data.rbs} />
-      <PositionSection title="Flex (WR/TE)" players={data.flex} />
+      <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} />
+      <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} />
+      <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} />
     </div>
   );
 };
@@ -342,9 +351,9 @@ const RegularSeasonWeekResults = ({ week, leagueId }: { week: number; leagueId: 
 
   return (
     <div className="space-y-6">
-      <PositionSection title="Quarterbacks" players={data.qbs} />
-      <PositionSection title="Running Backs" players={data.rbs} />
-      <PositionSection title="Flex (WR/TE)" players={data.flex} />
+      <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} />
+      <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} />
+      <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} />
     </div>
   );
 };

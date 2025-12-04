@@ -28,11 +28,17 @@ export interface GroupedPlayer {
   stats: PlayerWeekStats | null;
 }
 
+export interface UserProfile {
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 export interface RegularSeasonPicksData {
   qbs: GroupedPlayer[];
   rbs: GroupedPlayer[];
   flex: GroupedPlayer[];
   allUsers: string[];
+  userProfiles: Map<string, UserProfile>;
 }
 
 // Team abbreviation map
@@ -90,7 +96,7 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string): Promise<
   }
 
   if (!picks || picks.length === 0) {
-    return { qbs: [], rbs: [], flex: [], allUsers: [] };
+    return { qbs: [], rbs: [], flex: [], allUsers: [], userProfiles: new Map() };
   }
 
   // Get unique player_ids to fetch their stats and images
@@ -183,11 +189,28 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string): Promise<
   // Get all unique users
   const allUsers = [...new Set(picks.map((p) => p.user_id))];
 
+  // Fetch user profiles to get avatar URLs
+  const { data: profiles } = await supabase
+    .from("users")
+    .select("display_name, avatar_url")
+    .in("display_name", allUsers);
+
+  const userProfiles = new Map<string, UserProfile>();
+  profiles?.forEach((p) => {
+    if (p.display_name) {
+      userProfiles.set(p.display_name, {
+        displayName: p.display_name,
+        avatarUrl: p.avatar_url,
+      });
+    }
+  });
+
   return {
     qbs: groupByPositionAndPlayer(picks, "QB"),
     rbs: groupByPositionAndPlayer(picks, "RB"),
     flex: groupByPositionAndPlayer(picks, "FLEX"),
     allUsers,
+    userProfiles,
   };
 }
 
