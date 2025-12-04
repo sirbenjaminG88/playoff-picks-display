@@ -73,7 +73,7 @@ const DEBUG_NOW = new Date("2025-01-10T12:00:00-05:00");
 const Picks = () => {
   const { selectedSeason, setSelectedSeason, canSelectSeason, seasonConfig } = useSeason();
   const { currentLeague, isCommissioner, loading: leagueLoading } = useLeague();
-  const { profile, user, loading: authLoading } = useAuth();
+  const { profile, user, loading: authLoading, isAdmin } = useAuth();
   
   const isRegularSeason = selectedSeason === "2025-regular";
   const CURRENT_TIME = USE_DEBUG_TIME ? DEBUG_NOW : new Date();
@@ -1263,39 +1263,41 @@ const Picks = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* DEBUG BLOCK - REMOVE AFTER DEBUGGING */}
-      <div className="fixed bottom-20 left-4 right-4 bg-yellow-900/95 text-yellow-100 p-4 rounded-lg text-xs font-mono z-[9999] max-w-md border-2 border-yellow-500">
-        <div className="font-bold mb-2">DEBUG: Picks Query Status</div>
-        <div>authLoading: {String(authLoading)}</div>
-        <div>leagueLoading: {String(leagueLoading)}</div>
-        <div>user?.id: {user?.id || "null"}</div>
-        <div>currentLeague?.id: {currentLeague?.id || "null"}</div>
-        <div>activeWeek: {activeWeek} (type: {typeof activeWeek})</div>
-        <div>isRegularSeason: {String(isRegularSeason)}</div>
-        {debugInfo ? (
-          <>
-            <div className="mt-2 pt-2 border-t border-yellow-500/50">
-              <div className="font-bold">Query Results for Week {debugInfo.week}:</div>
-              <div>Rows returned: {debugInfo.rows.length}</div>
-              {debugInfo.error && <div className="text-red-300">Error: {JSON.stringify(debugInfo.error)}</div>}
-              <div className="mt-1">
-                <div>QB: {debugInfo.rows.find(r => r.position_slot === "QB")?.player_name || "none"}</div>
-                <div>RB: {debugInfo.rows.find(r => r.position_slot === "RB")?.player_name || "none"}</div>
-                <div>FLEX: {debugInfo.rows.find(r => r.position_slot === "FLEX")?.player_name || "none"}</div>
+      {/* DEBUG BLOCK - ADMIN ONLY */}
+      {isAdmin && (
+        <div className="fixed bottom-20 left-4 right-4 bg-yellow-900/95 text-yellow-100 p-4 rounded-lg text-xs font-mono z-[9999] max-w-md border-2 border-yellow-500">
+          <div className="font-bold mb-2">DEBUG: Picks Query Status</div>
+          <div>authLoading: {String(authLoading)}</div>
+          <div>leagueLoading: {String(leagueLoading)}</div>
+          <div>user?.id: {user?.id || "null"}</div>
+          <div>currentLeague?.id: {currentLeague?.id || "null"}</div>
+          <div>activeWeek: {activeWeek} (type: {typeof activeWeek})</div>
+          <div>isRegularSeason: {String(isRegularSeason)}</div>
+          {debugInfo ? (
+            <>
+              <div className="mt-2 pt-2 border-t border-yellow-500/50">
+                <div className="font-bold">Query Results for Week {debugInfo.week}:</div>
+                <div>Rows returned: {debugInfo.rows.length}</div>
+                {debugInfo.error && <div className="text-red-300">Error: {JSON.stringify(debugInfo.error)}</div>}
+                <div className="mt-1">
+                  <div>QB: {debugInfo.rows.find(r => r.position_slot === "QB")?.player_name || "none"}</div>
+                  <div>RB: {debugInfo.rows.find(r => r.position_slot === "RB")?.player_name || "none"}</div>
+                  <div>FLEX: {debugInfo.rows.find(r => r.position_slot === "FLEX")?.player_name || "none"}</div>
+                </div>
               </div>
-            </div>
-            <div className="mt-2 pt-2 border-t border-yellow-500/50 text-[10px]">
-              <div className="font-bold">picksByWeek[{parseInt(activeWeek, 10)}]:</div>
-              <div>qb: {picksByWeek[parseInt(activeWeek, 10)]?.qb?.name || "undefined"}</div>
-              <div>rb: {picksByWeek[parseInt(activeWeek, 10)]?.rb?.name || "undefined"}</div>
-              <div>flex: {picksByWeek[parseInt(activeWeek, 10)]?.flex?.name || "undefined"}</div>
-              <div>submitted: {String(picksByWeek[parseInt(activeWeek, 10)]?.submitted)}</div>
-            </div>
-          </>
-        ) : (
-          <div className="mt-2 text-yellow-300">debugInfo is null - query hasn't run yet</div>
-        )}
-      </div>
+              <div className="mt-2 pt-2 border-t border-yellow-500/50 text-[10px]">
+                <div className="font-bold">picksByWeek[{parseInt(activeWeek, 10)}]:</div>
+                <div>qb: {picksByWeek[parseInt(activeWeek, 10)]?.qb?.name || "undefined"}</div>
+                <div>rb: {picksByWeek[parseInt(activeWeek, 10)]?.rb?.name || "undefined"}</div>
+                <div>flex: {picksByWeek[parseInt(activeWeek, 10)]?.flex?.name || "undefined"}</div>
+                <div>submitted: {String(picksByWeek[parseInt(activeWeek, 10)]?.submitted)}</div>
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 text-yellow-300">debugInfo is null - query hasn't run yet</div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
