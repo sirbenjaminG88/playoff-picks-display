@@ -93,7 +93,7 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string): Promise<
     return { qbs: [], rbs: [], flex: [], allUsers: [] };
   }
 
-  // Get unique player_ids to fetch their stats
+  // Get unique player_ids to fetch their stats and images
   const playerIds = [...new Set(picks.map((p) => p.player_id))];
 
   // Fetch player stats for this week from player_week_stats
@@ -107,6 +107,23 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string): Promise<
   if (statsError) {
     console.error("Error fetching player stats:", statsError);
   }
+
+  // Fetch player images from players table
+  const { data: players, error: playersError } = await supabase
+    .from("players")
+    .select("api_player_id, image_url")
+    .eq("season", SEASON)
+    .in("api_player_id", playerIds.map(String));
+
+  if (playersError) {
+    console.error("Error fetching player images:", playersError);
+  }
+
+  // Create image map (api_player_id is stored as string in players table)
+  const playerImageMap = new Map<number, string | null>();
+  players?.forEach((p) => {
+    playerImageMap.set(parseInt(p.api_player_id), p.image_url);
+  });
 
   // Create stats map
   const playerStatsMap = new Map<number, PlayerWeekStats>();
@@ -147,7 +164,7 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string): Promise<
           teamId: pick.team_id,
           position: pick.position,
           positionSlot: pick.position_slot,
-          imageUrl: null, // Regular season players don't have images synced yet
+          imageUrl: playerImageMap.get(pick.player_id) ?? null,
           selectedBy: [pick.user_id],
           points: hasStats ? playerStats.fantasy_points_standard : 0,
           hasStats,
