@@ -14,6 +14,7 @@ import Results from "./pages/Results";
 import Picks from "./pages/Picks";
 import Admin from "./pages/Admin";
 import AdminPlayers from "./pages/AdminPlayers";
+import AdminUsers from "./pages/AdminUsers";
 import SignIn from "./pages/SignIn";
 import ProfileSetup from "./pages/ProfileSetup";
 import NotFound from "./pages/NotFound";
@@ -64,6 +65,14 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <AdminPlayers />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/admin/users" 
+                    element={
+                      <ProtectedRoute>
+                        <AdminUsers />
                       </ProtectedRoute>
                     } 
                   />
