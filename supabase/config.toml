@@ -41,3 +41,6 @@ verify_jwt = true
 
 [functions.compute-placeholder-headshot-hash]
 verify_jwt = false
+
+[functions.export-player-headshots]
+verify_jwt = true

@@ -3,9 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Users, Calendar, UserCircle, Loader2 } from "lucide-react";
+import { Users, Calendar, UserCircle, Loader2, Download, CheckCircle, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // Helper to get auth headers for admin edge function calls
 async function getAuthHeaders(): Promise<HeadersInit> {
@@ -14,6 +17,16 @@ async function getAuthHeaders(): Promise<HeadersInit> {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${session?.access_token || ''}`,
   };
+}
+
+interface ConsistencyStats {
+  total_players: number;
+  status_ok: number;
+  status_placeholder: number;
+  status_no_url: number;
+  status_unknown: number;
+  mismatch_has_headshot_true_but_not_ok: number;
+  mismatch_has_headshot_false_but_ok: number;
 }
 
 const Admin = () => {
@@ -32,6 +45,141 @@ const Admin = () => {
   const [gamesResult, setGamesResult] = useState<any>(null);
   const [regSeasonPlayersResult, setRegSeasonPlayersResult] = useState<any>(null);
   const [auditResult, setAuditResult] = useState<any>(null);
+  
+  // Consistency check state
+  const [consistencyStats, setConsistencyStats] = useState<ConsistencyStats | null>(null);
+  const [isLoadingConsistency, setIsLoadingConsistency] = useState(false);
+  
+  // ZIP export state
+  const [exportStatus, setExportStatus] = useState<string>('ok');
+  const [exportLimit, setExportLimit] = useState<number>(100);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Load consistency stats on mount
+  useEffect(() => {
+    loadConsistencyStats();
+  }, []);
+
+  const loadConsistencyStats = async () => {
+    setIsLoadingConsistency(true);
+    try {
+      // Get total players count
+      const { count: total_players } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('season', 2025)
+        .eq('group', 'Offense');
+
+      // Get status counts
+      const { count: status_ok } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('season', 2025)
+        .eq('group', 'Offense')
+        .eq('headshot_status', 'ok');
+
+      const { count: status_placeholder } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('season', 2025)
+        .eq('group', 'Offense')
+        .eq('headshot_status', 'placeholder');
+
+      const { count: status_no_url } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('season', 2025)
+        .eq('group', 'Offense')
+        .eq('headshot_status', 'no_url');
+
+      const { count: status_unknown } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('season', 2025)
+        .eq('group', 'Offense')
+        .eq('headshot_status', 'unknown');
+
+      // Get mismatch counts
+      const { count: mismatch_true_not_ok } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('season', 2025)
+        .eq('group', 'Offense')
+        .eq('has_headshot', true)
+        .neq('headshot_status', 'ok');
+
+      const { count: mismatch_false_ok } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('season', 2025)
+        .eq('group', 'Offense')
+        .eq('has_headshot', false)
+        .eq('headshot_status', 'ok');
+
+      setConsistencyStats({
+        total_players: total_players || 0,
+        status_ok: status_ok || 0,
+        status_placeholder: status_placeholder || 0,
+        status_no_url: status_no_url || 0,
+        status_unknown: status_unknown || 0,
+        mismatch_has_headshot_true_but_not_ok: mismatch_true_not_ok || 0,
+        mismatch_has_headshot_false_but_ok: mismatch_false_ok || 0,
+      });
+    } catch (error) {
+      console.error('Error loading consistency stats:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load consistency stats",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingConsistency(false);
+    }
+  };
+
+  const downloadHeadshotSample = async () => {
+    setIsExporting(true);
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-player-headshots`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ status: exportStatus, limit: exportLimit }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      // Get blob and trigger download
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${exportStatus}-headshots-sample.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Started",
+        description: `Downloading ${exportStatus} headshots sample`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download headshots",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Timer for sync progress
   useEffect(() => {
@@ -569,6 +717,120 @@ const Admin = () => {
                 <p className="text-xs text-muted-foreground mt-2">
                   Run again to process more players (batched at 100 per run with hash detection)
                 </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              Headshot Consistency Check
+            </CardTitle>
+            <CardDescription>
+              Verify that has_headshot matches headshot_status for 2025 Offense players
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={loadConsistencyStats} 
+              disabled={isLoadingConsistency}
+              variant="outline"
+              size="sm"
+            >
+              {isLoadingConsistency ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : "Refresh Stats"}
+            </Button>
+
+            {consistencyStats && (
+              <div className="mt-4 p-4 bg-muted rounded-lg space-y-3">
+                <h3 className="font-semibold mb-2">Status Breakdown:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Total players: {consistencyStats.total_players}</li>
+                  <li className="text-green-500">Status = ok: {consistencyStats.status_ok}</li>
+                  <li className="text-yellow-500">Status = placeholder: {consistencyStats.status_placeholder}</li>
+                  <li className="text-muted-foreground">Status = no_url: {consistencyStats.status_no_url}</li>
+                  <li className="text-muted-foreground">Status = unknown: {consistencyStats.status_unknown}</li>
+                </ul>
+                
+                <div className="border-t border-border pt-3 mt-3">
+                  <h4 className="font-semibold mb-2">Mismatch Detection:</h4>
+                  <ul className="space-y-1 text-sm">
+                    <li className={consistencyStats.mismatch_has_headshot_true_but_not_ok > 0 ? "text-destructive" : "text-muted-foreground"}>
+                      🔴 has_headshot = TRUE but status ≠ 'ok': {consistencyStats.mismatch_has_headshot_true_but_not_ok}
+                    </li>
+                    <li className={consistencyStats.mismatch_has_headshot_false_but_ok > 0 ? "text-destructive" : "text-muted-foreground"}>
+                      🔴 has_headshot = FALSE but status = 'ok': {consistencyStats.mismatch_has_headshot_false_but_ok}
+                    </li>
+                  </ul>
+                  
+                  {consistencyStats.mismatch_has_headshot_true_but_not_ok === 0 && 
+                   consistencyStats.mismatch_has_headshot_false_but_ok === 0 ? (
+                    <div className="flex items-center gap-2 mt-3 text-green-500 text-sm">
+                      <CheckCircle className="w-4 h-4" />
+                      Looks consistent ✅
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 mt-3 text-yellow-500 text-sm">
+                      <AlertTriangle className="w-4 h-4" />
+                      Inconsistent values detected ⚠️
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-border pt-3 mt-3">
+                  <h4 className="font-semibold mb-3">Download Sample for Review:</h4>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <Label htmlFor="export-status" className="text-xs text-muted-foreground">Status</Label>
+                      <Select value={exportStatus} onValueChange={setExportStatus}>
+                        <SelectTrigger id="export-status" className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ok">Real headshots (status = ok)</SelectItem>
+                          <SelectItem value="placeholder">Placeholders (status = placeholder)</SelectItem>
+                          <SelectItem value="no_url">No URL (status = no_url)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-24">
+                      <Label htmlFor="export-limit" className="text-xs text-muted-foreground">Limit</Label>
+                      <Input
+                        id="export-limit"
+                        type="number"
+                        value={exportLimit}
+                        onChange={(e) => setExportLimit(Math.min(200, Math.max(1, parseInt(e.target.value) || 100)))}
+                        min={1}
+                        max={200}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={downloadHeadshotSample}
+                    disabled={isExporting}
+                    className="mt-3"
+                    variant="secondary"
+                  >
+                    {isExporting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Headshot Sample (.zip)
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
