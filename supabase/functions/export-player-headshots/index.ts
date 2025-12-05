@@ -64,12 +64,14 @@ serve(async (req) => {
     }
 
     // Parse request body
-    let status: string;
+    let status: string | undefined;
+    let hasHeadshot: boolean | undefined;
     let limit = 100;
 
     try {
       const body = await req.json();
       status = body.status;
+      hasHeadshot = body.has_headshot;
       if (body.limit && typeof body.limit === 'number' && body.limit > 0) {
         limit = Math.min(body.limit, 200);
       }
@@ -80,9 +82,15 @@ serve(async (req) => {
       );
     }
 
-    // Validate status parameter
+    // Validate - must have either status or has_headshot
     const validStatuses = ['ok', 'placeholder', 'no_url'];
-    if (!status || !validStatuses.includes(status)) {
+    if (!status && hasHeadshot === undefined) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Must provide either status or has_headshot filter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (status && !validStatuses.includes(status)) {
       return new Response(
         JSON.stringify({ success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -100,13 +108,21 @@ serve(async (req) => {
       .select('id, full_name, image_url')
       .eq('season', 2025)
       .eq('group', 'Offense')
-      .eq('headshot_status', status)
       .limit(limit);
 
-    // For 'ok' and 'placeholder', we need image_url to exist
-    if (status === 'ok' || status === 'placeholder') {
-      query = query.not('image_url', 'is', null);
+    // Apply filters based on provided parameters
+    if (status) {
+      query = query.eq('headshot_status', status);
     }
+    if (hasHeadshot !== undefined) {
+      query = query.eq('has_headshot', hasHeadshot);
+    }
+
+    // For image export, we need image_url to exist
+    query = query.not('image_url', 'is', null);
+
+    // Determine folder name for ZIP
+    let folderName = status || (hasHeadshot ? 'has_headshot_true' : 'has_headshot_false');
 
     const { data: players, error: queryError } = await query;
 
@@ -120,12 +136,12 @@ serve(async (req) => {
 
     if (!players || players.length === 0) {
       return new Response(
-        JSON.stringify({ success: false, error: `No players found with status '${status}'` }),
+        JSON.stringify({ success: false, error: `No players found with filter '${folderName}'` }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${players.length} players with status '${status}'`);
+    console.log(`Found ${players.length} players with filter '${folderName}'`);
 
     // Create ZIP file using JSZip
     const zip = new JSZip();
@@ -163,7 +179,7 @@ serve(async (req) => {
         }
 
         const sanitizedName = sanitizeFilename(player.full_name);
-        const filename = `${status}/${player.id}_${sanitizedName}.${extension}`;
+        const filename = `${folderName}/${player.id}_${sanitizedName}.${extension}`;
         
         zip.addFile(filename, imageData);
         successCount++;
@@ -185,7 +201,7 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="${status}-headshots-sample.zip"`,
+        'Content-Disposition': `attachment; filename="${folderName}-headshots-sample.zip"`,
       },
     });
 
