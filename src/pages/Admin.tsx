@@ -251,7 +251,7 @@ const Admin = () => {
         {
           method: 'POST',
           headers,
-          body: JSON.stringify({ limit: 25 }),
+          body: JSON.stringify({ limit: 100 }),
         }
       );
 
@@ -567,7 +567,7 @@ const Admin = () => {
                   <li className="text-muted-foreground">Remaining to Audit: {auditResult.remainingUnknown}</li>
                 </ul>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Run again to process more players (batched at 25 per run with hash detection)
+                  Run again to process more players (batched at 100 per run with hash detection)
                 </p>
               </div>
             )}
