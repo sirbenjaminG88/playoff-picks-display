@@ -6,16 +6,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper to verify admin role
-async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?: string }> {
+// Helper to verify admin role OR internal cron call
+async function verifyAdminOrCron(req: Request): Promise<{ authorized: boolean; error?: string; isCron?: boolean }> {
   const authHeader = req.headers.get('Authorization');
+  
+  // Check for cron job (anon key from internal scheduler)
+  // Cron jobs don't have user context, so we allow them through if they have the anon key
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  
+  if (authHeader === `Bearer ${supabaseAnonKey}`) {
+    console.log('Request from internal cron job (anon key) - allowing');
+    return { authorized: true, isCron: true };
+  }
+  
   if (!authHeader) {
     return { authorized: false, error: 'Missing authorization header' };
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-  
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } }
   });
@@ -37,7 +45,7 @@ async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?:
   }
 
   console.log(`Admin verified: ${user.id}`);
-  return { authorized: true };
+  return { authorized: true, isCron: false };
 }
 
 interface PlayerStats {
@@ -254,14 +262,16 @@ serve(async (req) => {
 
   const startTime = Date.now();
   try {
-    // Verify admin role
-    const { authorized, error: authError } = await verifyAdmin(req);
+    // Verify admin role or internal cron call
+    const { authorized, error: authError, isCron } = await verifyAdminOrCron(req);
     if (!authorized) {
       return new Response(
         JSON.stringify({ success: false, error: authError }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log(`Auth passed. isCron: ${isCron}`);
 
     const url = new URL(req.url);
     const forceSync = url.searchParams.get('force') === 'true';
@@ -428,6 +438,8 @@ serve(async (req) => {
         // Fetch stats from API-Sports
         const apiUrl = `https://v1.american-football.api-sports.io/games/statistics/players?id=${gameId}&player=${playerId}`;
         
+        console.log(`Fetching stats for ${playerInfo.name} (player_id=${playerId}) from game_id=${gameId}`);
+        
         const response = await fetch(apiUrl, {
           headers: {
             'x-apisports-key': apiKey,
@@ -436,8 +448,24 @@ serve(async (req) => {
         });
 
         const apiResponse = await response.json();
+        
+        // Log detailed API response for Dak Prescott specifically
+        if (playerId === 2076 || playerInfo.name.toLowerCase().includes('prescott')) {
+          console.log('=== DAK PRESCOTT DEBUG ===');
+          console.log('API URL:', apiUrl);
+          console.log('Full API Response:', JSON.stringify(apiResponse, null, 2));
+        }
+        
         const stats = extractStats(apiResponse);
         const fantasyPoints = calculateFantasyPoints(stats, scoringSettings);
+        
+        // Log detailed stats for Dak
+        if (playerId === 2076 || playerInfo.name.toLowerCase().includes('prescott')) {
+          console.log('Extracted stats:', JSON.stringify(stats));
+          console.log('Scoring settings:', JSON.stringify(scoringSettings));
+          console.log('Calculated fantasy points:', fantasyPoints);
+          console.log('=== END DAK DEBUG ===');
+        }
 
         // Upsert to player_week_stats
         const { error: upsertError } = await supabase
