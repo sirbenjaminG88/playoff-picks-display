@@ -72,12 +72,12 @@ serve(async (req) => {
       );
     }
 
-    // Parse optional limit from request body (default 25 for hash-based audit)
-    let limit = 25;
+    // Parse optional limit from request body (default 100 for hash-based audit)
+    let limit = 100;
     try {
       const body = await req.json();
       if (body.limit && typeof body.limit === 'number' && body.limit > 0) {
-        limit = Math.min(body.limit, 100); // Cap at 100 for safety with image fetching
+        limit = Math.min(body.limit, 200); // Cap at 200 for safety with image fetching
       }
     } catch {
       // Use default limit
