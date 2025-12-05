@@ -152,6 +152,7 @@ export type Database = {
           full_name: string
           group: string | null
           has_headshot: boolean | null
+          headshot_status: string | null
           id: string
           image_url: string | null
           jersey_number: string | null
@@ -171,6 +172,7 @@ export type Database = {
           full_name: string
           group?: string | null
           has_headshot?: boolean | null
+          headshot_status?: string | null
           id?: string
           image_url?: string | null
           jersey_number?: string | null
@@ -190,6 +192,7 @@ export type Database = {
           full_name?: string
           group?: string | null
           has_headshot?: boolean | null
+          headshot_status?: string | null
           id?: string
           image_url?: string | null
           jersey_number?: string | null

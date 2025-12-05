@@ -23,6 +23,7 @@ const Admin = () => {
   const [isLoadingTest, setIsLoadingTest] = useState(false);
   const [isLoadingGames, setIsLoadingGames] = useState(false);
   const [isLoadingRegSeasonPlayers, setIsLoadingRegSeasonPlayers] = useState(false);
+  const [isLoadingAudit, setIsLoadingAudit] = useState(false);
   const [regSeasonSyncStartTime, setRegSeasonSyncStartTime] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [teamsResult, setTeamsResult] = useState<any>(null);
@@ -30,6 +31,7 @@ const Admin = () => {
   const [testResult, setTestResult] = useState<any>(null);
   const [gamesResult, setGamesResult] = useState<any>(null);
   const [regSeasonPlayersResult, setRegSeasonPlayersResult] = useState<any>(null);
+  const [auditResult, setAuditResult] = useState<any>(null);
 
   // Timer for sync progress
   useEffect(() => {
@@ -235,6 +237,43 @@ const Admin = () => {
     } finally {
       setIsLoadingRegSeasonPlayers(false);
       setRegSeasonSyncStartTime(null);
+    }
+  };
+
+  const auditPlayerHeadshots = async () => {
+    setIsLoadingAudit(true);
+    setAuditResult(null);
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/audit-player-headshots`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ limit: 200 }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Audit Complete",
+          description: `Processed ${data.processed} players: ${data.ok} ok, ${data.placeholder_guess} placeholder, ${data.no_url} no URL`,
+        });
+        setAuditResult(data);
+      } else {
+        throw new Error(data.error || 'Failed to audit headshots');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to audit player headshots",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingAudit(false);
     }
   };
 
@@ -485,6 +524,51 @@ const Admin = () => {
                     </ul>
                   </div>
                 )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserCircle className="w-5 h-5" />
+              Audit Player Headshots
+            </CardTitle>
+            <CardDescription>
+              Classify player image URLs as real headshots or placeholders (does NOT modify image_url)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={auditPlayerHeadshots} 
+              disabled={isLoadingAudit}
+              size="lg"
+              variant="secondary"
+            >
+              {isLoadingAudit ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Auditing...
+                </>
+              ) : "Audit Player Headshots"}
+            </Button>
+
+            {auditResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Audit Results:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Players Processed: {auditResult.processed}</li>
+                  <li className="text-green-500">OK (Real Headshots): {auditResult.ok}</li>
+                  <li className="text-yellow-500">Placeholder Guess: {auditResult.placeholder_guess}</li>
+                  <li className="text-muted-foreground">No URL: {auditResult.no_url}</li>
+                  {auditResult.errors > 0 && (
+                    <li className="text-destructive">Errors: {auditResult.errors}</li>
+                  )}
+                </ul>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Run again to process more players (batched at 200 per run)
+                </p>
               </div>
             )}
           </CardContent>
