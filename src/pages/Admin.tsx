@@ -838,15 +838,14 @@ const Admin = () => {
                         </div>
                       )}
                       
-                      <div className="w-24">
+                      <div className="w-28">
                         <Label htmlFor="export-limit" className="text-xs text-muted-foreground">Limit</Label>
                         <Input
                           id="export-limit"
                           type="number"
                           value={exportLimit}
-                          onChange={(e) => setExportLimit(Math.min(200, Math.max(1, parseInt(e.target.value) || 100)))}
+                          onChange={(e) => setExportLimit(Math.max(1, parseInt(e.target.value) || 100))}
                           min={1}
-                          max={200}
                           className="mt-1"
                         />
                       </div>
