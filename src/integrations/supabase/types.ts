@@ -151,6 +151,7 @@ export type Database = {
           first_name: string | null
           full_name: string
           group: string | null
+          has_headshot: boolean | null
           id: string
           image_url: string | null
           jersey_number: string | null
@@ -169,6 +170,7 @@ export type Database = {
           first_name?: string | null
           full_name: string
           group?: string | null
+          has_headshot?: boolean | null
           id?: string
           image_url?: string | null
           jersey_number?: string | null
@@ -187,6 +189,7 @@ export type Database = {
           first_name?: string | null
           full_name?: string
           group?: string | null
+          has_headshot?: boolean | null
           id?: string
           image_url?: string | null
           jersey_number?: string | null
@@ -286,6 +289,7 @@ export type Database = {
         Row: {
           created_at: string
           group: string | null
+          has_headshot: boolean | null
           id: string
           image_url: string | null
           name: string
@@ -300,6 +304,7 @@ export type Database = {
         Insert: {
           created_at?: string
           group?: string | null
+          has_headshot?: boolean | null
           id?: string
           image_url?: string | null
           name: string
@@ -314,6 +319,7 @@ export type Database = {
         Update: {
           created_at?: string
           group?: string | null
+          has_headshot?: boolean | null
           id?: string
           image_url?: string | null
           name?: string
