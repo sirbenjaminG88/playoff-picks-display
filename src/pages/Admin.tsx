@@ -251,7 +251,7 @@ const Admin = () => {
         {
           method: 'POST',
           headers,
-          body: JSON.stringify({ limit: 200 }),
+          body: JSON.stringify({ limit: 25 }),
         }
       );
 
@@ -260,7 +260,7 @@ const Admin = () => {
       if (data.success) {
         toast({
           title: "Audit Complete",
-          description: `Processed ${data.processed} players: ${data.ok} ok, ${data.placeholder_guess} placeholder, ${data.no_url} no URL`,
+          description: `Processed ${data.processed}: ${data.markedOk} real, ${data.markedPlaceholder} placeholder. ${data.remainingUnknown} remaining.`,
         });
         setAuditResult(data);
       } else {
@@ -559,15 +559,15 @@ const Admin = () => {
                 <h3 className="font-semibold mb-2">Audit Results:</h3>
                 <ul className="space-y-1 text-sm">
                   <li>Players Processed: {auditResult.processed}</li>
-                  <li className="text-green-500">OK (Real Headshots): {auditResult.ok}</li>
-                  <li className="text-yellow-500">Placeholder Guess: {auditResult.placeholder_guess}</li>
-                  <li className="text-muted-foreground">No URL: {auditResult.no_url}</li>
-                  {auditResult.errors > 0 && (
-                    <li className="text-destructive">Errors: {auditResult.errors}</li>
+                  <li className="text-green-500">Real Headshots: {auditResult.markedOk}</li>
+                  <li className="text-yellow-500">Placeholders: {auditResult.markedPlaceholder}</li>
+                  {auditResult.fetchErrors > 0 && (
+                    <li className="text-destructive">Fetch Errors: {auditResult.fetchErrors}</li>
                   )}
+                  <li className="text-muted-foreground">Remaining to Audit: {auditResult.remainingUnknown}</li>
                 </ul>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Run again to process more players (batched at 200 per run)
+                  Run again to process more players (batched at 25 per run with hash detection)
                 </p>
               </div>
             )}
