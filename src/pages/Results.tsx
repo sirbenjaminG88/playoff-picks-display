@@ -500,38 +500,44 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId }: { week: number; league
 
   return (
     <div className="space-y-4">
-      {leaderboard.map((entry, index) => (
-        <div
-          key={entry.userId}
-          className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
-        >
-          <Badge 
-            variant="outline" 
-            className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
+      {leaderboard.map((entry, index) => {
+        const profile = data.userProfiles?.get(entry.userId);
+        return (
+          <div
+            key={entry.userId}
+            className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            #{index + 1}
-          </Badge>
-
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            <Avatar className="h-11 w-11">
-              <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
-                {getInitials(entry.userId)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="font-semibold text-sm text-foreground">
-              {entry.userId}
-            </span>
-          </div>
-
-          <div className="flex-1 min-w-0"></div>
-
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
-              {entry.points.toFixed(1)} pts
+            <Badge 
+              variant="outline" 
+              className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
+            >
+              #{index + 1}
             </Badge>
+
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <Avatar className="h-11 w-11">
+                {profile?.avatarUrl ? (
+                  <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
+                ) : null}
+                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                  {getInitials(entry.userId)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-sm text-foreground">
+                {entry.userId}
+              </span>
+            </div>
+
+            <div className="flex-1 min-w-0"></div>
+
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
+                {entry.points.toFixed(1)} pts
+              </Badge>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
@@ -602,10 +608,21 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
 
   const leaderPoints = standings[0]?.totalPoints || 0;
 
+  // Aggregate userProfiles from all weeks
+  const allUserProfiles = new Map<string, UserProfile>();
+  weekQueries.forEach((weekQuery) => {
+    if (weekQuery?.data?.userProfiles) {
+      weekQuery.data.userProfiles.forEach((profile, key) => {
+        allUserProfiles.set(key, profile);
+      });
+    }
+  });
+
   return (
     <div className="space-y-5">
       {standings.map((standing, index) => {
         const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
+        const profile = allUserProfiles.get(standing.userId);
         
         return (
           <div
@@ -620,6 +637,9 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
 
             <div className="flex flex-col items-center gap-2 shrink-0">
               <Avatar className="h-[44px] w-[44px]">
+                {profile?.avatarUrl ? (
+                  <AvatarImage src={profile.avatarUrl} alt={standing.userId} />
+                ) : null}
                 <AvatarFallback className="bg-foreground/80 text-background font-bold text-[17px]">
                   {getInitials(standing.userId)}
                 </AvatarFallback>
@@ -681,38 +701,44 @@ const WeekLeaderboard = ({ week }: { week: number }) => {
 
   return (
     <div className="space-y-4">
-      {leaderboard.map((entry, index) => (
-        <div
-          key={entry.userId}
-          className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
-        >
-          <Badge 
-            variant="outline" 
-            className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
+      {leaderboard.map((entry, index) => {
+        const profile = data.userProfiles?.get(entry.userId);
+        return (
+          <div
+            key={entry.userId}
+            className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            #{index + 1}
-          </Badge>
-
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            <Avatar className="h-11 w-11">
-              <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
-                {getInitials(entry.userId)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="font-semibold text-sm text-foreground">
-              {entry.userId}
-            </span>
-          </div>
-
-          <div className="flex-1 min-w-0"></div>
-
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
-              {entry.points.toFixed(1)} pts
+            <Badge 
+              variant="outline" 
+              className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
+            >
+              #{index + 1}
             </Badge>
+
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <Avatar className="h-11 w-11">
+                {profile?.avatarUrl ? (
+                  <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
+                ) : null}
+                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                  {getInitials(entry.userId)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-sm text-foreground">
+                {entry.userId}
+              </span>
+            </div>
+
+            <div className="flex-1 min-w-0"></div>
+
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
+                {entry.points.toFixed(1)} pts
+              </Badge>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
