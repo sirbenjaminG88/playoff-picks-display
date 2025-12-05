@@ -85,14 +85,45 @@ function getTeamAbbr(teamName: string, code?: string): string | null {
 // Parse week number from strings like "Week 14" or just "14"
 function parseWeekNumber(weekStr: string): number | null {
   if (!weekStr) return null;
-  // Try to extract number from "Week 14" format
   const match = weekStr.match(/Week\s*(\d+)/i);
   if (match) {
     return parseInt(match[1], 10);
   }
-  // Try direct parse
   const num = parseInt(weekStr, 10);
   return isNaN(num) ? null : num;
+}
+
+// Helper to verify admin role
+async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?: string }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return { authorized: false, error: 'Missing authorization header' };
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return { authorized: false, error: 'Invalid user token' };
+  }
+
+  const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
+    _user_id: user.id,
+    _role: 'admin'
+  });
+
+  if (roleError || !isAdmin) {
+    console.log(`User ${user.id} is not an admin`);
+    return { authorized: false, error: 'User is not an admin' };
+  }
+
+  console.log(`Admin verified: ${user.id}`);
+  return { authorized: true };
 }
 
 Deno.serve(async (req) => {
@@ -101,6 +132,15 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify admin role
+    const { authorized, error: authError } = await verifyAdmin(req);
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ success: false, error: authError }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const apiSportsKey = Deno.env.get('API_SPORTS_KEY');
     if (!apiSportsKey) {
       throw new Error('API_SPORTS_KEY not configured');
