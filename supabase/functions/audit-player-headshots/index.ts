@@ -7,25 +7,21 @@ const corsHeaders = {
 };
 
 /**
- * Placeholder URL Detection Pattern:
+ * SHA-256 hash of the known API-Sports placeholder headshot image.
+ * This was computed from: https://media.api-sports.io/american-football/players/14251.png
+ * (Marvin Harrison Jr. - confirmed placeholder image)
  * 
- * API-Sports uses a specific placeholder image for players without headshots:
- * - Pattern: https://media.api-sports.io/american-football/players/0.png
- * - The key indicator is "/players/0.png" or ending with "/0.png"
- * 
- * This function uses URL pattern matching ONLY - no HEAD requests or content-length checks.
- * This is intentionally conservative to avoid false positives.
+ * Any player image that hashes to this value is a placeholder, not a real photo.
  */
-function isPlaceholderUrl(imageUrl: string): boolean {
-  if (!imageUrl) return false;
-  
-  // Check for the known API-Sports placeholder pattern
-  // The placeholder uses player ID "0" which is not a real player
-  if (imageUrl.includes('/players/0.png') || imageUrl.endsWith('/0.png')) {
-    return true;
-  }
-  
-  return false;
+const PLACEHOLDER_HEADSHOT_SHA256 = '72f0bbb253ab54961cd5d66148e55aceb3e6bc9823da43e57a6e0812e5427430';
+
+/**
+ * Compute SHA-256 hash of image data and return lowercase hex string.
+ */
+async function computeImageHash(buffer: ArrayBuffer): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // Helper to verify admin role
@@ -76,32 +72,36 @@ serve(async (req) => {
       );
     }
 
-    // Parse optional limit from request body
-    let limit = 200;
+    // Parse optional limit from request body (default 25 for hash-based audit)
+    let limit = 25;
     try {
       const body = await req.json();
       if (body.limit && typeof body.limit === 'number' && body.limit > 0) {
-        limit = Math.min(body.limit, 500); // Cap at 500 for safety
+        limit = Math.min(body.limit, 100); // Cap at 100 for safety with image fetching
       }
     } catch {
       // Use default limit
     }
 
-    console.log(`Starting headshot audit with limit=${limit}`);
+    console.log(`Starting hash-based headshot audit with limit=${limit}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch players that need auditing
-    // Only offensive players that can be picked (not practice squad)
+    // Fetch players that need auditing:
+    // - headshot_status is 'unknown' or 'no_url' (re-audit those)
+    // - image_url is NOT NULL (we need something to fetch)
+    // - Only offensive players that can be picked
     const { data: players, error: fetchError } = await supabase
       .from('players')
       .select('id, full_name, image_url, headshot_status')
       .eq('season', 2025)
       .eq('group', 'Offense')
       .not('status', 'ilike', 'Practice Squad%')
-      .in('headshot_status', ['unknown', 'placeholder_guess'])
+      .in('headshot_status', ['unknown', 'no_url'])
+      .not('image_url', 'is', null)
+      .order('id')
       .limit(limit);
 
     if (fetchError) {
@@ -110,58 +110,74 @@ serve(async (req) => {
     }
 
     if (!players || players.length === 0) {
+      // Get count of remaining unknown players
+      const { count: remainingCount } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('season', 2025)
+        .eq('group', 'Offense')
+        .not('status', 'ilike', 'Practice Squad%')
+        .in('headshot_status', ['unknown', 'no_url'])
+        .not('image_url', 'is', null);
+
       console.log('No players to audit');
       return new Response(
         JSON.stringify({
           success: true,
           processed: 0,
+          markedPlaceholder: 0,
+          markedOk: 0,
+          remainingUnknown: remainingCount ?? 0,
           message: 'No players need auditing',
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${players.length} players to audit`);
+    console.log(`Found ${players.length} players to audit via hash comparison`);
 
     // Counters for summary
-    let okCount = 0;
-    let placeholderGuessCount = 0;
-    let noUrlCount = 0;
-    let errorCount = 0;
+    let markedOk = 0;
+    let markedPlaceholder = 0;
+    let fetchErrors = 0;
 
     // Process each player
     for (const player of players) {
       try {
-        if (!player.image_url) {
-          // No URL - mark as no_url
+        console.log(`Auditing ${player.full_name} (${player.id}): ${player.image_url}`);
+        
+        // Fetch the image
+        const response = await fetch(player.image_url);
+        
+        if (!response.ok) {
+          console.warn(`headshot audit failed for player ${player.id}: HTTP ${response.status}`);
+          fetchErrors++;
+          continue; // Leave headshot_status unchanged
+        }
+
+        // Read as binary and compute hash
+        const buffer = await response.arrayBuffer();
+        const hash = await computeImageHash(buffer);
+        
+        console.log(`  Hash: ${hash} (size: ${buffer.byteLength} bytes)`);
+
+        if (hash === PLACEHOLDER_HEADSHOT_SHA256) {
+          // This is the placeholder image
+          console.log(`  -> PLACEHOLDER detected`);
           const { error } = await supabase
             .from('players')
-            .update({ headshot_status: 'no_url', has_headshot: false })
+            .update({ headshot_status: 'placeholder', has_headshot: false })
             .eq('id', player.id);
 
           if (error) {
             console.error(`Error updating player ${player.id}:`, error);
-            errorCount++;
+            fetchErrors++;
           } else {
-            noUrlCount++;
-          }
-        } else if (isPlaceholderUrl(player.image_url)) {
-          // URL matches placeholder pattern
-          // IMPORTANT: We do NOT modify image_url, only the status fields
-          const { error } = await supabase
-            .from('players')
-            .update({ headshot_status: 'placeholder_guess', has_headshot: false })
-            .eq('id', player.id);
-
-          if (error) {
-            console.error(`Error updating player ${player.id}:`, error);
-            errorCount++;
-          } else {
-            placeholderGuessCount++;
-            console.log(`Placeholder detected for ${player.full_name}: ${player.image_url}`);
+            markedPlaceholder++;
           }
         } else {
-          // URL looks like a real headshot
+          // Real headshot
+          console.log(`  -> OK (real photo)`);
           const { error } = await supabase
             .from('players')
             .update({ headshot_status: 'ok', has_headshot: true })
@@ -169,24 +185,36 @@ serve(async (req) => {
 
           if (error) {
             console.error(`Error updating player ${player.id}:`, error);
-            errorCount++;
+            fetchErrors++;
           } else {
-            okCount++;
+            markedOk++;
           }
         }
       } catch (err) {
-        console.error(`Exception processing player ${player.id}:`, err);
-        errorCount++;
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.warn(`headshot audit failed for player ${player.id}:`, errMsg);
+        fetchErrors++;
+        // Leave headshot_status unchanged - don't touch image_url
       }
     }
+
+    // Get remaining count
+    const { count: remainingCount } = await supabase
+      .from('players')
+      .select('*', { count: 'exact', head: true })
+      .eq('season', 2025)
+      .eq('group', 'Offense')
+      .not('status', 'ilike', 'Practice Squad%')
+      .in('headshot_status', ['unknown', 'no_url'])
+      .not('image_url', 'is', null);
 
     const summary = {
       success: true,
       processed: players.length,
-      ok: okCount,
-      placeholder_guess: placeholderGuessCount,
-      no_url: noUrlCount,
-      errors: errorCount,
+      markedPlaceholder,
+      markedOk,
+      fetchErrors,
+      remainingUnknown: remainingCount ?? 0,
     };
 
     console.log(`audit-player-headshots completed:`, summary);
