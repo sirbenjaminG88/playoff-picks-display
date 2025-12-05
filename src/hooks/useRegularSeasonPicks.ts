@@ -206,9 +206,10 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string, revealSta
   // Get all unique users
   const allUsers = [...new Set(picks.map((p) => p.user_id))];
 
-  // Fetch user profiles to get avatar URLs
+  // Fetch user profiles to get avatar URLs from public_profiles view
+  // (public_profiles bypasses RLS restrictions on users table)
   const { data: profiles } = await supabase
-    .from("users")
+    .from("public_profiles")
     .select("display_name, avatar_url")
     .in("display_name", allUsers);
 
