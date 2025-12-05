@@ -93,12 +93,12 @@ serve(async (req) => {
     // - headshot_status is 'unknown' or 'no_url' (re-audit those)
     // - image_url is NOT NULL (we need something to fetch)
     // - Only offensive players that can be picked
+    // Note: status can be NULL (allowed) or anything except 'Practice Squad%'
     const { data: players, error: fetchError } = await supabase
       .from('players')
       .select('id, full_name, image_url, headshot_status')
       .eq('season', 2025)
       .eq('group', 'Offense')
-      .not('status', 'ilike', 'Practice Squad%')
       .in('headshot_status', ['unknown', 'no_url'])
       .not('image_url', 'is', null)
       .order('id')
@@ -116,7 +116,6 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true })
         .eq('season', 2025)
         .eq('group', 'Offense')
-        .not('status', 'ilike', 'Practice Squad%')
         .in('headshot_status', ['unknown', 'no_url'])
         .not('image_url', 'is', null);
 
@@ -204,7 +203,6 @@ serve(async (req) => {
       .select('*', { count: 'exact', head: true })
       .eq('season', 2025)
       .eq('group', 'Offense')
-      .not('status', 'ilike', 'Practice Squad%')
       .in('headshot_status', ['unknown', 'no_url'])
       .not('image_url', 'is', null);
 
