@@ -13,7 +13,7 @@ import { useRegularSeasonPicks, GroupedPlayer as RegularGroupedPlayer, UserProfi
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSeason, SEASON_OPTIONS } from "@/contexts/SeasonContext";
 import { useLeague } from "@/contexts/LeagueContext";
@@ -745,12 +745,36 @@ const WeekLeaderboard = ({ week }: { week: number }) => {
 };
 
 // 2025 Regular Season Fantasy Results
+// Hook to fetch last stats update timestamp
+function useLastStatsUpdate(week: number) {
+  return useQuery({
+    queryKey: ['lastStatsUpdate', week],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('player_week_stats')
+        .select('updated_at')
+        .eq('season', 2025)
+        .eq('week', week)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data?.updated_at || null;
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+}
+
 function RegularSeasonResults() {
   const { currentLeague, isCommissioner, loading: leagueLoading } = useLeague();
   const [activeWeek, setActiveWeek] = useState(14);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
   const [isLive, setIsLive] = useState(false);
   const queryClient = useQueryClient();
+  
+  // Fetch last stats update timestamp for current week
+  const { data: lastStatsUpdate } = useLastStatsUpdate(activeWeek);
 
   // Realtime subscription for live stat updates
   useEffect(() => {
@@ -774,6 +798,7 @@ function RegularSeasonResults() {
           
           // Invalidate queries to refetch updated data
           queryClient.invalidateQueries({ queryKey: ['regularSeasonPicks'] });
+          queryClient.invalidateQueries({ queryKey: ['lastStatsUpdate'] });
           
           // Reset live indicator after 3 seconds
           setTimeout(() => setIsLive(false), 3000);
@@ -924,6 +949,22 @@ function RegularSeasonResults() {
           </TabsContent>
         ))}
       </Tabs>
+      
+      {/* Debug: Last stats update indicator */}
+      {lastStatsUpdate && (
+        <div className="mt-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            Last stats update: {new Date(lastStatsUpdate).toLocaleString('en-US', { 
+              timeZone: 'America/New_York',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })} ET
+          </p>
+        </div>
+      )}
     </div>
   );
 }
