@@ -5,34 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Known Content-Length of API-Sports placeholder image (measured: 9591 bytes for /players/0.png)
-const PLACEHOLDER_CONTENT_LENGTH = 9591;
-
-// Helper to check if an image URL is the API-Sports placeholder
-async function isApiSportsPlaceholderImage(imageUrl: string): Promise<boolean> {
-  if (!imageUrl) return true;
-  
-  // Quick check for obvious placeholder patterns
-  if (imageUrl.includes('/0.png') || imageUrl.includes('players/0')) {
-    return true;
-  }
-  
-  try {
-    const response = await fetch(imageUrl, { method: 'HEAD' });
-    if (!response.ok) return true;
-    
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength) === PLACEHOLDER_CONTENT_LENGTH) {
-      return true;
-    }
-    
-    return false;
-  } catch (error) {
-    console.warn(`Error checking image URL ${imageUrl}:`, error);
-    return true; // Treat errors as placeholders
-  }
-}
-
 // Helper to verify admin role
 async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?: string }> {
   const authHeader = req.headers.get('Authorization');
@@ -115,7 +87,7 @@ Deno.serve(async (req) => {
     // Step 2: Fetch players for each team
     const allPlayers: any[] = [];
     const validPositions = ['QB', 'RB', 'WR', 'TE'];
-    let placeholderCount = 0;
+    let withImages = 0;
 
     for (const team of playoffTeams) {
       console.log(`Fetching players for ${team.name} (team_id: ${team.team_id})...`);
@@ -144,17 +116,16 @@ Deno.serve(async (req) => {
 
         console.log(`Received ${players.length} total players for ${team.name}`);
 
-        // Filter for QB, RB, WR, TE positions and check for placeholder images
+        // Filter for QB, RB, WR, TE positions - store raw image URL without filtering
         for (const player of players) {
           if (!validPositions.includes(player.position)) continue;
           
-          const rawImageUrl = player.image ?? null;
-          const isPlaceholder = rawImageUrl ? await isApiSportsPlaceholderImage(rawImageUrl) : true;
-          const imageUrl = isPlaceholder ? null : rawImageUrl;
-          const hasHeadshot = !isPlaceholder && !!rawImageUrl;
+          // Store the raw image URL from API without any filtering
+          const imageUrl = player.image ?? null;
+          const hasHeadshot = !!imageUrl;
           
-          if (isPlaceholder && rawImageUrl) {
-            placeholderCount++;
+          if (imageUrl) {
+            withImages++;
           }
           
           allPlayers.push({
@@ -179,7 +150,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Total players to sync: ${allPlayers.length}`);
-    console.log(`Placeholder images filtered: ${placeholderCount}`);
+    console.log(`Players with images: ${withImages}`);
 
     if (allPlayers.length === 0) {
       return new Response(
@@ -187,7 +158,7 @@ Deno.serve(async (req) => {
           success: true,
           playersSynced: 0,
           teamsProcessed: playoffTeams.length,
-          placeholderImagesFiltered: placeholderCount,
+          playersWithImages: withImages,
           message: 'No players found to sync',
         }),
         {
@@ -229,7 +200,7 @@ Deno.serve(async (req) => {
         success: true,
         playersSynced: syncedCount,
         teamsProcessed: playoffTeams.length,
-        placeholderImagesFiltered: placeholderCount,
+        playersWithImages: withImages,
         positionBreakdown: {
           QB: dedupedPlayers.filter(p => p.position === 'QB').length,
           RB: dedupedPlayers.filter(p => p.position === 'RB').length,
