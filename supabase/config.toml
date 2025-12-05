@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.export-player-headshots]
 verify_jwt = true
+
+[functions.apply-espn-headshot-overrides]
+verify_jwt = false

@@ -198,6 +198,35 @@ serve(async (req) => {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
+    // After sync completes, apply ESPN headshot overrides
+    let overridesApplied = 0;
+    try {
+      console.log('Applying ESPN headshot overrides...');
+      
+      const overridesRes = await fetch(
+        `${supabaseUrl}/functions/v1/apply-espn-headshot-overrides`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({ season }),
+        }
+      );
+
+      if (!overridesRes.ok) {
+        const text = await overridesRes.text();
+        console.error('apply-espn-headshot-overrides failed:', overridesRes.status, text);
+      } else {
+        const overridesSummary = await overridesRes.json();
+        console.log('ESPN headshot overrides applied:', overridesSummary);
+        overridesApplied = overridesSummary.updated || 0;
+      }
+    } catch (err) {
+      console.error('Error calling apply-espn-headshot-overrides:', err);
+    }
+
     const summary = {
       success: true,
       season,
@@ -206,6 +235,7 @@ serve(async (req) => {
       offensivePlayersFound: offensivePlayers,
       playersUpserted: upsertedCount,
       playersWithImages: withImages,
+      headshotOverridesApplied: overridesApplied,
       errors: errors.length > 0 ? errors.slice(0, 10) : undefined
     };
 
