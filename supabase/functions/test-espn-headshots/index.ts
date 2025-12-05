@@ -44,80 +44,52 @@ async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?:
   return { authorized: true };
 }
 
-async function searchEspnPlayer(playerName: string): Promise<{ espnId: string | null; error: string | null }> {
+async function searchEspnPlayer(playerName: string): Promise<{ espnId: string | null; headshotUrl: string | null; error: string | null }> {
   const encodedName = encodeURIComponent(playerName);
-  const searchUrl = `https://site.web.api.espn.com/apis/common/v3/search?query=${encodedName}&limit=10&type=player`;
-  
-  console.log(`[${playerName}] Searching ESPN: ${searchUrl}`);
-  
+  const searchUrl = `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/athletes?search=${encodedName}`;
+
+  console.log(`[${playerName}] ESPN search: ${searchUrl}`);
+
   try {
     const response = await fetch(searchUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.espn.com/',
-        'Origin': 'https://www.espn.com',
+        'User-Agent': 'Mozilla/5.0',
+        'Accept': 'application/json'
       }
     });
 
     if (!response.ok) {
-      console.log(`[${playerName}] ESPN search failed with status ${response.status}`);
-      return { espnId: null, error: `ESPN search returned ${response.status}` };
+      return { espnId: null, headshotUrl: null, error: `ESPN returned ${response.status}` };
     }
 
     const data = await response.json();
-    console.log(`[${playerName}] ESPN search response:`, JSON.stringify(data).slice(0, 500));
+    const items = data.items ?? [];
 
-    // Look for NFL player results
-    const results = data.results || [];
-    for (const category of results) {
-      if (category.type === 'player' || category.name === 'Athletes') {
-        const items = category.contents || category.items || [];
-        for (const item of items) {
-          // Check if it's an NFL player
-          const sport = item.sport?.slug || item.sport || '';
-          const league = item.league?.slug || item.league || '';
-          
-          console.log(`[${playerName}] Found player: ${item.displayName || item.name}, sport: ${sport}, league: ${league}`);
-          
-          if (sport === 'football' || league === 'nfl' || item.type === 'player') {
-            const espnId = item.id || item.uid?.split(':').pop();
-            if (espnId) {
-              console.log(`[${playerName}] Found ESPN ID: ${espnId}`);
-              return { espnId: String(espnId), error: null };
-            }
-          }
-        }
-      }
+    if (items.length === 0) {
+      return { espnId: null, headshotUrl: null, error: 'No ESPN player found' };
     }
 
-    // Also check if there's a direct athletes array
-    if (data.athletes) {
-      for (const athlete of data.athletes) {
-        const sport = athlete.sport?.slug || '';
-        if (sport === 'football' || !sport) {
-          const espnId = athlete.id || athlete.uid?.split(':').pop();
-          if (espnId) {
-            console.log(`[${playerName}] Found ESPN ID from athletes: ${espnId}`);
-            return { espnId: String(espnId), error: null };
-          }
-        }
-      }
+    // ESPN returns lightweight refs; fetch the first one
+    const detailUrl = items[0].$ref;
+    const detailResponse = await fetch(detailUrl);
+    const detail = await detailResponse.json();
+
+    const espnId = String(detail.id);
+    const headshotUrl = detail.headshot?.href ?? null;
+
+    if (!headshotUrl) {
+      return { espnId, headshotUrl: null, error: 'No headshot in athlete detail' };
     }
 
-    console.log(`[${playerName}] No NFL player found in ESPN search results`);
-    return { espnId: null, error: 'No NFL player found in search results' };
+    return { espnId, headshotUrl, error: null };
+
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error(`[${playerName}] ESPN search error:`, errorMsg);
-    return { espnId: null, error: `Search failed: ${errorMsg}` };
+    const msg = err instanceof Error ? err.message : String(err);
+    return { espnId: null, headshotUrl: null, error: msg };
   }
 }
 
-async function fetchHeadshotImage(espnId: string, playerName: string): Promise<{ bytes: number; error: string | null }> {
-  const headshotUrl = `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png`;
-  
+async function fetchHeadshotImage(headshotUrl: string, playerName: string): Promise<{ bytes: number; error: string | null }> {
   console.log(`[${playerName}] Fetching headshot: ${headshotUrl}`);
   
   try {
@@ -193,19 +165,19 @@ Deno.serve(async (req) => {
       };
       
       // Step 1: Search ESPN for player
-      const { espnId, error: searchError } = await searchEspnPlayer(name);
+      const { espnId, headshotUrl, error: searchError } = await searchEspnPlayer(name);
       
-      if (searchError || !espnId) {
-        result.error = searchError || 'No ESPN ID found';
+      if (searchError || !espnId || !headshotUrl) {
+        result.error = searchError || 'No ESPN ID or headshot found';
         results.push(result);
         continue;
       }
       
       result.espnId = espnId;
-      result.headshotUrl = `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png`;
+      result.headshotUrl = headshotUrl;
       
-      // Step 2: Fetch headshot image
-      const { bytes, error: fetchError } = await fetchHeadshotImage(espnId, name);
+      // Step 2: Fetch headshot image to verify size
+      const { bytes, error: fetchError } = await fetchHeadshotImage(headshotUrl, name);
       
       if (fetchError) {
         result.error = fetchError;
