@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      headshot_overrides: {
+        Row: {
+          api_player_id: string
+          created_at: string | null
+          espn_headshot_url: string
+          espn_player_id: string | null
+          id: string
+          player_full_name: string | null
+          season: number
+          source: string | null
+          team_abbr: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_player_id: string
+          created_at?: string | null
+          espn_headshot_url: string
+          espn_player_id?: string | null
+          id?: string
+          player_full_name?: string | null
+          season: number
+          source?: string | null
+          team_abbr?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_player_id?: string
+          created_at?: string | null
+          espn_headshot_url?: string
+          espn_player_id?: string | null
+          id?: string
+          player_full_name?: string | null
+          season?: number
+          source?: string | null
+          team_abbr?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       league_members: {
         Row: {
           id: string

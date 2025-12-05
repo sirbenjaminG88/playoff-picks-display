@@ -33,7 +33,7 @@ serve(async (req) => {
     // Get all headshot overrides for the season
     const { data: overrides, error: fetchError } = await supabase
       .from('headshot_overrides')
-      .select('id, player_id, api_player_id, override_image_url, source')
+      .select('id, api_player_id, player_full_name, espn_headshot_url, source')
       .eq('season', season);
 
     if (fetchError) {
@@ -53,24 +53,25 @@ serve(async (req) => {
     let updatedCount = 0;
     const errors: string[] = [];
 
-    // Apply each override
+    // Apply each override by joining on season + api_player_id
     for (const override of overrides) {
       const { error: updateError } = await supabase
         .from('players')
         .update({
-          image_url: override.override_image_url,
+          image_url: override.espn_headshot_url,
           has_headshot: true,
           headshot_status: 'override'
         })
-        .eq('id', override.player_id);
+        .eq('season', season)
+        .eq('api_player_id', override.api_player_id);
 
       if (updateError) {
-        const msg = `Failed to update player ${override.player_id}: ${updateError.message}`;
+        const msg = `Failed to update player ${override.player_full_name} (api_player_id: ${override.api_player_id}): ${updateError.message}`;
         console.error(msg);
         errors.push(msg);
       } else {
         updatedCount++;
-        console.log(`Updated player ${override.player_id} with ESPN headshot`);
+        console.log(`Updated player ${override.player_full_name} with ESPN headshot`);
       }
     }
 
