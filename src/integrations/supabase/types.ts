@@ -668,6 +668,13 @@ export type Database = {
       }
     }
     Functions: {
+      can_view_pick: {
+        Args: {
+          p_pick: Database["public"]["Tables"]["user_picks"]["Row"]
+          p_viewer: string
+        }
+        Returns: boolean
+      }
       get_my_display_name: { Args: never; Returns: string }
       get_user_league_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
@@ -675,6 +682,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      picks_revealed_for_week: {
+        Args: { p_league_id: string; p_season: number; p_week: number }
         Returns: boolean
       }
     }
