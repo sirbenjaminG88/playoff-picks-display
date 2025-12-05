@@ -8,34 +8,6 @@ const corsHeaders = {
 
 const OFFENSIVE_POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 
-// Known Content-Length of API-Sports placeholder image (measured: 9591 bytes for /players/0.png)
-const PLACEHOLDER_CONTENT_LENGTH = 9591;
-
-// Helper to check if an image URL is the API-Sports placeholder
-async function isApiSportsPlaceholderImage(imageUrl: string): Promise<boolean> {
-  if (!imageUrl) return true;
-  
-  // Quick check for obvious placeholder patterns
-  if (imageUrl.includes('/0.png') || imageUrl.includes('players/0')) {
-    return true;
-  }
-  
-  try {
-    const response = await fetch(imageUrl, { method: 'HEAD' });
-    if (!response.ok) return true;
-    
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength) === PLACEHOLDER_CONTENT_LENGTH) {
-      return true;
-    }
-    
-    return false;
-  } catch (error) {
-    console.warn(`Error checking image URL ${imageUrl}:`, error);
-    return true; // Treat errors as placeholders
-  }
-}
-
 // Helper to verify admin role
 async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?: string }> {
   const authHeader = req.headers.get('Authorization');
@@ -130,7 +102,7 @@ serve(async (req) => {
     let totalFetched = 0;
     let offensivePlayers = 0;
     let upsertedCount = 0;
-    let placeholderCount = 0;
+    let withImages = 0;
     const errors: string[] = [];
 
     // Fetch players for each team
@@ -183,16 +155,14 @@ serve(async (req) => {
         const position = p.position;
         const jerseyNumber = p.jersey?.toString() ?? p.number?.toString() ?? null;
         const status = p.status ?? p.injury_status ?? null;
-        const playerGroup = p.group ?? null; // e.g. "Offense", "Practice Squad", "Injured Reserve Or O"
+        const playerGroup = p.group ?? null;
         
-        // Check if image is a placeholder
-        const rawImageUrl = p.image ?? null;
-        const isPlaceholder = rawImageUrl ? await isApiSportsPlaceholderImage(rawImageUrl) : true;
-        const imageUrl = isPlaceholder ? null : rawImageUrl;
-        const hasHeadshot = !isPlaceholder && !!rawImageUrl;
+        // Store the raw image URL from API without any filtering
+        const imageUrl = p.image ?? null;
+        const hasHeadshot = !!imageUrl;
         
-        if (isPlaceholder && rawImageUrl) {
-          placeholderCount++;
+        if (imageUrl) {
+          withImages++;
         }
 
         const { error } = await supabase
@@ -235,7 +205,7 @@ serve(async (req) => {
       totalPlayersFetched: totalFetched,
       offensivePlayersFound: offensivePlayers,
       playersUpserted: upsertedCount,
-      placeholderImagesFiltered: placeholderCount,
+      playersWithImages: withImages,
       errors: errors.length > 0 ? errors.slice(0, 10) : undefined
     };
 
