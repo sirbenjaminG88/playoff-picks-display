@@ -6,6 +6,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper to verify admin role
+async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?: string }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return { authorized: false, error: 'Missing authorization header' };
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return { authorized: false, error: 'Invalid user token' };
+  }
+
+  // Check admin role using the has_role function
+  const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
+    _user_id: user.id,
+    _role: 'admin'
+  });
+
+  if (roleError || !isAdmin) {
+    console.log(`User ${user.id} is not an admin`);
+    return { authorized: false, error: 'User is not an admin' };
+  }
+
+  console.log(`Admin verified: ${user.id}`);
+  return { authorized: true };
+}
+
 interface PlayerStats {
   pass_yds: number;
   pass_tds: number;
@@ -218,6 +252,15 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
+    // Verify admin role
+    const { authorized, error: authError } = await verifyAdmin(req);
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ success: false, error: authError }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const url = new URL(req.url);
     const forceSync = url.searchParams.get('force') === 'true';
     const weekParam = url.searchParams.get('week');

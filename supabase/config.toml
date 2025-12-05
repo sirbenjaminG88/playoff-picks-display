@@ -1,34 +1,37 @@
 project_id = "zdaqwylzpkqojwvhlibd"
 
 [functions.sync-playoff-teams]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-playoff-players]
-verify_jwt = false
+verify_jwt = true
 
 [functions.test-playoff-team-players]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-player-stats]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-playoff-games]
-verify_jwt = false
+verify_jwt = true
 
 [functions.fetch-player-game-stats]
-verify_jwt = false
+verify_jwt = true
 
 [functions.upsert-player-week-stats]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-player-stats-for-week]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-season-players]
-verify_jwt = false
-
-[functions.send-auth-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-live-stats]
+verify_jwt = true
+
+[functions.sync-regular-season-games-2025-weeks-14-18]
+verify_jwt = true
+
+[functions.send-auth-email]
 verify_jwt = false

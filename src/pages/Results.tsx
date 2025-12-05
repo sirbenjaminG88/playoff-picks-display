@@ -791,11 +791,12 @@ function RegularSeasonResults() {
   // Handle manual sync
   const handleSyncStats = async (week: number) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-live-stats?week=${week}&force=true`,
         {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'Authorization': `Bearer ${session?.access_token || ''}`,
           },
         }
       );
@@ -1043,11 +1044,12 @@ export default function Results() {
 
   const handleSyncStats = async (week: number) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-player-stats-for-week?week=${week}`,
         {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'Authorization': `Bearer ${session?.access_token || ''}`,
           },
         }
       );

@@ -5,6 +5,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Users, Calendar, UserCircle, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+
+// Helper to get auth headers for admin edge function calls
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${session?.access_token || ''}`,
+  };
+}
 
 const Admin = () => {
   const { toast } = useToast();
@@ -40,13 +50,12 @@ const Admin = () => {
     setTeamsResult(null);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playoff-teams`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
         }
       );
 
@@ -77,13 +86,12 @@ const Admin = () => {
     setPlayersResult(null);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playoff-players`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
         }
       );
 
@@ -114,13 +122,12 @@ const Admin = () => {
     setTestResult(null);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/test-playoff-team-players`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
         }
       );
 
@@ -161,13 +168,12 @@ const Admin = () => {
     setGamesResult(null);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playoff-games`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
         }
       );
 
@@ -199,13 +205,12 @@ const Admin = () => {
     setRegSeasonSyncStartTime(Date.now());
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-season-players`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({ season: 2025 }),
         }
       );
