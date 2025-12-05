@@ -51,7 +51,9 @@ const Admin = () => {
   const [isLoadingConsistency, setIsLoadingConsistency] = useState(false);
   
   // ZIP export state
+  const [exportFilterType, setExportFilterType] = useState<'status' | 'has_headshot'>('status');
   const [exportStatus, setExportStatus] = useState<string>('ok');
+  const [exportHasHeadshot, setExportHasHeadshot] = useState<boolean>(true);
   const [exportLimit, setExportLimit] = useState<number>(100);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -146,7 +148,11 @@ const Admin = () => {
         {
           method: 'POST',
           headers,
-          body: JSON.stringify({ status: exportStatus, limit: exportLimit }),
+          body: JSON.stringify(
+            exportFilterType === 'status' 
+              ? { status: exportStatus, limit: exportLimit }
+              : { has_headshot: exportHasHeadshot, limit: exportLimit }
+          ),
         }
       );
 
@@ -160,7 +166,10 @@ const Admin = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${exportStatus}-headshots-sample.zip`;
+      const filename = exportFilterType === 'status' 
+        ? `${exportStatus}-headshots-sample.zip`
+        : `has_headshot_${exportHasHeadshot}-headshots-sample.zip`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -168,7 +177,7 @@ const Admin = () => {
 
       toast({
         title: "Download Started",
-        description: `Downloading ${exportStatus} headshots sample`,
+        description: `Downloading ${exportFilterType === 'status' ? exportStatus : `has_headshot=${exportHasHeadshot}`} headshots sample`,
       });
     } catch (error) {
       toast({
@@ -785,31 +794,62 @@ const Admin = () => {
 
                 <div className="border-t border-border pt-3 mt-3">
                   <h4 className="font-semibold mb-3">Download Sample for Review:</h4>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex-1">
-                      <Label htmlFor="export-status" className="text-xs text-muted-foreground">Status</Label>
-                      <Select value={exportStatus} onValueChange={setExportStatus}>
-                        <SelectTrigger id="export-status" className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ok">Real headshots (status = ok)</SelectItem>
-                          <SelectItem value="placeholder">Placeholders (status = placeholder)</SelectItem>
-                          <SelectItem value="no_url">No URL (status = no_url)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="w-24">
-                      <Label htmlFor="export-limit" className="text-xs text-muted-foreground">Limit</Label>
-                      <Input
-                        id="export-limit"
-                        type="number"
-                        value={exportLimit}
-                        onChange={(e) => setExportLimit(Math.min(200, Math.max(1, parseInt(e.target.value) || 100)))}
-                        min={1}
-                        max={200}
-                        className="mt-1"
-                      />
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="w-40">
+                        <Label htmlFor="export-filter-type" className="text-xs text-muted-foreground">Filter By</Label>
+                        <Select value={exportFilterType} onValueChange={(v) => setExportFilterType(v as 'status' | 'has_headshot')}>
+                          <SelectTrigger id="export-filter-type" className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="status">headshot_status</SelectItem>
+                            <SelectItem value="has_headshot">has_headshot</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {exportFilterType === 'status' ? (
+                        <div className="flex-1">
+                          <Label htmlFor="export-status" className="text-xs text-muted-foreground">Status Value</Label>
+                          <Select value={exportStatus} onValueChange={setExportStatus}>
+                            <SelectTrigger id="export-status" className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ok">Real headshots (status = ok)</SelectItem>
+                              <SelectItem value="placeholder">Placeholders (status = placeholder)</SelectItem>
+                              <SelectItem value="no_url">No URL (status = no_url)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <div className="flex-1">
+                          <Label htmlFor="export-has-headshot" className="text-xs text-muted-foreground">has_headshot Value</Label>
+                          <Select value={exportHasHeadshot.toString()} onValueChange={(v) => setExportHasHeadshot(v === 'true')}>
+                            <SelectTrigger id="export-has-headshot" className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="true">has_headshot = TRUE</SelectItem>
+                              <SelectItem value="false">has_headshot = FALSE</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      
+                      <div className="w-24">
+                        <Label htmlFor="export-limit" className="text-xs text-muted-foreground">Limit</Label>
+                        <Input
+                          id="export-limit"
+                          type="number"
+                          value={exportLimit}
+                          onChange={(e) => setExportLimit(Math.min(200, Math.max(1, parseInt(e.target.value) || 100)))}
+                          min={1}
+                          max={200}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
                   </div>
                   <Button
