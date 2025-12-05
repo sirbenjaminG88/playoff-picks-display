@@ -17,6 +17,7 @@ import AdminPlayers from "./pages/AdminPlayers";
 import AdminUsers from "./pages/AdminUsers";
 import SignIn from "./pages/SignIn";
 import ProfileSetup from "./pages/ProfileSetup";
+import LeaguesHome from "./pages/LeaguesHome";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
                   <Route path="/home" element={<Index />} />
                   <Route path="/signin" element={<SignIn />} />
                   <Route path="/profile-setup" element={<ProfileSetup />} />
+                  <Route path="/leagues-home" element={<LeaguesHome />} />
                   <Route 
                     path="/results" 
                     element={
