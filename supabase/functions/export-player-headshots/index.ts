@@ -73,7 +73,7 @@ serve(async (req) => {
       status = body.status;
       hasHeadshot = body.has_headshot;
       if (body.limit && typeof body.limit === 'number' && body.limit > 0) {
-        limit = Math.min(body.limit, 200);
+        limit = body.limit; // No cap - allow any limit
       }
     } catch {
       return new Response(
