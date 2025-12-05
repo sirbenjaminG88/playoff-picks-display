@@ -245,12 +245,14 @@ async function logSync(supabase: any, season: number, week: number, playersUpdat
 }
 
 serve(async (req) => {
+  // Log invocation timestamp at the very start
+  console.log('=== sync-live-stats invoked at', new Date().toISOString(), '===');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const startTime = Date.now();
-  
   try {
     // Verify admin role
     const { authorized, error: authError } = await verifyAdmin(req);
@@ -470,6 +472,16 @@ serve(async (req) => {
           });
         } else {
           statsUpserted++;
+          // Log sample record for debugging (first successful upsert)
+          if (statsUpserted === 1) {
+            console.log('=== SAMPLE RECORD UPSERTED ===');
+            console.log('player_id:', playerId);
+            console.log('player_name:', playerInfo.name);
+            console.log('game_id:', gameId);
+            console.log('raw stats from API:', JSON.stringify(stats));
+            console.log('computed fantasy_points:', fantasyPoints);
+            console.log('=== END SAMPLE RECORD ===');
+          }
           results.push({
             player_id: playerId,
             player_name: playerInfo.name,
