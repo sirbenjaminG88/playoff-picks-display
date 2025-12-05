@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LeagueProvider } from "@/contexts/LeagueContext";
 import { SeasonProvider } from "@/contexts/SeasonContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import { AuthRedirect } from "@/components/AuthRedirect";
 import Index from "./pages/Index";
 import Results from "./pages/Results";
@@ -57,25 +58,25 @@ const App = () => (
                   <Route 
                     path="/admin" 
                     element={
-                      <ProtectedRoute>
+                      <AdminRoute>
                         <Admin />
-                      </ProtectedRoute>
+                      </AdminRoute>
                     } 
                   />
                   <Route 
                     path="/admin/players" 
                     element={
-                      <ProtectedRoute>
+                      <AdminRoute>
                         <AdminPlayers />
-                      </ProtectedRoute>
+                      </AdminRoute>
                     } 
                   />
                   <Route 
                     path="/admin/users" 
                     element={
-                      <ProtectedRoute>
+                      <AdminRoute>
                         <AdminUsers />
-                      </ProtectedRoute>
+                      </AdminRoute>
                     } 
                   />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
