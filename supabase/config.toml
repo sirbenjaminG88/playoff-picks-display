@@ -47,3 +47,6 @@ verify_jwt = true
 
 [functions.apply-espn-headshot-overrides]
 verify_jwt = false
+
+[functions.test-espn-headshots]
+verify_jwt = true
