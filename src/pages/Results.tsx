@@ -499,39 +499,39 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId }: { week: number; league
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {leaderboard.map((entry, index) => {
         const profile = data.userProfiles?.get(entry.userId);
         return (
           <div
             key={entry.userId}
-            className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            <Badge 
-              variant="outline" 
-              className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
-            >
-              #{index + 1}
-            </Badge>
+            {/* Rank - fixed width, no shrink */}
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              <span className="font-semibold text-sm text-foreground">
+                #{index + 1}
+              </span>
+            </div>
 
-            <div className="flex flex-col items-center gap-2 shrink-0">
-              <Avatar className="h-11 w-11">
+            {/* Avatar + Name container */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Avatar className="h-9 w-9 flex-shrink-0">
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
                 ) : null}
-                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-xs">
                   {getInitials(entry.userId)}
                 </AvatarFallback>
               </Avatar>
-              <span className="font-semibold text-sm text-foreground">
+              <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
                 {entry.userId}
               </span>
             </div>
 
-            <div className="flex-1 min-w-0"></div>
-
-            <div className="flex flex-col items-center gap-2 shrink-0">
-              <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
+            {/* Points pill - right aligned, no shrink */}
+            <div className="ml-auto flex-shrink-0">
+              <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1">
                 {entry.points.toFixed(1)} pts
               </Badge>
             </div>
@@ -619,7 +619,7 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
   });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {standings.map((standing, index) => {
         const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
         const profile = allUserProfiles.get(standing.userId);
@@ -627,36 +627,37 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
         return (
           <div
             key={standing.userId}
-            className="flex items-start gap-6 px-6 py-6 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors min-h-[100px]"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            <div className="w-[44px] h-[44px] rounded-full bg-muted flex items-center justify-center shrink-0">
-              <span className="font-semibold text-base text-foreground">
+            {/* Rank - fixed width, no shrink */}
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              <span className="font-semibold text-sm text-foreground">
                 #{index + 1}
               </span>
             </div>
 
-            <div className="flex flex-col items-center gap-2 shrink-0">
-              <Avatar className="h-[44px] w-[44px]">
+            {/* Avatar + Name container */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Avatar className="h-10 w-10 flex-shrink-0">
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={standing.userId} />
                 ) : null}
-                <AvatarFallback className="bg-foreground/80 text-background font-bold text-[17px]">
+                <AvatarFallback className="bg-foreground/80 text-background font-bold text-sm">
                   {getInitials(standing.userId)}
                 </AvatarFallback>
               </Avatar>
-              <span className="font-semibold text-sm text-foreground">
+              <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
                 {standing.userId}
               </span>
             </div>
 
-            <div className="flex-1 min-w-0"></div>
-
-            <div className="flex flex-col items-center gap-1.5 shrink-0">
-              <Badge className="text-base font-bold bg-primary text-primary-foreground px-4 py-1.5 h-[44px] flex items-center">
+            {/* Points pill - right aligned, no shrink */}
+            <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-1">
+              <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1.5">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
               {pointsBehind > 0 && (
-                <span className="text-[13px] text-muted-foreground font-medium">
+                <span className="text-xs text-muted-foreground font-medium">
                   {pointsBehind.toFixed(1)} back
                 </span>
               )}
@@ -700,39 +701,39 @@ const WeekLeaderboard = ({ week }: { week: number }) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {leaderboard.map((entry, index) => {
         const profile = data.userProfiles?.get(entry.userId);
         return (
           <div
             key={entry.userId}
-            className="flex items-center gap-6 px-5 py-5 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            <Badge 
-              variant="outline" 
-              className="font-bold text-base border-border w-11 h-11 flex items-center justify-center shrink-0"
-            >
-              #{index + 1}
-            </Badge>
+            {/* Rank - fixed width, no shrink */}
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              <span className="font-semibold text-sm text-foreground">
+                #{index + 1}
+              </span>
+            </div>
 
-            <div className="flex flex-col items-center gap-2 shrink-0">
-              <Avatar className="h-11 w-11">
+            {/* Avatar + Name container */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Avatar className="h-9 w-9 flex-shrink-0">
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
                 ) : null}
-                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-xs">
                   {getInitials(entry.userId)}
                 </AvatarFallback>
               </Avatar>
-              <span className="font-semibold text-sm text-foreground">
+              <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
                 {entry.userId}
               </span>
             </div>
 
-            <div className="flex-1 min-w-0"></div>
-
-            <div className="flex flex-col items-center gap-2 shrink-0">
-              <Badge className="text-base font-bold bg-primary text-primary-foreground px-3 py-1">
+            {/* Points pill - right aligned, no shrink */}
+            <div className="ml-auto flex-shrink-0">
+              <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1">
                 {entry.points.toFixed(1)} pts
               </Badge>
             </div>
