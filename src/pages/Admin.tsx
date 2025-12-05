@@ -3,12 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Users, Calendar, UserCircle, Loader2, Download, CheckCircle, AlertTriangle } from "lucide-react";
+import { Users, Calendar, UserCircle, Loader2, Download, CheckCircle, AlertTriangle, Search, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Helper to get auth headers for admin edge function calls
 async function getAuthHeaders(): Promise<HeadersInit> {
@@ -56,6 +59,12 @@ const Admin = () => {
   const [exportHasHeadshot, setExportHasHeadshot] = useState<boolean>(true);
   const [exportLimit, setExportLimit] = useState<number>(100);
   const [isExporting, setIsExporting] = useState(false);
+
+  // ESPN headshot test state
+  const [espnTestModalOpen, setEspnTestModalOpen] = useState(false);
+  const [espnTestInput, setEspnTestInput] = useState('');
+  const [espnTestLoading, setEspnTestLoading] = useState(false);
+  const [espnTestResults, setEspnTestResults] = useState<any[] | null>(null);
 
   // Load consistency stats on mount
   useEffect(() => {
@@ -431,6 +440,57 @@ const Admin = () => {
       });
     } finally {
       setIsLoadingAudit(false);
+    }
+  };
+
+  const testEspnHeadshots = async () => {
+    const names = espnTestInput
+      .split('\n')
+      .map(n => n.trim())
+      .filter(n => n.length > 0);
+
+    if (names.length === 0) {
+      toast({
+        title: "No names",
+        description: "Please enter at least one player name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEspnTestLoading(true);
+    setEspnTestResults(null);
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/test-espn-headshots`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ playerNames: names }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Test Complete",
+          description: `Found ${data.found}/${data.totalProcessed} ESPN headshots`,
+        });
+        setEspnTestResults(data.results);
+      } else {
+        throw new Error(data.error || 'Failed to test ESPN headshots');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to test ESPN headshots",
+        variant: "destructive",
+      });
+    } finally {
+      setEspnTestLoading(false);
     }
   };
 
@@ -874,7 +934,121 @@ const Admin = () => {
             )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              Test ESPN Headshot Lookup
+            </CardTitle>
+            <CardDescription>
+              Search ESPN for player headshots by name (test only, no database changes)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => setEspnTestModalOpen(true)} variant="secondary">
+              <Search className="w-4 h-4 mr-2" />
+              Open ESPN Headshot Tester
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* ESPN Headshot Test Modal */}
+      <Dialog open={espnTestModalOpen} onOpenChange={setEspnTestModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Test ESPN Headshot Lookup</DialogTitle>
+            <DialogDescription>
+              Enter player names (one per line) to search ESPN and verify headshot availability
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="player-names">Player Names (one per line)</Label>
+              <Textarea
+                id="player-names"
+                placeholder="Jahmyr Gibbs&#10;Marvin Harrison Jr&#10;Amon-Ra St. Brown"
+                value={espnTestInput}
+                onChange={(e) => setEspnTestInput(e.target.value)}
+                className="mt-1 h-40 font-mono text-sm"
+              />
+            </div>
+            
+            <Button onClick={testEspnHeadshots} disabled={espnTestLoading}>
+              {espnTestLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Testing...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  Test ESPN Lookup
+                </>
+              )}
+            </Button>
+            
+            {espnTestResults && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold">Results ({espnTestResults.filter(r => r.found).length}/{espnTestResults.length} found)</h4>
+                  <Button variant="ghost" size="sm" onClick={() => setEspnTestResults(null)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[200px]">Player Name</TableHead>
+                        <TableHead className="w-[80px]">Found</TableHead>
+                        <TableHead className="w-[100px]">ESPN ID</TableHead>
+                        <TableHead className="w-[100px]">Image Size</TableHead>
+                        <TableHead className="w-[80px]">Preview</TableHead>
+                        <TableHead>Error</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {espnTestResults.map((result, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium">{result.name}</TableCell>
+                          <TableCell>
+                            <span className={result.found ? "text-green-500" : "text-red-500"}>
+                              {result.found ? "✓ Yes" : "✗ No"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {result.espnId || "—"}
+                          </TableCell>
+                          <TableCell>
+                            {result.imageBytes > 0 
+                              ? `${(result.imageBytes / 1024).toFixed(1)} KB` 
+                              : "—"}
+                          </TableCell>
+                          <TableCell>
+                            {result.found && result.headshotUrl && (
+                              <img 
+                                src={result.headshotUrl} 
+                                alt={result.name}
+                                className="w-10 h-10 rounded object-cover"
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                            {result.error || "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
