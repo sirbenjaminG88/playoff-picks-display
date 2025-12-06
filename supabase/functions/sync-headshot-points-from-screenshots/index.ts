@@ -92,6 +92,18 @@ function findBestMatch(
   };
 }
 
+// Convert ArrayBuffer to base64 without stack overflow
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
 // Use Lovable AI (Gemini) to extract player data from image
 async function extractPlayersFromImage(base64Image: string, fileName: string): Promise<ExtractedPlayer[]> {
   const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
@@ -275,9 +287,9 @@ serve(async (req) => {
           continue;
         }
 
-        // Convert blob to base64
+        // Convert blob to base64 using chunked approach to avoid stack overflow
         const arrayBuffer = await fileData.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        const base64 = arrayBufferToBase64(arrayBuffer);
 
         // Extract players using AI vision
         const players = await extractPlayersFromImage(base64, file.name);
