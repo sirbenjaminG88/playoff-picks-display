@@ -87,23 +87,33 @@ async function analyzeImageWithAI(imageUrl: string, playerName: string, teamAbbr
                 type: 'text',
                 text: `Analyze this NFL player headshot photo. I need to verify this is the correct player.
 
-Expected player info:
+EXPECTED PLAYER INFO:
 - Name: ${playerName}
 - Team: ${teamAbbr || 'Unknown'}
 - Jersey Number: ${jerseyNumber || 'Unknown'}
 
-Please analyze the image and respond in this exact JSON format:
+IMPORTANT FACIAL RECOGNITION TASK:
+You have knowledge of NFL players from your training data. Please try to identify if the person in this image is actually ${playerName}. 
+- Do you recognize this player's face from your training data?
+- Does this person look like ${playerName} based on what you know about them?
+- If you recognize them as a DIFFERENT NFL player, please say who.
+
+Respond in this exact JSON format:
 {
-  "is_real_photo": true/false (is this a real player headshot, not a placeholder/silhouette?),
-  "detected_jersey": "number or null if not visible",
-  "detected_team_colors": "description of jersey/uniform colors visible",
-  "name_visible": true/false (is a name plate or name visible?),
+  "is_real_photo": true/false,
+  "detected_jersey": "number or null",
+  "detected_team_colors": "colors visible",
+  "name_visible": true/false,
   "detected_name": "name if visible, otherwise null",
+  "face_matches_expected_player": true/false/null,
+  "face_recognition_confidence": "high/medium/low/none",
+  "recognized_as": "If you recognize this as a DIFFERENT player, put their name here. Otherwise null.",
+  "face_recognition_notes": "Explain your facial recognition reasoning briefly",
   "confidence": "high/medium/low",
-  "potential_issues": ["list any concerns about photo accuracy"]
+  "potential_issues": ["list concerns"]
 }
 
-Be concise. Only return the JSON.`
+Only return the JSON.`
               },
               {
                 type: 'image_url',
@@ -138,21 +148,50 @@ Be concise. Only return the JSON.`
       
       const parsed = JSON.parse(jsonMatch[0]);
       
+      const issues: string[] = [];
+      
+      // Check if it's a real photo
+      if (parsed.is_real_photo === false) {
+        issues.push('Not a real player photo');
+      }
+      
+      // Add face recognition results
+      if (parsed.face_matches_expected_player === false) {
+        if (parsed.recognized_as) {
+          issues.push(`FACE MISMATCH: AI recognizes this as ${parsed.recognized_as}, not ${playerName}`);
+        } else {
+          issues.push(`FACE MISMATCH: AI does not recognize this as ${playerName}`);
+        }
+      } else if (parsed.face_matches_expected_player === null && parsed.face_recognition_confidence !== 'none') {
+        issues.push(`Face recognition inconclusive: ${parsed.face_recognition_notes || 'Unable to verify'}`);
+      }
+      
+      // Add face recognition notes as context
+      if (parsed.face_recognition_notes) {
+        issues.push(`Face analysis: ${parsed.face_recognition_notes}`);
+      }
+      
+      // Check for name mismatches
+      if (parsed.detected_name && parsed.detected_name.toLowerCase() !== playerName.toLowerCase()) {
+        issues.push(`Detected name "${parsed.detected_name}" doesn't match expected "${playerName}"`);
+      }
+      
+      // Check jersey number mismatches
+      if (jerseyNumber && parsed.detected_jersey && parsed.detected_jersey !== jerseyNumber) {
+        issues.push(`Jersey mismatch: expected #${jerseyNumber}, detected #${parsed.detected_jersey}`);
+      }
+      
+      // Add any other potential issues
+      if (parsed.potential_issues && Array.isArray(parsed.potential_issues)) {
+        issues.push(...parsed.potential_issues);
+      }
+      
       return {
         detected_jersey: parsed.detected_jersey,
         detected_team_colors: parsed.detected_team_colors,
         confidence: parsed.confidence,
         name_visible: parsed.name_visible,
-        issues: [
-          ...(parsed.is_real_photo === false ? ['Not a real player photo'] : []),
-          ...(parsed.potential_issues || []),
-          ...(parsed.detected_name && parsed.detected_name.toLowerCase() !== playerName.toLowerCase() 
-            ? [`Detected name "${parsed.detected_name}" doesn't match expected "${playerName}"`] 
-            : []),
-          ...(jerseyNumber && parsed.detected_jersey && parsed.detected_jersey !== jerseyNumber
-            ? [`Jersey mismatch: expected #${jerseyNumber}, detected #${parsed.detected_jersey}`]
-            : [])
-        ].filter(Boolean)
+        issues: issues.filter(Boolean)
       };
     } catch (parseError) {
       console.error('JSON parse error:', parseError, 'Content:', content);
