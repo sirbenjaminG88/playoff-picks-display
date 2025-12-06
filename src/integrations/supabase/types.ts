@@ -196,6 +196,7 @@ export type Database = {
           image_url: string | null
           jersey_number: string | null
           last_name: string | null
+          points_for_headshot: number | null
           position: string
           season: number
           status: string | null
@@ -216,6 +217,7 @@ export type Database = {
           image_url?: string | null
           jersey_number?: string | null
           last_name?: string | null
+          points_for_headshot?: number | null
           position: string
           season: number
           status?: string | null
@@ -236,6 +238,7 @@ export type Database = {
           image_url?: string | null
           jersey_number?: string | null
           last_name?: string | null
+          points_for_headshot?: number | null
           position?: string
           season?: number
           status?: string | null

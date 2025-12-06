@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Users, Calendar, UserCircle, Loader2, Download, CheckCircle, AlertTriangle, Search, X } from "lucide-react";
+import { Users, Calendar, UserCircle, Loader2, Download, CheckCircle, AlertTriangle, Search, X, FileImage } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -65,6 +65,10 @@ const Admin = () => {
   const [espnTestInput, setEspnTestInput] = useState('');
   const [espnTestLoading, setEspnTestLoading] = useState(false);
   const [espnTestResults, setEspnTestResults] = useState<any[] | null>(null);
+
+  // Headshot points sync state
+  const [isLoadingHeadshotPoints, setIsLoadingHeadshotPoints] = useState(false);
+  const [headshotPointsResult, setHeadshotPointsResult] = useState<any>(null);
 
   // Load consistency stats on mount
   useEffect(() => {
@@ -491,6 +495,42 @@ const Admin = () => {
       });
     } finally {
       setEspnTestLoading(false);
+    }
+  };
+
+  const syncHeadshotPointsFromScreenshots = async () => {
+    setIsLoadingHeadshotPoints(true);
+    setHeadshotPointsResult(null);
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-headshot-points-from-screenshots`,
+        {
+          method: 'POST',
+          headers,
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: `Extracted ${data.summary.totalPlayersExtracted} players, updated ${data.summary.playersUpdated} in database.`,
+        });
+        setHeadshotPointsResult(data);
+      } else {
+        throw new Error(data.error || 'Failed to sync headshot points');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sync headshot points",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingHeadshotPoints(false);
     }
   };
 
@@ -950,6 +990,80 @@ const Admin = () => {
               <Search className="w-4 h-4 mr-2" />
               Open ESPN Headshot Tester
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileImage className="w-5 h-5" />
+              Sync Headshot Points from Screenshots
+            </CardTitle>
+            <CardDescription>
+              Parse NFL Fantasy scoring leader screenshots and update players.points_for_headshot
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={syncHeadshotPointsFromScreenshots} 
+              disabled={isLoadingHeadshotPoints}
+              size="lg"
+            >
+              {isLoadingHeadshotPoints ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing Screenshots...
+                </>
+              ) : "Sync Headshot Points"}
+            </Button>
+
+            {headshotPointsResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg space-y-3">
+                <h3 className="font-semibold mb-2">Sync Results:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Files Processed: {headshotPointsResult.summary.filesProcessed}</li>
+                  <li>Files with Errors: {headshotPointsResult.summary.filesWithErrors}</li>
+                  <li>Players Extracted: {headshotPointsResult.summary.totalPlayersExtracted}</li>
+                  <li className="text-green-500">Players Updated: {headshotPointsResult.summary.playersUpdated}</li>
+                  <li className="text-yellow-500">Unmatched Players: {headshotPointsResult.summary.unmatchedCount}</li>
+                </ul>
+                
+                {headshotPointsResult.details?.updatedPlayers?.length > 0 && (
+                  <div className="mt-3">
+                    <h4 className="font-semibold text-sm mb-2">Updated Players (first 20):</h4>
+                    <div className="max-h-40 overflow-y-auto text-xs bg-background p-2 rounded">
+                      {headshotPointsResult.details.updatedPlayers.map((p: string, i: number) => (
+                        <div key={i}>{p}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {headshotPointsResult.details?.unmatchedPlayers?.length > 0 && (
+                  <div className="mt-3">
+                    <h4 className="font-semibold text-sm mb-2 text-yellow-500">Unmatched Players:</h4>
+                    <div className="max-h-40 overflow-y-auto text-xs bg-background p-2 rounded">
+                      {headshotPointsResult.details.unmatchedPlayers.map((p: string, i: number) => (
+                        <div key={i}>{p}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {headshotPointsResult.details?.parseResults?.filter((r: any) => r.error)?.length > 0 && (
+                  <div className="mt-3">
+                    <h4 className="font-semibold text-sm mb-2 text-destructive">Parse Errors:</h4>
+                    <div className="max-h-40 overflow-y-auto text-xs bg-background p-2 rounded">
+                      {headshotPointsResult.details.parseResults
+                        .filter((r: any) => r.error)
+                        .map((r: any, i: number) => (
+                          <div key={i}>{r.fileName}: {r.error}</div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
