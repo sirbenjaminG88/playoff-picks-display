@@ -50,3 +50,9 @@ verify_jwt = false
 
 [functions.test-espn-headshots]
 verify_jwt = true
+
+[functions.audit-player-images]
+verify_jwt = true
+
+[functions.sync-headshot-points-from-screenshots]
+verify_jwt = true
