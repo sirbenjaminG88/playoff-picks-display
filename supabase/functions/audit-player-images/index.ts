@@ -238,13 +238,14 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch players to audit
+    // Fetch players to audit - only those with points_for_headshot (relevant players)
     let query = supabase
       .from('players')
-      .select('id, full_name, team_abbr, jersey_number, image_url, has_headshot, headshot_status')
+      .select('id, full_name, team_abbr, jersey_number, image_url, has_headshot, headshot_status, points_for_headshot')
       .eq('season', 2025)
       .not('image_url', 'is', null)
-      .order('full_name')
+      .not('points_for_headshot', 'is', null)
+      .order('points_for_headshot', { ascending: false }) // Highest scorers first
       .range(offset, offset + limit - 1);
 
     if (onlyEspn) {
