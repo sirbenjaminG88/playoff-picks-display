@@ -70,6 +70,12 @@ const Admin = () => {
   const [isLoadingHeadshotPoints, setIsLoadingHeadshotPoints] = useState(false);
   const [headshotPointsResult, setHeadshotPointsResult] = useState<any>(null);
 
+  // AI Image audit state
+  const [isLoadingImageAudit, setIsLoadingImageAudit] = useState(false);
+  const [imageAuditResult, setImageAuditResult] = useState<any>(null);
+  const [imageAuditLimit, setImageAuditLimit] = useState(10);
+  const [imageAuditOffset, setImageAuditOffset] = useState(0);
+
   // Load consistency stats on mount
   useEffect(() => {
     loadConsistencyStats();
@@ -531,6 +537,46 @@ const Admin = () => {
       });
     } finally {
       setIsLoadingHeadshotPoints(false);
+    }
+  };
+
+  const auditPlayerImagesWithAI = async () => {
+    setIsLoadingImageAudit(true);
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/audit-player-images`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ 
+            limit: imageAuditLimit, 
+            offset: imageAuditOffset,
+            onlyEspn: true 
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "AI Audit Complete",
+          description: `Audited ${data.summary.total} players: ${data.summary.verified} verified, ${data.summary.mismatches} flagged.`,
+        });
+        setImageAuditResult(data);
+      } else {
+        throw new Error(data.error || 'Failed to audit player images');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to audit player images",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingImageAudit(false);
     }
   };
 
@@ -1062,6 +1108,128 @@ const Admin = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* AI Image Quality Audit */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              AI Image Quality Audit
+            </CardTitle>
+            <CardDescription>
+              Use AI vision to verify player headshots are real photos of the correct players
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-4 items-end">
+              <div className="w-24">
+                <Label htmlFor="audit-limit" className="text-xs text-muted-foreground">Batch Size</Label>
+                <Input
+                  id="audit-limit"
+                  type="number"
+                  value={imageAuditLimit}
+                  onChange={(e) => setImageAuditLimit(Math.min(50, Math.max(1, parseInt(e.target.value) || 10)))}
+                  min={1}
+                  max={50}
+                  className="mt-1"
+                />
+              </div>
+              <div className="w-24">
+                <Label htmlFor="audit-offset" className="text-xs text-muted-foreground">Start From</Label>
+                <Input
+                  id="audit-offset"
+                  type="number"
+                  value={imageAuditOffset}
+                  onChange={(e) => setImageAuditOffset(Math.max(0, parseInt(e.target.value) || 0))}
+                  min={0}
+                  className="mt-1"
+                />
+              </div>
+              <Button 
+                onClick={auditPlayerImagesWithAI} 
+                disabled={isLoadingImageAudit}
+                size="lg"
+              >
+                {isLoadingImageAudit ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analyzing with AI...
+                  </>
+                ) : "Run AI Audit"}
+              </Button>
+            </div>
+
+            {imageAuditResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg space-y-3">
+                <h3 className="font-semibold mb-2">Audit Summary:</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="p-2 bg-background rounded text-center">
+                    <div className="text-2xl font-bold">{imageAuditResult.summary.total}</div>
+                    <div className="text-xs text-muted-foreground">Total Audited</div>
+                  </div>
+                  <div className="p-2 bg-green-500/10 rounded text-center">
+                    <div className="text-2xl font-bold text-green-500">{imageAuditResult.summary.verified}</div>
+                    <div className="text-xs text-muted-foreground">Verified</div>
+                  </div>
+                  <div className="p-2 bg-yellow-500/10 rounded text-center">
+                    <div className="text-2xl font-bold text-yellow-500">{imageAuditResult.summary.mismatches}</div>
+                    <div className="text-xs text-muted-foreground">Flagged</div>
+                  </div>
+                  <div className="p-2 bg-destructive/10 rounded text-center">
+                    <div className="text-2xl font-bold text-destructive">{imageAuditResult.summary.errors}</div>
+                    <div className="text-xs text-muted-foreground">Errors</div>
+                  </div>
+                </div>
+
+                {imageAuditResult.flagged?.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-sm mb-2 text-yellow-500">Flagged Players ({imageAuditResult.flagged.length}):</h4>
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {imageAuditResult.flagged.map((player: any, i: number) => (
+                        <div key={i} className="p-3 bg-background rounded border border-yellow-500/30">
+                          <div className="flex items-start gap-3">
+                            {player.image_url && (
+                              <img 
+                                src={player.image_url} 
+                                alt={player.full_name} 
+                                className="w-12 h-12 rounded object-cover bg-muted"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <div className="font-semibold">{player.full_name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {player.team_abbr} • #{player.jersey_number || 'N/A'}
+                              </div>
+                              <div className="mt-1 text-xs text-yellow-500">
+                                {player.mismatch_reasons?.join(' • ')}
+                              </div>
+                              {player.ai_analysis && (
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  AI: Jersey #{player.ai_analysis.detected_jersey || 'N/A'} • 
+                                  Colors: {player.ai_analysis.detected_team_colors || 'N/A'} • 
+                                  Confidence: {player.ai_analysis.confidence || 'N/A'}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setImageAuditOffset(imageAuditOffset + imageAuditLimit)}
+                  className="mt-2"
+                >
+                  Audit Next Batch (offset: {imageAuditOffset + imageAuditLimit})
+                </Button>
               </div>
             )}
           </CardContent>
