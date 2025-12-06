@@ -85,33 +85,45 @@ async function analyzeImageWithAI(imageUrl: string, playerName: string, teamAbbr
             content: [
               {
                 type: 'text',
-                text: `Analyze this NFL player headshot photo. I need to verify this is the correct player.
-
-EXPECTED PLAYER INFO:
-- Name: ${playerName}
+                text: `You are verifying an NFL player headshot. The database says this image is of:
+- Player: ${playerName}
 - Team: ${teamAbbr || 'Unknown'}
-- Jersey Number: ${jerseyNumber || 'Unknown'}
+- Jersey Number: #${jerseyNumber || 'Unknown'}
 
-IMPORTANT FACIAL RECOGNITION TASK:
-You have knowledge of NFL players from your training data. Please try to identify if the person in this image is actually ${playerName}. 
-- Do you recognize this player's face from your training data?
-- Does this person look like ${playerName} based on what you know about them?
-- If you recognize them as a DIFFERENT NFL player, please say who.
+YOUR TASK: Determine if this image is ACTUALLY ${playerName} by considering ALL evidence holistically.
+
+VERIFICATION APPROACH (in order of reliability):
+1. JERSEY NUMBER - Most reliable! If visible and matches #${jerseyNumber || 'unknown'}, that's very strong evidence
+2. TEAM COLORS - ${teamAbbr || 'The team'}'s uniform colors should match
+3. FACIAL FEATURES - Does this look like ${playerName}? Consider hair, facial hair, skin tone
+4. CONTEXT CLUES - Any visible logos, text, or other identifying info
+
+CRITICAL RULE: Do NOT flag a mismatch based solely on facial uncertainty. If the jersey shows #${jerseyNumber || 'X'} and colors match ${teamAbbr || 'the team'}, the image is almost certainly correct.
 
 Respond in this exact JSON format:
 {
   "is_real_photo": true/false,
+  "jersey_number_visible": true/false,
   "detected_jersey": "number or null",
-  "detected_team_colors": "colors visible",
+  "jersey_matches": true/false/null,
+  "team_colors_visible": true/false,
+  "detected_team_colors": "describe colors you see",
+  "colors_match_team": true/false/null,
   "name_visible": true/false,
   "detected_name": "name if visible, otherwise null",
-  "face_matches_expected_player": true/false/null,
-  "face_recognition_confidence": "high/medium/low/none",
-  "recognized_as": "If you recognize this as a DIFFERENT player, put their name here. Otherwise null.",
-  "face_recognition_notes": "Explain your facial recognition reasoning briefly",
-  "confidence": "high/medium/low",
-  "potential_issues": ["list concerns"]
+  "face_confidence": "high/medium/low/uncertain",
+  "face_notes": "brief facial observation",
+  "overall_verdict": "CORRECT" | "LIKELY_CORRECT" | "UNCERTAIN" | "LIKELY_WRONG" | "WRONG",
+  "verdict_reasoning": "Explain your conclusion based on ALL factors combined",
+  "confidence": "high/medium/low"
 }
+
+VERDICT GUIDELINES:
+- CORRECT: Jersey + colors match, face is consistent or uncertain
+- LIKELY_CORRECT: 2+ factors match (e.g., jersey matches + right colors)  
+- UNCERTAIN: Mixed signals or not enough visible evidence
+- LIKELY_WRONG: Multiple clear mismatches
+- WRONG: Clear evidence this is definitely a different player (wrong jersey number, recognized as someone specific, etc.)
 
 Only return the JSON.`
               },
@@ -155,36 +167,20 @@ Only return the JSON.`
         issues.push('Not a real player photo');
       }
       
-      // Add face recognition results
-      if (parsed.face_matches_expected_player === false) {
-        if (parsed.recognized_as) {
-          issues.push(`FACE MISMATCH: AI recognizes this as ${parsed.recognized_as}, not ${playerName}`);
-        } else {
-          issues.push(`FACE MISMATCH: AI does not recognize this as ${playerName}`);
+      // Only flag based on overall verdict, not individual factors
+      const verdict = parsed.overall_verdict?.toUpperCase();
+      
+      if (verdict === 'WRONG') {
+        issues.push(`WRONG IMAGE: ${parsed.verdict_reasoning || 'AI determined this is the wrong player'}`);
+      } else if (verdict === 'LIKELY_WRONG') {
+        issues.push(`LIKELY WRONG: ${parsed.verdict_reasoning || 'Multiple mismatches detected'}`);
+      } else if (verdict === 'UNCERTAIN') {
+        // Only add as a note, not a major issue
+        if (parsed.verdict_reasoning) {
+          issues.push(`Uncertain: ${parsed.verdict_reasoning}`);
         }
-      } else if (parsed.face_matches_expected_player === null && parsed.face_recognition_confidence !== 'none') {
-        issues.push(`Face recognition inconclusive: ${parsed.face_recognition_notes || 'Unable to verify'}`);
       }
-      
-      // Add face recognition notes as context
-      if (parsed.face_recognition_notes) {
-        issues.push(`Face analysis: ${parsed.face_recognition_notes}`);
-      }
-      
-      // Check for name mismatches
-      if (parsed.detected_name && parsed.detected_name.toLowerCase() !== playerName.toLowerCase()) {
-        issues.push(`Detected name "${parsed.detected_name}" doesn't match expected "${playerName}"`);
-      }
-      
-      // Check jersey number mismatches
-      if (jerseyNumber && parsed.detected_jersey && parsed.detected_jersey !== jerseyNumber) {
-        issues.push(`Jersey mismatch: expected #${jerseyNumber}, detected #${parsed.detected_jersey}`);
-      }
-      
-      // Add any other potential issues
-      if (parsed.potential_issues && Array.isArray(parsed.potential_issues)) {
-        issues.push(...parsed.potential_issues);
-      }
+      // CORRECT and LIKELY_CORRECT don't generate issues
       
       return {
         detected_jersey: parsed.detected_jersey,
