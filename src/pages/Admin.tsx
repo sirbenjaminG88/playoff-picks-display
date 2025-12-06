@@ -1163,6 +1163,21 @@ const Admin = () => {
               </Button>
             </div>
 
+            {isLoadingImageAudit && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Analyzing players {imageAuditOffset + 1} - {imageAuditOffset + imageAuditLimit}...
+                  </span>
+                  <span className="text-muted-foreground">~{imageAuditLimit * 2}s estimated</span>
+                </div>
+                <Progress value={undefined} className="h-2 animate-pulse" />
+                <p className="text-xs text-muted-foreground">
+                  AI is checking each image for jersey numbers, team colors, and photo authenticity
+                </p>
+              </div>
+            )}
+
             {imageAuditResult && (
               <div className="mt-4 p-4 bg-muted rounded-lg space-y-3">
                 <h3 className="font-semibold mb-2">Audit Summary:</h3>
