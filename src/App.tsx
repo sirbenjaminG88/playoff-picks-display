@@ -20,6 +20,7 @@ import AdminUsers from "./pages/AdminUsers";
 import SignIn from "./pages/SignIn";
 import ProfileSetup from "./pages/ProfileSetup";
 import LeaguesHome from "./pages/LeaguesHome";
+import JoinLeague from "./pages/JoinLeague";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
                   <Route path="/signin" element={<SignIn />} />
                   <Route path="/profile-setup" element={<ProfileSetup />} />
                   <Route path="/leagues-home" element={<LeaguesHome />} />
+                  <Route path="/join/:code" element={<JoinLeague />} />
                   <Route 
                     path="/results" 
                     element={
