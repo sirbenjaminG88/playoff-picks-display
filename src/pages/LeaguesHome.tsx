@@ -1,16 +1,67 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Trophy, BarChart3, Users, LogIn, LogOut, Plus, ArrowRight } from "lucide-react";
+import { Trophy, BarChart3, Users, LogIn, LogOut, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { CreateLeagueModal } from "@/components/leagues/CreateLeagueModal";
-import { useState } from "react";
+import { LeagueCard } from "@/components/leagues/LeagueCard";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface UserLeague {
+  id: string;
+  league_id: string;
+  role: string;
+  league: {
+    id: string;
+    name: string;
+    season: number;
+    season_type: string;
+    max_members: number | null;
+  };
+}
 
 const LeaguesHome = () => {
   const navigate = useNavigate();
   const { user, profile, signOut, loading } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [leagues, setLeagues] = useState<UserLeague[]>([]);
+  const [leaguesLoading, setLeaguesLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserLeagues();
+    }
+  }, [user]);
+
+  const fetchUserLeagues = async () => {
+    if (!user) return;
+    
+    setLeaguesLoading(true);
+    
+    const { data, error } = await supabase
+      .from("league_members")
+      .select(`
+        id,
+        league_id,
+        role,
+        league:leagues(id, name, season, season_type, max_members)
+      `)
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error fetching leagues:", error);
+    } else if (data) {
+      // Filter to only show playoff leagues (POST) for now
+      const playoffLeagues = data.filter(
+        (m) => m.league && (m.league as any).season_type === "POST"
+      ) as UserLeague[];
+      setLeagues(playoffLeagues);
+    }
+    
+    setLeaguesLoading(false);
+  };
 
   const getInitials = (name: string) => {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
@@ -23,19 +74,16 @@ const LeaguesHome = () => {
 
   const handleCreateLeague = () => {
     if (!user) {
-      // Redirect to sign in, then back to leagues-home
       navigate("/signin", { state: { from: "/leagues-home" } });
     } else {
       setShowCreateModal(true);
     }
   };
 
-  // Placeholder data for logged-in users
-  const placeholderLeagues = [
-    { id: "1", name: "Example League 1", memberCount: 4 },
-    { id: "2", name: "Example League 2", memberCount: 8 },
-  ];
-  const hasLeagues = false; // Placeholder: assume user has no leagues yet
+  const handleLeagueCreated = () => {
+    // Refresh the leagues list after creating a new one
+    fetchUserLeagues();
+  };
 
   // LOGGED-OUT VIEW
   if (!loading && !user) {
@@ -43,12 +91,10 @@ const LeaguesHome = () => {
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto text-center">
-            {/* Logo/Icon */}
             <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-2xl mb-6 shadow-lg">
               <Trophy className="w-10 h-10 text-primary-foreground" />
             </div>
 
-            {/* Title */}
             <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
               EMMA
             </h1>
@@ -59,7 +105,6 @@ const LeaguesHome = () => {
               Keep playing through the NFL Playoffs in the most exciting four weeks of the season.
             </p>
 
-            {/* Features Grid */}
             <div className="grid md:grid-cols-3 gap-6 mb-12">
               <div className="bg-card border-2 border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
                 <Users className="w-8 h-8 text-primary mx-auto mb-3" />
@@ -86,7 +131,6 @@ const LeaguesHome = () => {
               </div>
             </div>
 
-            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/signin" state={{ from: "/leagues-home" }}>
                 <Button size="lg" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
@@ -118,6 +162,8 @@ const LeaguesHome = () => {
       </div>
     );
   }
+
+  const hasLeagues = leagues.length > 0;
 
   // LOGGED-IN VIEW - Leagues Hub
   return (
@@ -170,8 +216,9 @@ const LeaguesHome = () => {
         </div>
 
         {/* Leagues Section */}
-        {!hasLeagues ? (
-          // Empty state
+        {leaguesLoading ? (
+          <div className="text-center text-muted-foreground py-8">Loading leagues...</div>
+        ) : !hasLeagues ? (
           <Card className="border-2 border-dashed border-border bg-card/50">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <Users className="w-16 h-16 text-muted-foreground/50 mb-4" />
@@ -186,38 +233,27 @@ const LeaguesHome = () => {
             </CardContent>
           </Card>
         ) : (
-          // Placeholder league cards
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {placeholderLeagues.map((league) => (
-              <Card key={league.id} className="border-2 border-border hover:border-primary/50 transition-colors">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Trophy className="w-5 h-5 text-primary" />
-                    </div>
-                    <span>{league.name}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Users className="w-4 h-4" />
-                      <span>{league.memberCount} members</span>
-                    </div>
-                    <Button variant="ghost" size="sm" disabled>
-                      Go to League
-                      <ArrowRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="grid gap-4">
+            {leagues.map((membership) => (
+              <LeagueCard
+                key={membership.id}
+                leagueId={membership.league.id}
+                leagueName={membership.league.name}
+                season={membership.league.season}
+                seasonType={membership.league.season_type}
+                userRole={membership.role}
+                maxMembers={membership.league.max_members}
+              />
             ))}
           </div>
         )}
       </div>
 
       {/* Create League Modal */}
-      <CreateLeagueModal open={showCreateModal} onOpenChange={setShowCreateModal} />
+      <CreateLeagueModal 
+        open={showCreateModal} 
+        onOpenChange={setShowCreateModal}
+      />
     </div>
   );
 };
