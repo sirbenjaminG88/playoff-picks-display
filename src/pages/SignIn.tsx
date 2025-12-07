@@ -12,9 +12,11 @@ import { Lock } from "lucide-react";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 
-// Test account for development/preview mode
-const TEST_EMAIL = "test@emma.dev";
-const TEST_PASSWORD = "testpass123";
+// Test accounts for development/preview mode
+const TEST_ACCOUNTS: Record<string, string> = {
+  "test@emma.dev": "testpass123",
+  "test2@emma.dev": "testpass123",
+};
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -24,8 +26,9 @@ const SignIn = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  const isTestEmail = email.toLowerCase() === TEST_EMAIL;
+  const emailLower = email.toLowerCase();
+  const isTestEmail = emailLower in TEST_ACCOUNTS;
+  const testPassword = TEST_ACCOUNTS[emailLower];
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -63,24 +66,24 @@ const SignIn = () => {
 
     try {
       // Test account uses password auth
-      if (isTestEmail) {
-        if (password !== TEST_PASSWORD) {
+      if (isTestEmail && testPassword) {
+        if (password !== testPassword) {
           setError("Invalid test password");
           setLoading(false);
           return;
         }
 
         const { error } = await supabase.auth.signInWithPassword({
-          email: TEST_EMAIL,
-          password: TEST_PASSWORD,
+          email: emailLower,
+          password: testPassword,
         });
 
         if (error) {
           // If user doesn't exist, create them
           if (error.message.includes("Invalid login credentials")) {
             const { error: signUpError } = await supabase.auth.signUp({
-              email: TEST_EMAIL,
-              password: TEST_PASSWORD,
+              email: emailLower,
+              password: testPassword,
             });
             if (signUpError) {
               setError(signUpError.message);
