@@ -5,40 +5,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// ESPN team IDs and their abbreviations
-const ESPN_TEAMS: { id: number; abbr: string }[] = [
-  { id: 1, abbr: "ATL" },
-  { id: 2, abbr: "BUF" },
-  { id: 3, abbr: "CHI" },
-  { id: 4, abbr: "CIN" },
-  { id: 5, abbr: "CLE" },
-  { id: 6, abbr: "DAL" },
-  { id: 7, abbr: "DEN" },
-  { id: 8, abbr: "DET" },
-  { id: 9, abbr: "GB" },
-  { id: 10, abbr: "TEN" },
-  { id: 11, abbr: "IND" },
-  { id: 12, abbr: "KC" },
-  { id: 13, abbr: "LV" },
-  { id: 14, abbr: "LAR" },
-  { id: 15, abbr: "MIA" },
-  { id: 16, abbr: "MIN" },
-  { id: 17, abbr: "NE" },
-  { id: 18, abbr: "NO" },
-  { id: 19, abbr: "NYG" },
-  { id: 20, abbr: "NYJ" },
-  { id: 21, abbr: "PHI" },
-  { id: 22, abbr: "ARI" },
-  { id: 23, abbr: "PIT" },
-  { id: 24, abbr: "LAC" },
-  { id: 25, abbr: "SF" },
-  { id: 26, abbr: "SEA" },
-  { id: 27, abbr: "TB" },
-  { id: 28, abbr: "WSH" },
-  { id: 29, abbr: "CAR" },
-  { id: 30, abbr: "JAX" },
-  { id: 33, abbr: "BAL" },
-  { id: 34, abbr: "HOU" },
+// ESPN team IDs and their abbreviations (mapped to our DB team_abbr)
+const ESPN_TEAMS: { id: number; espnAbbr: string; dbAbbr: string }[] = [
+  { id: 1, espnAbbr: "ATL", dbAbbr: "ATL" },
+  { id: 2, espnAbbr: "BUF", dbAbbr: "BUF" },
+  { id: 3, espnAbbr: "CHI", dbAbbr: "CHI" },
+  { id: 4, espnAbbr: "CIN", dbAbbr: "CIN" },
+  { id: 5, espnAbbr: "CLE", dbAbbr: "CLE" },
+  { id: 6, espnAbbr: "DAL", dbAbbr: "DAL" },
+  { id: 7, espnAbbr: "DEN", dbAbbr: "DEN" },
+  { id: 8, espnAbbr: "DET", dbAbbr: "DET" },
+  { id: 9, espnAbbr: "GB", dbAbbr: "GB" },
+  { id: 10, espnAbbr: "TEN", dbAbbr: "TEN" },
+  { id: 11, espnAbbr: "IND", dbAbbr: "IND" },
+  { id: 12, espnAbbr: "KC", dbAbbr: "KC" },
+  { id: 13, espnAbbr: "LV", dbAbbr: "LV" },
+  { id: 14, espnAbbr: "LAR", dbAbbr: "LA" },  // ESPN uses LAR, our DB uses LA
+  { id: 15, espnAbbr: "MIA", dbAbbr: "MIA" },
+  { id: 16, espnAbbr: "MIN", dbAbbr: "MIN" },
+  { id: 17, espnAbbr: "NE", dbAbbr: "NE" },
+  { id: 18, espnAbbr: "NO", dbAbbr: "NO" },
+  { id: 19, espnAbbr: "NYG", dbAbbr: "NYG" },
+  { id: 20, espnAbbr: "NYJ", dbAbbr: "NYJ" },
+  { id: 21, espnAbbr: "PHI", dbAbbr: "PHI" },
+  { id: 22, espnAbbr: "ARI", dbAbbr: "ARI" },
+  { id: 23, espnAbbr: "PIT", dbAbbr: "PIT" },
+  { id: 24, espnAbbr: "LAC", dbAbbr: "LAC" },
+  { id: 25, espnAbbr: "SF", dbAbbr: "SF" },
+  { id: 26, espnAbbr: "SEA", dbAbbr: "SEA" },
+  { id: 27, espnAbbr: "TB", dbAbbr: "TB" },
+  { id: 28, espnAbbr: "WSH", dbAbbr: "WAS" },  // ESPN uses WSH, our DB uses WAS
+  { id: 29, espnAbbr: "CAR", dbAbbr: "CAR" },
+  { id: 30, espnAbbr: "JAX", dbAbbr: "JAX" },
+  { id: 33, espnAbbr: "BAL", dbAbbr: "BAL" },
+  { id: 34, espnAbbr: "HOU", dbAbbr: "HOU" },
 ];
 
 interface ESPNPlayer {
@@ -113,11 +113,11 @@ Deno.serve(async (req) => {
     for (const team of ESPN_TEAMS) {
       try {
         const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`;
-        console.log(`Fetching ${team.abbr} roster...`);
+        console.log(`Fetching ${team.dbAbbr} roster...`);
         
         const response = await fetch(url);
         if (!response.ok) {
-          teamErrors.push(`${team.abbr}: HTTP ${response.status}`);
+          teamErrors.push(`${team.dbAbbr}: HTTP ${response.status}`);
           continue;
         }
 
@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
                   allEspnPlayers.push({
                     name: player.fullName,
                     normalizedName: normalizeName(player.fullName),
-                    teamAbbr: team.abbr,
+                    teamAbbr: team.dbAbbr,  // Use our DB abbreviation for matching
                     headshotUrl: player.headshot.href,
                   });
                 }
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        teamErrors.push(`${team.abbr}: ${message}`);
+        teamErrors.push(`${team.dbAbbr}: ${message}`);
       }
     }
 
