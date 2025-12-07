@@ -56,3 +56,6 @@ verify_jwt = true
 
 [functions.sync-headshot-points-from-screenshots]
 verify_jwt = true
+
+[functions.sync-espn-roster-headshots]
+verify_jwt = true
