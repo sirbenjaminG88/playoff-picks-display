@@ -4,18 +4,13 @@ import { Trophy, BarChart3, Users, LogIn, LogOut, Plus, ArrowRight } from "lucid
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { CreateLeagueModal } from "@/components/leagues/CreateLeagueModal";
 import { useState } from "react";
 
 const LeaguesHome = () => {
   const navigate = useNavigate();
   const { user, profile, signOut, loading } = useAuth();
-  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const getInitials = (name: string) => {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
@@ -31,7 +26,7 @@ const LeaguesHome = () => {
       // Redirect to sign in, then back to leagues-home
       navigate("/signin", { state: { from: "/leagues-home" } });
     } else {
-      setShowComingSoon(true);
+      setShowCreateModal(true);
     }
   };
 
@@ -221,29 +216,8 @@ const LeaguesHome = () => {
         )}
       </div>
 
-      {/* Coming Soon Modal */}
-      <Dialog open={showComingSoon} onOpenChange={setShowComingSoon}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-primary" />
-              Create New League
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center py-8">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <Plus className="w-8 h-8 text-primary" />
-            </div>
-            <p className="text-lg font-medium text-foreground mb-2">League creation coming soon.</p>
-            <p className="text-sm text-muted-foreground text-center">
-              We're working on letting you create and manage your own leagues. Stay tuned!
-            </p>
-          </div>
-          <Button onClick={() => setShowComingSoon(false)} className="w-full">
-            Got it
-          </Button>
-        </DialogContent>
-      </Dialog>
+      {/* Create League Modal */}
+      <CreateLeagueModal open={showCreateModal} onOpenChange={setShowCreateModal} />
     </div>
   );
 };
