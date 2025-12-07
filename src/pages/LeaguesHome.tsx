@@ -1,10 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Trophy, BarChart3, Users, LogIn, LogOut, Plus, TrendingUp } from "lucide-react";
+import { Trophy, BarChart3, Users, LogIn, LogOut, Plus, TrendingUp, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreateLeagueModal } from "@/components/leagues/CreateLeagueModal";
+import { JoinLeagueModal } from "@/components/leagues/JoinLeagueModal";
 import { LeagueCard } from "@/components/leagues/LeagueCard";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +28,7 @@ const LeaguesHome = () => {
   const navigate = useNavigate();
   const { user, profile, signOut, loading } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
   const [leagues, setLeagues] = useState<UserLeague[]>([]);
   const [leaguesLoading, setLeaguesLoading] = useState(false);
 
@@ -204,15 +206,24 @@ const LeaguesHome = () => {
           <p className="text-muted-foreground">Manage your fantasy football leagues</p>
         </div>
 
-        {/* Create New League Button */}
-        <div className="mb-8">
+        {/* Create / Join League Buttons */}
+        <div className="flex gap-3 mb-8">
           <Button 
             size="lg" 
             className="shadow-lg hover:shadow-xl transition-all"
             onClick={handleCreateLeague}
           >
             <Plus className="w-5 h-5 mr-2" />
-            Create New League
+            Create League
+          </Button>
+          <Button 
+            size="lg" 
+            variant="outline"
+            className="shadow-lg hover:shadow-xl transition-all"
+            onClick={() => setShowJoinModal(true)}
+          >
+            <UserPlus className="w-5 h-5 mr-2" />
+            Join with Code
           </Button>
         </div>
 
@@ -268,6 +279,12 @@ const LeaguesHome = () => {
       <CreateLeagueModal 
         open={showCreateModal} 
         onOpenChange={setShowCreateModal}
+      />
+
+      {/* Join League Modal */}
+      <JoinLeagueModal
+        open={showJoinModal}
+        onOpenChange={setShowJoinModal}
       />
     </div>
   );
