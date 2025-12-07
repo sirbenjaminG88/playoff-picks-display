@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Trophy, BarChart3, Users, LogIn, LogOut, Plus } from "lucide-react";
+import { Trophy, BarChart3, Users, LogIn, LogOut, Plus, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -247,6 +247,19 @@ const LeaguesHome = () => {
             ))}
           </div>
         )}
+
+        {/* Explainer Card - always visible for logged-in users */}
+        <div className="mt-8">
+          <Card className="bg-card border-2 border-border">
+            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+              <TrendingUp className="w-10 h-10 text-primary mb-4" />
+              <h3 className="text-lg font-bold text-foreground mb-2">Use-'Em-Once Weekly Picks</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Choose a QB, RB, and WR/TE each playoff week — but once you pick a player, they're gone for the rest of the playoffs.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Create League Modal */}
