@@ -8,16 +8,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Trophy, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { Lock } from "lucide-react";
 
 const emailSchema = z.string().email("Please enter a valid email address");
+
+// Test account for development/preview mode
+const TEST_EMAIL = "test@emma.dev";
+const TEST_PASSWORD = "testpass123";
 
 const SignIn = () => {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const isTestEmail = email.toLowerCase() === TEST_EMAIL;
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -54,6 +62,39 @@ const SignIn = () => {
     setLoading(true);
 
     try {
+      // Test account uses password auth
+      if (isTestEmail) {
+        if (password !== TEST_PASSWORD) {
+          setError("Invalid test password");
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({
+          email: TEST_EMAIL,
+          password: TEST_PASSWORD,
+        });
+
+        if (error) {
+          // If user doesn't exist, create them
+          if (error.message.includes("Invalid login credentials")) {
+            const { error: signUpError } = await supabase.auth.signUp({
+              email: TEST_EMAIL,
+              password: TEST_PASSWORD,
+            });
+            if (signUpError) {
+              setError(signUpError.message);
+            }
+            // Auto-confirm is enabled, so they should be signed in
+          } else {
+            setError(error.message);
+          }
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Normal magic link flow
       const redirectUrl = `${window.location.origin}/`;
       
       const { error } = await supabase.auth.signInWithOtp({
@@ -151,18 +192,43 @@ const SignIn = () => {
                   </div>
                 </div>
 
+                {/* Password field for test account only */}
+                {isTestEmail && (
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="text-sm font-medium text-foreground">
+                      Test Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="Enter test password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10 bg-background border-border"
+                        disabled={loading}
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Dev mode: Use password "testpass123"
+                    </p>
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={loading || !email}
+                  disabled={loading || !email || (isTestEmail && !password)}
                 >
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Sending...
+                      {isTestEmail ? "Signing in..." : "Sending..."}
                     </>
                   ) : (
-                    "Send magic link"
+                    isTestEmail ? "Sign in (Test Mode)" : "Send magic link"
                   )}
                 </Button>
               </form>
