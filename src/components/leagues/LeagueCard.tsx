@@ -182,7 +182,7 @@ export function LeagueCard({
           {nextDeadline && (
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Clock className="w-4 h-4" />
-              <span>Deadline: {formatDeadline(nextDeadline)}</span>
+              <span>Picks due by {formatDeadline(nextDeadline)}</span>
             </div>
           )}
         </div>
