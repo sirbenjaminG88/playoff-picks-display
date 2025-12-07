@@ -22,6 +22,7 @@ interface LeagueCardProps {
   seasonType: string;
   userRole: string;
   maxMembers: number | null;
+  iconUrl?: string | null;
 }
 
 export function LeagueCard({ 
@@ -30,7 +31,8 @@ export function LeagueCard({
   season, 
   seasonType, 
   userRole,
-  maxMembers 
+  maxMembers,
+  iconUrl
 }: LeagueCardProps) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -153,8 +155,12 @@ export function LeagueCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center overflow-hidden">
+              {iconUrl ? (
+                <img src={iconUrl} alt={leagueName} className="w-full h-full object-cover" />
+              ) : (
+                <Trophy className="w-6 h-6 text-primary" />
+              )}
             </div>
             <div>
               <h3 className="font-bold text-lg text-foreground">{leagueName}</h3>

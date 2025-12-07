@@ -108,6 +108,11 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
 
       if (memberError) throw memberError;
 
+      // Generate AI icon in the background (don't wait for it)
+      supabase.functions.invoke("generate-league-icon", {
+        body: { leagueId: leagueData.id, leagueName: trimmedName },
+      }).catch((err) => console.error("Failed to generate icon:", err));
+
       setCreatedLeague(leagueData);
       setStep("success");
       toast.success("League created!");
