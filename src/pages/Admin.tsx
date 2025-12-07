@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ImageReviewCard } from "@/components/admin/ImageReviewCard";
 
 // Helper to get auth headers for admin edge function calls
 async function getAuthHeaders(): Promise<HeadersInit> {
@@ -601,6 +602,9 @@ const Admin = () => {
       </div>
 
       <div className="space-y-6">
+        {/* Manual Image Review - Top Priority */}
+        <ImageReviewCard />
+
         <Card>
           <CardHeader>
             <CardTitle>Sync 2024 NFL Playoff Teams</CardTitle>
