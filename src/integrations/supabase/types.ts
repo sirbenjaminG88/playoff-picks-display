@@ -103,6 +103,8 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          join_code: string | null
+          max_members: number | null
           name: string
           season: number
           season_type: string
@@ -110,6 +112,8 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          join_code?: string | null
+          max_members?: number | null
           name: string
           season: number
           season_type: string
@@ -117,6 +121,8 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          join_code?: string | null
+          max_members?: number | null
           name?: string
           season?: number
           season_type?: string
@@ -729,6 +735,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      generate_funny_join_code: { Args: never; Returns: string }
       get_my_display_name: { Args: never; Returns: string }
       get_user_league_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
