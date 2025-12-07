@@ -59,3 +59,6 @@ verify_jwt = true
 
 [functions.sync-espn-roster-headshots]
 verify_jwt = true
+
+[functions.generate-league-icon]
+verify_jwt = false
