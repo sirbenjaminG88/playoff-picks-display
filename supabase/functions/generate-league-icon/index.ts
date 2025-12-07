@@ -26,12 +26,14 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Generate a fun, simple icon prompt based on league name
-    const prompt = `Create a simple, playful app icon for a fantasy football league called "${leagueName}". 
-The icon should be a single emoji-style illustration on a solid dark green background (#22C55E tinted). 
-Make it fun, cartoonish, and instantly recognizable. 
-The style should be flat, minimal, with bold outlines. 
-Size: 128x128 pixels. Square format.`;
+    // Generate icon matching EMMA's minimalist outline style
+    const prompt = `Create a simple icon for "${leagueName}". 
+Style: Single object, line-art outline only, no fill, stroke weight 2-3px.
+Color: Bright green (#22C55E) lines on a solid dark background (#1A1C1F).
+The icon should be a playful interpretation of the league name as a single recognizable object.
+Minimalist, modern, clean - similar to app icons like a trophy outline.
+Square format, centered, with padding around the edges.
+No text, no complex details, just clean vector-style outlines.`;
 
     console.log("Generating icon for league:", leagueName);
 
