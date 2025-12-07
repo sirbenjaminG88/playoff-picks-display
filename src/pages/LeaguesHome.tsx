@@ -38,6 +38,18 @@ const LeaguesHome = () => {
     }
   }, [user]);
 
+  // Refetch leagues when page regains focus (e.g., after joining a league)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        fetchUserLeagues();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [user]);
+
   const fetchUserLeagues = async () => {
     if (!user) return;
     
