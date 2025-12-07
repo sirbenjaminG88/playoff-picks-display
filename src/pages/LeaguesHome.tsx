@@ -19,6 +19,7 @@ interface UserLeague {
     season: number;
     season_type: string;
     max_members: number | null;
+    icon_url: string | null;
   };
 }
 
@@ -46,7 +47,7 @@ const LeaguesHome = () => {
         id,
         league_id,
         role,
-        league:leagues(id, name, season, season_type, max_members)
+        league:leagues(id, name, season, season_type, max_members, icon_url)
       `)
       .eq("user_id", user.id);
 
@@ -243,6 +244,7 @@ const LeaguesHome = () => {
                 seasonType={membership.league.season_type}
                 userRole={membership.role}
                 maxMembers={membership.league.max_members}
+                iconUrl={membership.league.icon_url}
               />
             ))}
           </div>

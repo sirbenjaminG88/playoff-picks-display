@@ -102,6 +102,7 @@ export type Database = {
       leagues: {
         Row: {
           created_at: string | null
+          icon_url: string | null
           id: string
           join_code: string | null
           max_members: number | null
@@ -111,6 +112,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          icon_url?: string | null
           id?: string
           join_code?: string | null
           max_members?: number | null
@@ -120,6 +122,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          icon_url?: string | null
           id?: string
           join_code?: string | null
           max_members?: number | null
