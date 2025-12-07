@@ -155,11 +155,11 @@ export function LeagueCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center overflow-hidden">
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center overflow-hidden">
               {iconUrl ? (
-                <img src={iconUrl} alt={leagueName} className="w-12 h-12 object-contain" />
+                <img src={iconUrl} alt={leagueName} className="w-full h-full object-cover" />
               ) : (
-                <Trophy className="w-7 h-7 text-primary" />
+                <Trophy className="w-6 h-6 text-primary" />
               )}
             </div>
             <div>
