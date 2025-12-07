@@ -187,6 +187,7 @@ export type Database = {
         Row: {
           api_player_id: string
           created_at: string | null
+          espn_headshot_url: string | null
           first_name: string | null
           full_name: string
           group: string | null
@@ -208,6 +209,7 @@ export type Database = {
         Insert: {
           api_player_id: string
           created_at?: string | null
+          espn_headshot_url?: string | null
           first_name?: string | null
           full_name: string
           group?: string | null
@@ -229,6 +231,7 @@ export type Database = {
         Update: {
           api_player_id?: string
           created_at?: string | null
+          espn_headshot_url?: string | null
           first_name?: string | null
           full_name?: string
           group?: string | null
