@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Users, Loader2, Share2, Copy, Check } from "lucide-react";
+import { 
+  Trophy, Users, Loader2, Share2, Copy, Check,
+  // Football icons
+  Goal, Medal, Flame, Zap, Crown, Star, Shield, Swords,
+  // Fun random icons
+  Pizza, Beer, Skull, Ghost, Rocket, Bomb, PartyPopper, Sparkles,
+  type LucideIcon
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface CreateLeagueModalProps {
   open: boolean;
@@ -28,12 +36,36 @@ interface CreatedLeague {
   join_code: string;
 }
 
+// Icon options with their Lucide component and name
+const LEAGUE_ICONS: { name: string; icon: LucideIcon; label: string }[] = [
+  // Football/Sports
+  { name: "trophy", icon: Trophy, label: "Trophy" },
+  { name: "goal", icon: Goal, label: "Goal" },
+  { name: "medal", icon: Medal, label: "Medal" },
+  { name: "flame", icon: Flame, label: "Flame" },
+  { name: "zap", icon: Zap, label: "Lightning" },
+  { name: "crown", icon: Crown, label: "Crown" },
+  { name: "star", icon: Star, label: "Star" },
+  { name: "shield", icon: Shield, label: "Shield" },
+  { name: "swords", icon: Swords, label: "Swords" },
+  // Fun random
+  { name: "pizza", icon: Pizza, label: "Pizza" },
+  { name: "beer", icon: Beer, label: "Beer" },
+  { name: "skull", icon: Skull, label: "Skull" },
+  { name: "ghost", icon: Ghost, label: "Ghost" },
+  { name: "rocket", icon: Rocket, label: "Rocket" },
+  { name: "bomb", icon: Bomb, label: "Bomb" },
+  { name: "party-popper", icon: PartyPopper, label: "Party" },
+  { name: "sparkles", icon: Sparkles, label: "Sparkles" },
+];
+
 export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState<ModalStep>("form");
   const [leagueName, setLeagueName] = useState("");
   const [maxMembers, setMaxMembers] = useState(4);
+  const [selectedIcon, setSelectedIcon] = useState("trophy");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdLeague, setCreatedLeague] = useState<CreatedLeague | null>(null);
   const [copied, setCopied] = useState(false);
@@ -42,6 +74,7 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
     setStep("form");
     setLeagueName("");
     setMaxMembers(4);
+    setSelectedIcon("trophy");
     setCreatedLeague(null);
     setCopied(false);
   };
@@ -82,7 +115,7 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
 
       const joinCode = joinCodeData as string;
 
-      // Create league
+      // Create league with selected icon stored in icon_url field
       const { data: leagueData, error: leagueError } = await supabase
         .from("leagues")
         .insert({
@@ -91,6 +124,7 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
           season_type: "POST",
           join_code: joinCode,
           max_members: maxMembers,
+          icon_url: `lucide:${selectedIcon}`, // Store as lucide:iconname
         })
         .select("id, name, join_code")
         .single();
@@ -107,11 +141,6 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
         });
 
       if (memberError) throw memberError;
-
-      // Generate AI icon in the background (don't wait for it)
-      supabase.functions.invoke("generate-league-icon", {
-        body: { leagueId: leagueData.id, leagueName: trimmedName },
-      }).catch((err) => console.error("Failed to generate icon:", err));
 
       setCreatedLeague(leagueData);
       setStep("success");
@@ -170,12 +199,14 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
     }
   };
 
+  const SelectedIconComponent = LEAGUE_ICONS.find(i => i.name === selectedIcon)?.icon || Trophy;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-primary" />
+            <SelectedIconComponent className="w-5 h-5 text-primary" />
             {step === "form" ? "Create New League" : "League Created!"}
           </DialogTitle>
         </DialogHeader>
@@ -197,6 +228,30 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
               <p className="text-xs text-muted-foreground">
                 {leagueName.length}/50 characters
               </p>
+            </div>
+
+            {/* Icon Picker */}
+            <div className="space-y-3">
+              <Label>League Icon</Label>
+              <div className="grid grid-cols-6 gap-2">
+                {LEAGUE_ICONS.map(({ name, icon: Icon, label }) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setSelectedIcon(name)}
+                    disabled={isSubmitting}
+                    className={cn(
+                      "flex items-center justify-center p-2.5 rounded-lg border-2 transition-all",
+                      selectedIcon === name
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-muted/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                    )}
+                    title={label}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Max Members Slider */}

@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Trophy, Users, ChevronDown, ChevronUp, Clock, Crown, FileText } from "lucide-react";
+import { Users, ChevronDown, ChevronUp, Clock, Crown, FileText } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
+import { LeagueIcon } from "./LeagueIcon";
 
 interface LeagueMember {
   user_id: string;
@@ -155,13 +156,7 @@ export function LeagueCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center overflow-hidden">
-              {iconUrl ? (
-                <img src={iconUrl} alt={leagueName} className="w-full h-full object-cover" />
-              ) : (
-                <Trophy className="w-6 h-6 text-primary" />
-              )}
-            </div>
+            <LeagueIcon iconUrl={iconUrl} leagueName={leagueName} size="md" />
             <div>
               <h3 className="font-bold text-lg text-foreground">{leagueName}</h3>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
