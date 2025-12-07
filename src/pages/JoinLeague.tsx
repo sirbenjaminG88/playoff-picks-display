@@ -170,7 +170,7 @@ const JoinLeague = () => {
   };
 
   const handleGoToLeague = () => {
-    navigate("/home");
+    navigate("/leagues-home");
   };
 
   if (authLoading || loading) {
