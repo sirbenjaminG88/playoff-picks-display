@@ -110,7 +110,7 @@ const getTeamAbbrev = (teamName: string): string => {
 };
 
 const Picks = () => {
-  const { selectedSeason, setSelectedSeason, canSelectSeason, seasonConfig } = useSeason();
+  const { selectedSeason, setSelectedSeason, seasonConfig } = useSeason();
   const { currentLeague, isCommissioner, loading: leagueLoading } = useLeague();
   const { profile, user, loading: authLoading, isAdmin } = useAuth();
   
@@ -715,21 +715,19 @@ const Picks = () => {
               </h1>
             </div>
             
-            {/* Admin-only Season Selector */}
-            {canSelectSeason && (
-              <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as any)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select season" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SEASON_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            {/* Season Toggle */}
+            <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as any)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Select season" />
+              </SelectTrigger>
+              <SelectContent>
+                {SEASON_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <p className="text-muted-foreground">
             {isRegularSeason

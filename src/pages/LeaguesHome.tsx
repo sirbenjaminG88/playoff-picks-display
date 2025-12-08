@@ -9,6 +9,8 @@ import { JoinLeagueModal } from "@/components/leagues/JoinLeagueModal";
 import { LeagueCard } from "@/components/leagues/LeagueCard";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSeason, SEASON_OPTIONS } from "@/contexts/SeasonContext";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface UserLeague {
   id: string;
@@ -28,6 +30,7 @@ const LeaguesHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile, signOut, loading } = useAuth();
+  const { selectedSeason, setSelectedSeason, seasonConfig } = useSeason();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [leagues, setLeagues] = useState<UserLeague[]>([]);
@@ -249,10 +252,37 @@ const LeaguesHome = () => {
           </div>
         </div>
 
+        {/* Season Toggle */}
+        <div className="mb-6">
+          <Tabs 
+            value={selectedSeason} 
+            onValueChange={(v) => setSelectedSeason(v as any)}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2 bg-muted/50 border border-border">
+              {SEASON_OPTIONS.map((option) => (
+                <TabsTrigger 
+                  key={option.value} 
+                  value={option.value}
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {option.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
         {/* Welcome Headline */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Welcome to EMMA</h2>
-          <p className="text-muted-foreground">Playoff fantasy football, simplified.</p>
+          <h2 className="text-2xl font-bold text-foreground">
+            {seasonConfig.seasonType === "playoffs" ? "Playoff Fantasy" : "Regular Season Beta"}
+          </h2>
+          <p className="text-muted-foreground">
+            {seasonConfig.seasonType === "playoffs" 
+              ? "Playoff fantasy football, simplified." 
+              : "2025 Regular Season — Weeks 14-18 beta test"}
+          </p>
         </div>
 
         {/* Rules Explainer Card - first thing users see */}

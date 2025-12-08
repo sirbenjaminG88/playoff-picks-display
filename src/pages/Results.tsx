@@ -1081,7 +1081,7 @@ function OverallLeaderboard({ throughWeek }: { throughWeek: number }) {
 export default function Results() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
-  const { selectedSeason, setSelectedSeason, canSelectSeason } = useSeason();
+  const { selectedSeason, setSelectedSeason } = useSeason();
   const queryClient = useQueryClient();
 
   const handleSyncStats = async (week: number) => {
@@ -1127,21 +1127,19 @@ export default function Results() {
           <div className="flex items-start justify-between gap-4 mb-2">
             <h1 className="text-4xl font-bold text-foreground">Results</h1>
             
-            {/* Admin-only Season Selector */}
-            {canSelectSeason && (
-              <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as any)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select season" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SEASON_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            {/* Season Toggle */}
+            <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as any)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Select season" />
+              </SelectTrigger>
+              <SelectContent>
+                {SEASON_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <p className="text-muted-foreground">
             {selectedSeason === "2025-regular" 
