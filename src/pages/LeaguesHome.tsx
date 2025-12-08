@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Trophy, BarChart3, Users, LogIn, LogOut, Plus, TrendingUp, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,11 +26,26 @@ interface UserLeague {
 
 const LeaguesHome = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile, signOut, loading } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [leagues, setLeagues] = useState<UserLeague[]>([]);
   const [leaguesLoading, setLeaguesLoading] = useState(false);
+
+  // Check for action from redirect (after signin)
+  useEffect(() => {
+    const state = location.state as { action?: string } | null;
+    if (user && state?.action) {
+      if (state.action === "create") {
+        setShowCreateModal(true);
+      } else if (state.action === "join") {
+        setShowJoinModal(true);
+      }
+      // Clear the state so it doesn't trigger again on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [user, location.state, navigate, location.pathname]);
 
   useEffect(() => {
     if (user) {
@@ -89,9 +104,17 @@ const LeaguesHome = () => {
 
   const handleCreateLeague = () => {
     if (!user) {
-      navigate("/signin", { state: { from: "/leagues-home" } });
+      navigate("/signin", { state: { from: "/leagues-home", action: "create" } });
     } else {
       setShowCreateModal(true);
+    }
+  };
+
+  const handleJoinLeague = () => {
+    if (!user) {
+      navigate("/signin", { state: { from: "/leagues-home", action: "join" } });
+    } else {
+      setShowJoinModal(true);
     }
   };
 
@@ -146,13 +169,21 @@ const LeaguesHome = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col items-center justify-center gap-3">
               <Link to="/signin" state={{ from: "/leagues-home" }}>
-                <Button size="lg" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
+                <Button size="lg" variant="outline" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
                   <LogIn className="w-5 h-5 mr-2" />
-                  Sign In / Join League
+                  Sign In / Sign Up
                 </Button>
               </Link>
+              <Button 
+                size="lg" 
+                className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all"
+                onClick={handleJoinLeague}
+              >
+                <UserPlus className="w-5 h-5 mr-2" />
+                Join League
+              </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
