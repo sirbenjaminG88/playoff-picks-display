@@ -16,6 +16,7 @@ const emailSchema = z.string().email("Please enter a valid email address");
 const TEST_ACCOUNTS: Record<string, string> = {
   "test@emma.dev": "testpass123",
   "test2@emma.dev": "testpass123",
+  "test3@emma.dev": "testpass123",
 };
 
 const SignIn = () => {
