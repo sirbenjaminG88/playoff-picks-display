@@ -233,7 +233,7 @@ const LeaguesHome = () => {
                   </AvatarFallback>
                 )}
               </Avatar>
-              <span className="text-sm font-medium text-foreground">{profile?.display_name}</span>
+              <span className="text-sm font-medium text-foreground">{profile?.display_name?.split(" ")[0]}</span>
             </div>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="w-4 h-4" />
