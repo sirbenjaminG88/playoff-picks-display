@@ -44,17 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const checkAdminRole = async (userId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .eq("role", "admin")
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      // No admin role found, which is fine
-      return false;
-    }
     return data !== null;
   };
 
