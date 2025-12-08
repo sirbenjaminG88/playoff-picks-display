@@ -5,9 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAccountDeletion } from "@/hooks/useAccountDeletion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,18 +21,33 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Camera, Loader2, Mail, User, Trash2 } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Mail, User, Trash2, LogOut, Fingerprint } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+// TODO: Biometric login - When implemented:
+// - Check if device supports biometrics via Capacitor plugin
+// - If enabled, store credentials in secure storage after successful login
+// - On app launch, check for stored credentials and prompt biometric auth
+// - Add "Sign in with Face ID" button to SignIn.tsx
+
+// TODO: Add post-signup biometric opt-in screen that offers enabling Face ID immediately after successful signup/first login.
+
 /**
- * Profile Page - Secondary entry point for account deletion
+ * Profile Page - Unified Account & Settings screen
+ * 
+ * This is the PRIMARY entry point for account management, including:
+ * - Profile editing (avatar, display name)
+ * - Email changes
+ * - Sign out
+ * - Security settings (biometrics - coming soon)
+ * - Account deletion (for App Store compliance)
  * 
  * Uses the centralized useAccountDeletion hook for deletion logic.
- * The primary entry point for deletion is the Settings page.
+ * Accessed via the profile icon in the header (Home page, and later Submissions/Results).
  */
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile, signOut } = useAuth();
   const { deleteAccount, isDeleting, error: deleteError, clearError } = useAccountDeletion();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -195,6 +212,11 @@ const Profile = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/signin", { replace: true });
+  };
+
   const handleDeleteAccount = async () => {
     if (!user) return;
 
@@ -233,14 +255,17 @@ const Profile = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
+          <h1 className="text-2xl font-bold text-foreground">Profile & Settings</h1>
         </div>
 
         <div className="space-y-6">
           {/* Profile Card */}
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-lg">Profile</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="w-5 h-5 text-primary" />
+                Profile
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {error && (
@@ -321,7 +346,10 @@ const Profile = () => {
           {/* Email Card */}
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-lg">Email Address</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Mail className="w-5 h-5 text-primary" />
+                Email Address
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {emailError && (
@@ -377,10 +405,63 @@ const Profile = () => {
             </CardContent>
           </Card>
 
+          {/* Security & Sign-In Section */}
+          <Card className="border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Fingerprint className="w-5 h-5 text-primary" />
+                Security & Sign-In
+              </CardTitle>
+              <CardDescription>
+                Manage how you sign in to EMMA
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Biometric Toggle (Disabled - Coming Soon) */}
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-3">
+                  <Fingerprint className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Use Face ID / Touch ID
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Biometric login coming soon.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  disabled
+                  checked={false}
+                  className="opacity-50"
+                  aria-label="Enable biometric login (coming soon)"
+                />
+              </div>
+
+              <Separator />
+
+              {/* Sign Out */}
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={handleSignOut}
+              >
+                <LogOut className="w-4 h-4" />
+                Log Out
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Danger Zone */}
           <Card className="border-destructive/50 bg-card">
-            <CardHeader>
-              <CardTitle className="text-lg text-destructive">Danger Zone</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                <Trash2 className="w-5 h-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription>
+                Irreversible actions for your account
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
