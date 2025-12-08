@@ -186,18 +186,43 @@ const Profile = () => {
   };
 
   const handleChangeEmail = async () => {
-    if (!email.trim() || email === user?.email) return;
+    const trimmedEmail = email.trim();
+    
+    // Don't call API if email hasn't changed
+    if (!trimmedEmail || trimmedEmail === user?.email) return;
 
     setSavingEmail(true);
     setEmailError(null);
     setEmailSuccess(false);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        email: email.trim(),
+      const { data, error } = await supabase.auth.updateUser({
+        email: trimmedEmail,
       });
 
-      if (error) throw error;
+      // Log full response for debugging
+      console.log('updateUser email change result:', { data, error });
+
+      if (error) {
+        // Map known Supabase errors to user-friendly messages
+        let userMessage = "Failed to change email. Please try again.";
+        
+        if (error.message?.toLowerCase().includes("already registered") || 
+            error.message?.toLowerCase().includes("already in use")) {
+          userMessage = "This email is already in use by another account.";
+        } else if (error.message?.toLowerCase().includes("invalid") || 
+                   error.message?.toLowerCase().includes("valid email")) {
+          userMessage = "Please enter a valid email address.";
+        } else if (error.message?.toLowerCase().includes("rate limit")) {
+          userMessage = "Too many requests. Please wait a few minutes and try again.";
+        } else if (error.message) {
+          // Use the actual error message if it's not one we recognize
+          userMessage = error.message;
+        }
+        
+        setEmailError(userMessage);
+        return;
+      }
 
       setEmailSuccess(true);
       toast({
@@ -206,7 +231,7 @@ const Profile = () => {
       });
     } catch (err: any) {
       console.error("Error changing email:", err);
-      setEmailError(err.message || "Failed to change email.");
+      setEmailError(err.message || "Failed to change email. Please try again.");
     } finally {
       setSavingEmail(false);
     }
@@ -360,8 +385,11 @@ const Profile = () => {
               
               {emailSuccess && (
                 <Alert>
-                  <AlertDescription>
-                    Check your new email for a confirmation link.
+                  <AlertDescription className="space-y-1">
+                    <p>If this address is valid, we've sent a confirmation link to your new email.</p>
+                    <p className="text-xs text-muted-foreground">
+                      If you don't see the email in a few minutes, check your spam folder or try again.
+                    </p>
                   </AlertDescription>
                 </Alert>
               )}
