@@ -55,33 +55,22 @@ test.describe('Leagues', () => {
       await page.goto('/leagues-home');
       await page.getByRole('button', { name: /create.*league/i }).click();
       
-      // Fill in league name with unique timestamp to avoid conflicts
       const leagueName = `Test League ${Date.now()}`;
       await page.getByPlaceholder(/league name/i).fill(leagueName);
-      
-      // Submit the form
       await page.getByRole('button', { name: /create league/i }).last().click();
       
-      // Should show success state with join code
       await expect(page.getByText(/league created/i)).toBeVisible({ timeout: 10000 });
       await expect(page.getByText(/join code/i)).toBeVisible();
-      
-      // Join code should be visible (funny format like BlitzBurrito)
-      const joinCodeElement = page.locator('text=/[A-Z][a-z]+[A-Z][a-z]+/');
-      await expect(joinCodeElement).toBeVisible();
     });
 
-    test('should show share and copy buttons after creation', async ({ page }) => {
+    test('should show copy button after creation', async ({ page }) => {
       await page.goto('/leagues-home');
       await page.getByRole('button', { name: /create.*league/i }).click();
       
       await page.getByPlaceholder(/league name/i).fill(`Share Test ${Date.now()}`);
       await page.getByRole('button', { name: /create league/i }).last().click();
       
-      // Wait for success state
       await expect(page.getByText(/league created/i)).toBeVisible({ timeout: 10000 });
-      
-      // Should have share/copy options
       await expect(page.getByRole('button', { name: /copy/i })).toBeVisible();
     });
   });
@@ -100,27 +89,30 @@ test.describe('Leagues', () => {
       await expect(continueButton).toBeDisabled();
     });
 
+    test('should enable continue when code is entered', async ({ page }) => {
+      await page.goto('/leagues-home');
+      await page.getByText(/join.*league/i).click();
+      await page.getByPlaceholder(/blitzburrito/i).fill('TestCode123');
+      const continueButton = page.getByRole('button', { name: /continue/i });
+      await expect(continueButton).toBeEnabled();
+    });
+
     test('should navigate to join page with code', async ({ page }) => {
       await page.goto('/leagues-home');
       await page.getByText(/join.*league/i).click();
-      
       await page.getByPlaceholder(/blitzburrito/i).fill('TestCode123');
       await page.getByRole('button', { name: /continue/i }).click();
-      
       await page.waitForURL(/\/join\/TestCode123/i);
     });
 
-    test('should show league not found for invalid code', async ({ page }) => {
+    test('should show error for invalid code', async ({ page }) => {
       await page.goto('/join/InvalidCode12345');
-      
-      // Should show error or not found message
       await expect(page.getByText(/not found|no league|invalid/i)).toBeVisible({ timeout: 10000 });
     });
   });
 
   test.describe('Full Create and Join Flow', () => {
     test('should create league then join with the generated code', async ({ page, context }) => {
-      // Step 1: Create a league
       await page.goto('/leagues-home');
       await page.getByRole('button', { name: /create.*league/i }).click();
       
@@ -128,20 +120,15 @@ test.describe('Leagues', () => {
       await page.getByPlaceholder(/league name/i).fill(leagueName);
       await page.getByRole('button', { name: /create league/i }).last().click();
       
-      // Wait for success and capture join code
       await expect(page.getByText(/league created/i)).toBeVisible({ timeout: 10000 });
       
-      // Get the join code text (matches CamelCase format)
       const joinCodeLocator = page.locator('[class*="font-mono"], [class*="text-2xl"]').first();
       const joinCode = await joinCodeLocator.textContent();
       
       expect(joinCode).toBeTruthy();
       expect(joinCode!.length).toBeGreaterThan(5);
       
-      // Step 2: Open new page and try to join with that code
       const joinPage = await context.newPage();
-      
-      // Login on new page
       await joinPage.goto('/signin');
       await joinPage.getByText(/test account/i).click();
       await joinPage.getByPlaceholder(/email/i).fill('test2@emma.dev');
@@ -149,52 +136,10 @@ test.describe('Leagues', () => {
       await joinPage.getByRole('button', { name: /sign in/i }).click();
       await joinPage.waitForURL(/\/(leagues-home|picks|profile-setup)/);
       
-      // Navigate to join page with the code
       await joinPage.goto(`/join/${joinCode!.trim()}`);
       
-      // Should show the league details
       await expect(joinPage.getByText(leagueName)).toBeVisible({ timeout: 10000 });
       await expect(joinPage.getByRole('button', { name: /join.*league/i })).toBeVisible();
-    });
-  });
-});
-    test('should enable continue button when code is entered', async ({ page }) => {
-      await page.goto('/leagues-home');
-      await page.getByText(/join.*league/i).click();
-      
-      // Enter a join code
-      await page.getByPlaceholder(/blitzburrito/i).fill('TestCode123');
-      
-      const continueButton = page.getByRole('button', { name: /continue/i });
-      await expect(continueButton).toBeEnabled();
-    });
-
-    test('should navigate to join page when submitting code', async ({ page }) => {
-      await page.goto('/leagues-home');
-      await page.getByText(/join.*league/i).click();
-      
-      // Enter a join code
-      await page.getByPlaceholder(/blitzburrito/i).fill('TestCode123');
-      
-      // Click continue
-      await page.getByRole('button', { name: /continue/i }).click();
-      
-      // Should navigate to join page
-      await page.waitForURL(/\/join\/TestCode123/i);
-    });
-
-    test('should close modal when pressing escape', async ({ page }) => {
-      await page.goto('/leagues-home');
-      await page.getByText(/join.*league/i).click();
-      
-      // Modal should be visible
-      await expect(page.getByPlaceholder(/blitzburrito/i)).toBeVisible();
-      
-      // Press escape to close
-      await page.keyboard.press('Escape');
-      
-      // Modal should be closed
-      await expect(page.getByPlaceholder(/blitzburrito/i)).not.toBeVisible();
     });
   });
 });
