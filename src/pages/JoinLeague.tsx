@@ -48,11 +48,11 @@ const JoinLeague = () => {
     setError(null);
 
     try {
-      // Fetch league by join code
+      // Fetch league by join code (case-insensitive)
       const { data: leagueData, error: leagueError } = await supabase
         .from("leagues")
         .select("id, name, max_members, season, season_type, icon_url")
-        .eq("join_code", code)
+        .ilike("join_code", code)
         .single();
 
       if (leagueError || !leagueData) {
