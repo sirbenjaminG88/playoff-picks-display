@@ -8,13 +8,6 @@ test.describe('Navigation', () => {
     await expect(page.getByText('EMMA')).toBeVisible();
   });
 
-  test('should navigate to leagues home', async ({ page }) => {
-    await page.goto('/leagues-home');
-    
-    // Should show the leagues home content
-    await expect(page.getByText(/EMMA/i)).toBeVisible();
-  });
-
   test('should show 404 for unknown routes', async ({ page }) => {
     await page.goto('/unknown-route-12345');
     

@@ -172,7 +172,7 @@ const JoinLeague = () => {
   };
 
   const handleGoToLeague = () => {
-    navigate("/leagues-home");
+    navigate("/");
   };
 
   if (authLoading || loading) {
@@ -194,8 +194,8 @@ const JoinLeague = () => {
             <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-bold text-foreground mb-2">Oops!</h2>
             <p className="text-muted-foreground mb-6">{error}</p>
-            <Button onClick={() => navigate("/leagues-home")} variant="outline">
-              Go to Leagues Home
+            <Button onClick={() => navigate("/")} variant="outline">
+              Go to Home
             </Button>
           </CardContent>
         </Card>

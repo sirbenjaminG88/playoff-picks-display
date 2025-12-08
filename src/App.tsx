@@ -9,7 +9,6 @@ import { LeagueProvider } from "@/contexts/LeagueContext";
 import { SeasonProvider } from "@/contexts/SeasonContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
-import { AuthRedirect } from "@/components/AuthRedirect";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Results from "./pages/Results";
@@ -38,11 +37,10 @@ const App = () => (
             <SeasonProvider>
               <div className="min-h-screen pb-16">
                 <Routes>
-                  <Route path="/" element={<AuthRedirect />} />
-                  <Route path="/home" element={<Index />} />
+                  <Route path="/" element={<LeaguesHome />} />
+                  <Route path="/test-home" element={<Index />} />
                   <Route path="/signin" element={<SignIn />} />
                   <Route path="/profile-setup" element={<ProfileSetup />} />
-                  <Route path="/leagues-home" element={<LeaguesHome />} />
                   <Route 
                     path="/profile" 
                     element={

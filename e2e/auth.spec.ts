@@ -22,8 +22,8 @@ test.describe('Authentication UI', () => {
     await expect(page).toHaveURL(/signin/);
   });
 
-  test('should show logged out state on leagues home', async ({ page }) => {
-    await page.goto('/leagues-home');
+  test('should show logged out state on home page', async ({ page }) => {
+    await page.goto('/');
     
     // Logged out users should see the landing page with sign in CTA
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();

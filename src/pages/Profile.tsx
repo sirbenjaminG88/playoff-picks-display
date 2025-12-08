@@ -202,7 +202,7 @@ const Profile = () => {
         description: "Please contact support to complete account deletion.",
       });
       
-      navigate("/leagues-home");
+      navigate("/");
     } catch (err: any) {
       console.error("Error deleting account:", err);
       toast({
@@ -229,7 +229,7 @@ const Profile = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/leagues-home")}
+            onClick={() => navigate("/")}
             className="shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
