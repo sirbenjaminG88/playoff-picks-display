@@ -37,7 +37,7 @@ import { toast } from "@/hooks/use-toast";
  * 
  * This is the PRIMARY entry point for account management, including:
  * - Profile editing (avatar, display name)
- * - Email changes
+ * - Email display (read-only)
  * - Sign out
  * - Security settings (biometrics - coming soon)
  * - Account deletion (for App Store compliance)
@@ -50,15 +50,11 @@ const Profile = () => {
   const { user, profile, loading: authLoading, refreshProfile, signOut } = useAuth();
   const { deleteAccount, isDeleting, error: deleteError, clearError } = useAccountDeletion();
   const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [savingEmail, setSavingEmail] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailError, setEmailError] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [emailSuccess, setEmailSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect if not authenticated
@@ -74,10 +70,7 @@ const Profile = () => {
       setDisplayName(profile.display_name || "");
       setAvatarPreview(profile.avatar_url || null);
     }
-    if (user) {
-      setEmail(user.email || "");
-    }
-  }, [profile, user]);
+  }, [profile]);
 
   if (authLoading) {
     return (
@@ -185,57 +178,15 @@ const Profile = () => {
     }
   };
 
-  const handleChangeEmail = async () => {
-    const trimmedEmail = email.trim();
-    
-    // Don't call API if email hasn't changed
-    if (!trimmedEmail || trimmedEmail === user?.email) return;
-
-    setSavingEmail(true);
-    setEmailError(null);
-    setEmailSuccess(false);
-
-    try {
-      const { data, error } = await supabase.auth.updateUser({
-        email: trimmedEmail,
-      });
-
-      // Log full response for debugging
-      console.log('updateUser email change result:', { data, error });
-
-      if (error) {
-        // Map known Supabase errors to user-friendly messages
-        let userMessage = "Failed to change email. Please try again.";
-        
-        if (error.message?.toLowerCase().includes("already registered") || 
-            error.message?.toLowerCase().includes("already in use")) {
-          userMessage = "This email is already in use by another account.";
-        } else if (error.message?.toLowerCase().includes("invalid") || 
-                   error.message?.toLowerCase().includes("valid email")) {
-          userMessage = "Please enter a valid email address.";
-        } else if (error.message?.toLowerCase().includes("rate limit")) {
-          userMessage = "Too many requests. Please wait a few minutes and try again.";
-        } else if (error.message) {
-          // Use the actual error message if it's not one we recognize
-          userMessage = error.message;
-        }
-        
-        setEmailError(userMessage);
-        return;
-      }
-
-      setEmailSuccess(true);
-      toast({
-        title: "Confirmation sent",
-        description: "Check your new email for a confirmation link.",
-      });
-    } catch (err: any) {
-      console.error("Error changing email:", err);
-      setEmailError(err.message || "Failed to change email. Please try again.");
-    } finally {
-      setSavingEmail(false);
-    }
-  };
+  /*
+   * TODO: Re-enable email change flow once Lovable Cloud exposes 
+   * Auth Hook configuration for `email_change` events.
+   * The send-auth-email edge function already supports it.
+   * 
+   * The handleChangeEmail function was removed because Supabase 
+   * is not triggering our send-auth-email edge function for 
+   * email_change events, so confirmation emails never send.
+   */
 
   const handleSignOut = async () => {
     await signOut();
@@ -264,8 +215,6 @@ const Profile = () => {
   const hasProfileChanges = 
     displayName !== (profile?.display_name || "") || 
     avatarFile !== null;
-
-  const hasEmailChanges = email !== (user?.email || "");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
