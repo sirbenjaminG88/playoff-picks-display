@@ -20,6 +20,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -124,8 +125,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAdmin(false);
   }, []);
 
+  /**
+   * Request a password reset email for the given email address.
+   * Uses Supabase's built-in password reset flow.
+   * 
+   * TODO: Reset password confirm - Create a `/reset-password` page that:
+   *   1. Detects the recovery token from URL (Supabase adds it automatically)
+   *   2. Lets user enter a new password
+   *   3. Calls supabase.auth.updateUser({ password: newPassword })
+   */
+  const resetPassword = useCallback(async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // TODO: Reset password confirm - Update this URL when the confirm page is created
+    // The user will be redirected here after clicking the email link
+    const redirectTo = `${window.location.origin}/reset-password`;
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo,
+    });
+
+    if (error) {
+      throw error;
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      profile, 
+      isAdmin, 
+      loading, 
+      signOut, 
+      refreshProfile,
+      resetPassword,
+    }}>
       {children}
     </AuthContext.Provider>
   );
