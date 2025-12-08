@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAccountDeletion } from "@/hooks/useAccountDeletion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,18 +22,25 @@ import {
 import { ArrowLeft, Camera, Loader2, Mail, User, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+/**
+ * Profile Page - Secondary entry point for account deletion
+ * 
+ * Uses the centralized useAccountDeletion hook for deletion logic.
+ * The primary entry point for deletion is the Settings page.
+ */
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading, refreshProfile, signOut } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
+  const { deleteAccount, isDeleting, error: deleteError, clearError } = useAccountDeletion();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [emailSuccess, setEmailSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -190,29 +198,20 @@ const Profile = () => {
   const handleDeleteAccount = async () => {
     if (!user) return;
 
-    setDeleting(true);
-
-    try {
-      // Note: Full account deletion requires admin API or edge function
-      // For now, we'll sign out and show a message
-      await signOut();
-      
+    const success = await deleteAccount();
+    if (success) {
       toast({
-        title: "Account deletion requested",
-        description: "Please contact support to complete account deletion.",
+        title: "Account deleted",
+        description: "Your account has been permanently deleted.",
       });
-      
-      navigate("/");
-    } catch (err: any) {
-      console.error("Error deleting account:", err);
-      toast({
-        title: "Error",
-        description: "Failed to delete account. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleting(false);
+      navigate("/", { replace: true });
     }
+    // Error is shown in the dialog via deleteError state
+  };
+
+  const handleOpenDeleteDialog = () => {
+    clearError();
+    setIsDeleteDialogOpen(true);
   };
 
   const hasProfileChanges = 
@@ -384,12 +383,13 @@ const Profile = () => {
               <CardTitle className="text-lg text-destructive">Danger Zone</CardTitle>
             </CardHeader>
             <CardContent>
-              <AlertDialog>
+              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="destructive"
                     className="w-full gap-2"
-                    disabled={deleting}
+                    onClick={handleOpenDeleteDialog}
+                    disabled={isDeleting}
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete Account
@@ -397,25 +397,33 @@ const Profile = () => {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogTitle>Delete account?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete your
-                      account and remove all your data from our servers.
+                      This will permanently delete your account and all associated data.
+                      This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+                  
+                  {deleteError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{deleteError}</AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDeleteAccount}
+                      disabled={isDeleting}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      {deleting ? (
+                      {isDeleting ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Deleting...
                         </>
                       ) : (
-                        "Delete Account"
+                        "Delete my account"
                       )}
                     </AlertDialogAction>
                   </AlertDialogFooter>

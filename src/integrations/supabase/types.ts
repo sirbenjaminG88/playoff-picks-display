@@ -785,6 +785,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      delete_user_account: { Args: never; Returns: undefined }
       generate_funny_join_code: { Args: never; Returns: string }
       get_league_join_code: { Args: { p_league_id: string }; Returns: string }
       get_my_display_name: { Args: never; Returns: string }
