@@ -6,6 +6,43 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Verify the user is a commissioner of the specified league
+async function verifyCommissioner(req: Request, leagueId: string): Promise<{ authorized: boolean; userId?: string; error?: string }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return { authorized: false, error: "Missing authorization header" };
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { authorized: false, error: "Invalid authentication" };
+  }
+
+  // Check if user is commissioner of this league
+  const { data: membership, error: memberError } = await supabase
+    .from("league_members")
+    .select("role")
+    .eq("league_id", leagueId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (memberError || !membership) {
+    return { authorized: false, error: "Not a member of this league" };
+  }
+
+  if (membership.role !== "commissioner") {
+    return { authorized: false, error: "Only commissioners can generate league icons" };
+  }
+
+  return { authorized: true, userId: user.id };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -20,6 +57,18 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Verify commissioner authorization
+    const authResult = await verifyCommissioner(req, leagueId);
+    if (!authResult.authorized) {
+      console.error("Authorization failed:", authResult.error);
+      return new Response(
+        JSON.stringify({ error: authResult.error }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Commissioner verified:", authResult.userId, "for league:", leagueId);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
