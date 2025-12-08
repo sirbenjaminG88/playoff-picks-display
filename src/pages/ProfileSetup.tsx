@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { toast } from "@/hooks/use-toast";
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as { from?: string; action?: string } | null;
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -154,7 +156,9 @@ const ProfileSetup = () => {
         description: "Welcome to EMMA.",
       });
       
-      navigate("/picks");
+      // Redirect to original destination or default to /picks
+      const redirectTo = locationState?.from || "/picks";
+      navigate(redirectTo, { replace: true, state: { action: locationState?.action } });
     } catch (err: any) {
       console.error("Error saving profile:", err);
       setError(err.message || "Failed to save profile. Please try again.");
