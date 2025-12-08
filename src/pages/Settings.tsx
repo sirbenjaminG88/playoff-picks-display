@@ -1,9 +1,23 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAccountDeletion } from "@/hooks/useAccountDeletion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   ArrowLeft, 
   Loader2, 
@@ -22,15 +36,17 @@ import {
 // - Support tapping "Sign in with Face ID" on SignIn.tsx
 // - Use @capacitor/biometric-auth or similar plugin
 
-// TODO: Account deletion - When implemented:
-// - Create a Supabase RPC function: delete_user_account()
-// - The RPC should delete user_picks, league_members, users, profiles records
-// - Then call admin.deleteUser() to remove from auth.users
-// - Call the RPC from this page after confirmation
-
+/**
+ * Settings Page - Primary entry point for account management
+ * 
+ * This is the PRIMARY entry point for account deletion (for App Store compliance).
+ * Uses the centralized useAccountDeletion hook for deletion logic.
+ */
 const Settings = () => {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading, signOut } = useAuth();
+  const { deleteAccount, isDeleting, error: deleteError, clearError } = useAccountDeletion();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -41,10 +57,18 @@ const Settings = () => {
     navigate("/profile");
   };
 
-  const handleDeleteAccount = () => {
-    // TODO: Account deletion - Navigate to a confirmation flow or show modal
-    // For now, redirect to profile page which has the delete account UI
-    navigate("/profile");
+  const handleDeleteAccount = async () => {
+    const success = await deleteAccount();
+    if (success) {
+      // Navigate to landing page after successful deletion
+      navigate("/", { replace: true });
+    }
+    // If not successful, error is shown in the dialog via deleteError state
+  };
+
+  const handleOpenDeleteDialog = () => {
+    clearError();
+    setIsDeleteDialogOpen(true);
   };
 
   // Show loading spinner while checking auth
@@ -211,28 +235,54 @@ const Settings = () => {
                     Permanently remove your account and all data.
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDeleteAccount}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
-                  Delete
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleOpenDeleteDialog}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      disabled={isDeleting}
+                    >
+                      Delete
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete account?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete your account and all associated data. 
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    
+                    {deleteError && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{deleteError}</AlertDescription>
+                      </Alert>
+                    )}
+                    
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteAccount}
+                        disabled={isDeleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          "Delete my account"
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
-              {/* 
-                TODO: Account deletion - When implemented:
-                1. Show confirmation modal with password re-entry
-                2. Call supabase.rpc('delete_user_account') 
-                3. Sign out user and redirect to landing page
-                4. The RPC function should:
-                   - Delete from user_picks where auth_user_id = auth.uid()
-                   - Delete from league_members where user_id = auth.uid()
-                   - Delete from users where id = auth.uid()
-                   - Delete from profiles where id = auth.uid()
-                   - Call auth.admin.deleteUser() via service role
-              */}
             </CardContent>
           </Card>
         </div>
