@@ -368,7 +368,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Email Card */}
+          {/* Email Card - Currently Read-Only */}
           <Card className="border-border bg-card">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -376,60 +376,32 @@ const Profile = () => {
                 Email Address
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {emailError && (
-                <Alert variant="destructive">
-                  <AlertDescription>{emailError}</AlertDescription>
-                </Alert>
-              )}
-              
-              {emailSuccess && (
-                <Alert>
-                  <AlertDescription className="space-y-1">
-                    <p>If this address is valid, we've sent a confirmation link to your new email.</p>
-                    <p className="text-xs text-muted-foreground">
-                      If you don't see the email in a few minutes, check your spam folder or try again.
-                    </p>
-                  </AlertDescription>
-                </Alert>
-              )}
-
+            <CardContent className="space-y-3">
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-foreground">
-                  Email
+                <label className="text-sm font-medium text-foreground">
+                  Current Email
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    id="email"
                     type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 bg-background border-border"
-                    disabled={savingEmail}
+                    value={user?.email || ''}
+                    disabled
+                    className="pl-10 bg-muted border-border"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  You'll receive a confirmation email to verify the change.
+                  Email changes are not currently supported. Contact support if you need to update your email address.
                 </p>
               </div>
-
-              <Button
-                onClick={handleChangeEmail}
-                disabled={savingEmail || !hasEmailChanges}
-                variant="outline"
-                className="w-full"
-              >
-                {savingEmail ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  "Change Email"
-                )}
-              </Button>
+              {/* 
+                TODO: Email change is disabled because Lovable Cloud doesn't expose 
+                Auth Hook configuration for email_change events. The send-auth-email 
+                edge function supports it, but the hook needs to be configured in 
+                Supabase dashboard to trigger on email_change events.
+                
+                Re-enable this section once hook configuration is available.
+              */}
             </CardContent>
           </Card>
 
