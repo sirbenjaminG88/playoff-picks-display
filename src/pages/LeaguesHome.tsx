@@ -241,31 +241,26 @@ const LeaguesHome = () => {
           </div>
         </div>
 
-        {/* Page Title */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">Your Leagues</h2>
-          <p className="text-muted-foreground">Manage your fantasy football leagues</p>
+        {/* Welcome Headline */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-foreground">Welcome to EMMA</h2>
+          <p className="text-muted-foreground">Playoff fantasy football, simplified.</p>
         </div>
 
-        {/* Create / Join League Buttons */}
-        <div className="flex gap-3 mb-8">
-          <Button 
-            size="lg" 
-            className="shadow-lg hover:shadow-xl transition-all"
-            onClick={handleCreateLeague}
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Create League
-          </Button>
-          <Button 
-            size="lg" 
-            variant="outline"
-            className="shadow-lg hover:shadow-xl transition-all"
-            onClick={() => setShowJoinModal(true)}
-          >
-            <UserPlus className="w-5 h-5 mr-2" />
-            Join with Code
-          </Button>
+        {/* Rules Explainer Card - first thing users see */}
+        <Card className="bg-card border-2 border-border mb-8">
+          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+            <TrendingUp className="w-10 h-10 text-primary mb-4" />
+            <h3 className="text-lg font-bold text-foreground mb-2">Use-'Em-Once Weekly Picks</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Choose a QB, RB, and WR/TE each playoff week — but once you pick a player, they're gone for the rest of the playoffs.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Your Leagues Section Header */}
+        <div className="mb-4">
+          <h3 className="text-xl font-bold text-foreground">Your Leagues</h3>
         </div>
 
         {/* Leagues Section */}
@@ -273,16 +268,12 @@ const LeaguesHome = () => {
           <div className="text-center text-muted-foreground py-8">Loading leagues...</div>
         ) : !hasLeagues ? (
           <Card className="border-2 border-dashed border-border bg-card/50">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <Users className="w-16 h-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">You're not in any leagues yet.</h3>
-              <p className="text-muted-foreground text-center max-w-md mb-6">
-                Create a new league to start playing, or join an existing league with an invite link.
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Users className="w-12 h-12 text-muted-foreground/50 mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No leagues yet</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-md">
+                Create a new league or join one with an invite code.
               </p>
-              <Button onClick={handleCreateLeague}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First League
-              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -302,17 +293,25 @@ const LeaguesHome = () => {
           </div>
         )}
 
-        {/* Explainer Card - always visible for logged-in users */}
-        <div className="mt-8">
-          <Card className="bg-card border-2 border-border">
-            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-              <TrendingUp className="w-10 h-10 text-primary mb-4" />
-              <h3 className="text-lg font-bold text-foreground mb-2">Use-'Em-Once Weekly Picks</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Choose a QB, RB, and WR/TE each playoff week — but once you pick a player, they're gone for the rest of the playoffs.
-              </p>
-            </CardContent>
-          </Card>
+        {/* Create / Join League Buttons - stacked at bottom */}
+        <div className="flex flex-col gap-3 mt-8">
+          <Button 
+            size="lg" 
+            className="w-full shadow-lg hover:shadow-xl transition-all"
+            onClick={handleCreateLeague}
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Create League
+          </Button>
+          <Button 
+            size="lg" 
+            variant="outline"
+            className="w-full shadow-lg hover:shadow-xl transition-all"
+            onClick={() => setShowJoinModal(true)}
+          >
+            <UserPlus className="w-5 h-5 mr-2" />
+            Join with Code
+          </Button>
         </div>
       </div>
 
