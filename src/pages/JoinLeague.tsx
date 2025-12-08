@@ -5,7 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Trophy, Users, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Users, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { LeagueIcon } from "@/components/leagues/LeagueIcon";
 
 interface LeagueDetails {
   id: string;
@@ -13,6 +14,7 @@ interface LeagueDetails {
   max_members: number;
   season: number;
   season_type: string;
+  icon_url: string | null;
   commissioner_name: string | null;
   member_count: number;
 }
@@ -49,7 +51,7 @@ const JoinLeague = () => {
       // Fetch league by join code
       const { data: leagueData, error: leagueError } = await supabase
         .from("leagues")
-        .select("id, name, max_members, season, season_type")
+        .select("id, name, max_members, season, season_type, icon_url")
         .eq("join_code", code)
         .single();
 
@@ -235,8 +237,8 @@ const JoinLeague = () => {
         <CardContent className="pt-6">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Trophy className="w-8 h-8 text-primary" />
+            <div className="flex justify-center mb-4">
+              <LeagueIcon iconUrl={league.icon_url} leagueName={league.name} size="lg" />
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-1">
               You're Invited!
