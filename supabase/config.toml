@@ -62,3 +62,6 @@ verify_jwt = true
 
 [functions.generate-league-icon]
 verify_jwt = false
+
+[functions.sync-2025-playoff-schedule]
+verify_jwt = true
