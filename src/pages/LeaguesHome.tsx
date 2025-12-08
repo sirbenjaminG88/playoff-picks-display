@@ -222,7 +222,7 @@ const LeaguesHome = () => {
             <h1 className="text-2xl font-bold text-foreground">EMMA</h1>
           </div>
           
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-end">
             <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5">
               <Avatar className="h-6 w-6">
                 {profile?.avatar_url ? (
@@ -237,7 +237,7 @@ const LeaguesHome = () => {
             </div>
             <button 
               onClick={handleSignOut}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 mt-2 pr-1"
             >
               <LogOut className="w-3 h-3" />
               Sign out
