@@ -4,12 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LeagueProvider } from "@/contexts/LeagueContext";
 import { SeasonProvider } from "@/contexts/SeasonContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SplashScreen } from "@/components/SplashScreen";
 import Results from "./pages/Results";
 import Picks from "./pages/Picks";
 import Admin from "./pages/Admin";
@@ -25,6 +26,86 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+/**
+ * AppContent - Main app content rendered after auth initialization.
+ * Shows SplashScreen while auth is loading, then renders routes.
+ */
+const AppContent = () => {
+  const { loading } = useAuth();
+
+  // Show branded splash screen while auth is initializing
+  if (loading) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <LeagueProvider>
+      <SeasonProvider>
+        <div className="min-h-screen pb-16">
+          <Routes>
+            <Route path="/" element={<LeaguesHome />} />
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/profile-setup" element={<ProfileSetup />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/join/:code" element={<JoinLeague />} />
+            <Route 
+              path="/results" 
+              element={
+                <ProtectedRoute>
+                  <Results />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/picks" 
+              element={
+                <ProtectedRoute>
+                  <Picks />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <AdminRoute>
+                  <Admin />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/players" 
+              element={
+                <AdminRoute>
+                  <AdminPlayers />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              } 
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <BottomNav />
+        </div>
+      </SeasonProvider>
+    </LeagueProvider>
+  );
+};
+
 const App = () => (
   <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
@@ -33,70 +114,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <LeagueProvider>
-            <SeasonProvider>
-              <div className="min-h-screen pb-16">
-                <Routes>
-                  <Route path="/" element={<LeaguesHome />} />
-                  <Route path="/signin" element={<SignIn />} />
-                  <Route path="/profile-setup" element={<ProfileSetup />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route
-                    path="/profile" 
-                    element={
-                      <ProtectedRoute>
-                        <Profile />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route path="/join/:code" element={<JoinLeague />} />
-                  <Route 
-                    path="/results" 
-                    element={
-                      <ProtectedRoute>
-                        <Results />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/picks" 
-                    element={
-                      <ProtectedRoute>
-                        <Picks />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/admin" 
-                    element={
-                      <AdminRoute>
-                        <Admin />
-                      </AdminRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/admin/players" 
-                    element={
-                      <AdminRoute>
-                        <AdminPlayers />
-                      </AdminRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/admin/users" 
-                    element={
-                      <AdminRoute>
-                        <AdminUsers />
-                      </AdminRoute>
-                    } 
-                  />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <BottomNav />
-              </div>
-            </SeasonProvider>
-          </LeagueProvider>
+          <AppContent />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
