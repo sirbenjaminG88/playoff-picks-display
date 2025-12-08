@@ -154,7 +154,7 @@ const SignIn = () => {
                 EMMA
               </CardTitle>
               <CardDescription className="text-muted-foreground mt-2">
-                Sign in to join the league
+                Sign in or create an account
               </CardDescription>
             </div>
           </CardHeader>
@@ -295,9 +295,12 @@ const SignIn = () => {
                         {isTestEmail ? "Signing in..." : "Sending..."}
                       </>
                     ) : (
-                      isTestEmail ? "Sign in (Test Mode)" : "Send magic link"
+                      isTestEmail ? "Sign in (Test Mode)" : "Continue with email"
                     )}
                   </Button>
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    We'll send you a magic link to sign in or create your account
+                  </p>
                 </form>
               </div>
             )}
