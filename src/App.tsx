@@ -55,6 +55,8 @@ const AppContent = () => {
       <SeasonProvider>
         <div className="min-h-screen pb-16">
           <Routes>
+            {/* Test route for splash screen - dev only */}
+            <Route path="/splash-test" element={<SplashScreen />} />
             <Route path="/" element={<LeaguesHome />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/profile-setup" element={<ProfileSetup />} />
