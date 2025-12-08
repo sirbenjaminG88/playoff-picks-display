@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Camera, Loader2, Mail, User, Trash2, LogOut, Fingerprint, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Mail, User, Trash2, LogOut, Fingerprint, Lock, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 // TODO: Biometric login - When implemented:
@@ -467,12 +468,16 @@ const Profile = () => {
 
               <Separator />
 
-              {/* Change Password Section */}
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-muted-foreground" />
-                  <p className="text-sm font-medium text-foreground">Change Password</p>
-                </div>
+              {/* Change Password Section - Collapsible */}
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 group">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-sm font-medium text-foreground">Change Password</p>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4 animate-accordion-down data-[state=closed]:animate-accordion-up">
 
                 {passwordError && (
                   <Alert variant="destructive">
@@ -576,21 +581,22 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleChangePassword}
-                  disabled={savingPassword || (!currentPassword && !newPassword && !confirmPassword)}
-                  className="w-full"
-                >
-                  {savingPassword ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Changing Password...
-                    </>
-                  ) : (
-                    "Change Password"
-                  )}
-                </Button>
-              </div>
+                  <Button
+                    onClick={handleChangePassword}
+                    disabled={savingPassword || (!currentPassword && !newPassword && !confirmPassword)}
+                    className="w-full"
+                  >
+                    {savingPassword ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Changing Password...
+                      </>
+                    ) : (
+                      "Change Password"
+                    )}
+                  </Button>
+                </CollapsibleContent>
+              </Collapsible>
 
               <Separator />
 
