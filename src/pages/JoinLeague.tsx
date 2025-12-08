@@ -114,8 +114,8 @@ const JoinLeague = () => {
 
   const handleJoin = async () => {
     if (!user) {
-      // Redirect to sign in, then back here
-      navigate(`/signin?redirect=/join/${code}`);
+      // Redirect to sign in, then back here (using state for proper redirect chain)
+      navigate("/signin", { state: { from: `/join/${code}` } });
       return;
     }
 
