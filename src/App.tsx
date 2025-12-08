@@ -17,6 +17,7 @@ import AdminPlayers from "./pages/AdminPlayers";
 import AdminUsers from "./pages/AdminUsers";
 import SignIn from "./pages/SignIn";
 import ProfileSetup from "./pages/ProfileSetup";
+import ResetPassword from "./pages/ResetPassword";
 import LeaguesHome from "./pages/LeaguesHome";
 import JoinLeague from "./pages/JoinLeague";
 import Profile from "./pages/Profile";
@@ -39,7 +40,8 @@ const App = () => (
                   <Route path="/" element={<LeaguesHome />} />
                   <Route path="/signin" element={<SignIn />} />
                   <Route path="/profile-setup" element={<ProfileSetup />} />
-                  <Route 
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route
                     path="/profile" 
                     element={
                       <ProtectedRoute>
