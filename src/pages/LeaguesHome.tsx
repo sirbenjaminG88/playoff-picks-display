@@ -99,12 +99,12 @@ const LeaguesHome = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/leagues-home");
+    navigate("/");
   };
 
   const handleCreateLeague = () => {
     if (!user) {
-      navigate("/signin", { state: { from: "/leagues-home", action: "create" } });
+      navigate("/signin", { state: { from: "/", action: "create" } });
     } else {
       setShowCreateModal(true);
     }
@@ -112,7 +112,7 @@ const LeaguesHome = () => {
 
   const handleJoinLeague = () => {
     if (!user) {
-      navigate("/signin", { state: { from: "/leagues-home", action: "join" } });
+      navigate("/signin", { state: { from: "/", action: "join" } });
     } else {
       setShowJoinModal(true);
     }
@@ -170,7 +170,7 @@ const LeaguesHome = () => {
             </div>
 
             <div className="flex flex-col items-center justify-center gap-3">
-              <Link to="/signin" state={{ from: "/leagues-home" }}>
+              <Link to="/signin" state={{ from: "/" }}>
                 <Button size="lg" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
                   <LogIn className="w-5 h-5 mr-2" />
                   Sign In / Sign Up

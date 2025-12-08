@@ -7,7 +7,7 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-nav-bg">
       <div className="flex items-center justify-around h-16 max-w-md mx-auto px-4">
         <NavLink
-          to="/home"
+          to="/"
           className="flex flex-col items-center justify-center gap-1 flex-1 py-2 text-nav-inactive transition-colors"
           activeClassName="text-primary"
         >
