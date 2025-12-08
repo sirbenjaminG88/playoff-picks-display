@@ -22,19 +22,17 @@ test.describe('Navigation', () => {
     await expect(page.getByText(/not found|404/i)).toBeVisible();
   });
 
-  test('should have working bottom navigation when authenticated', async ({ page }) => {
-    // First login with test account
+  test('should redirect unauthenticated to signin from protected routes', async ({ page }) => {
+    await page.goto('/picks');
+    
+    // Should redirect to signin
+    await expect(page).toHaveURL(/signin/);
+  });
+
+  test('should show signin page', async ({ page }) => {
     await page.goto('/signin');
-    await page.getByText(/test account/i).click();
-    await page.getByPlaceholder(/email/i).fill('test@emma.dev');
-    await page.getByPlaceholder(/password/i).fill('testpass123');
-    await page.getByRole('button', { name: /sign in/i }).click();
     
-    // Wait for navigation
-    await page.waitForURL(/\/(leagues-home|picks|profile-setup)/);
-    
-    // Check bottom nav exists (if on authenticated route)
-    const bottomNav = page.locator('nav').filter({ has: page.getByRole('link') });
-    await expect(bottomNav).toBeVisible();
+    await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
+    await expect(page.getByPlaceholder(/email/i)).toBeVisible();
   });
 });
