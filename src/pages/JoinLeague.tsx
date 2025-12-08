@@ -48,11 +48,21 @@ const JoinLeague = () => {
     setError(null);
 
     try {
-      // Fetch league by join code (case-insensitive)
+      // Use secure function to validate join code without exposing codes
+      const { data: leagueId, error: validateError } = await supabase
+        .rpc("validate_join_code", { p_join_code: code });
+
+      if (validateError || !leagueId) {
+        setError("League not found. Check the join code and try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch league details by ID (join_code not included in response)
       const { data: leagueData, error: leagueError } = await supabase
         .from("leagues")
         .select("id, name, max_members, season, season_type, icon_url")
-        .ilike("join_code", code)
+        .eq("id", leagueId)
         .single();
 
       if (leagueError || !leagueData) {

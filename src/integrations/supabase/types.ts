@@ -84,6 +84,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "league_members_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "league_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -683,6 +690,39 @@ export type Database = {
       }
     }
     Views: {
+      leagues_safe: {
+        Row: {
+          created_at: string | null
+          icon_url: string | null
+          id: string | null
+          join_code: string | null
+          max_members: number | null
+          name: string | null
+          season: number | null
+          season_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          icon_url?: string | null
+          id?: string | null
+          join_code?: never
+          max_members?: number | null
+          name?: string | null
+          season?: number | null
+          season_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          icon_url?: string | null
+          id?: string | null
+          join_code?: never
+          max_members?: number | null
+          name?: string | null
+          season?: number | null
+          season_type?: string | null
+        }
+        Relationships: []
+      }
       public_profiles: {
         Row: {
           avatar_url: string | null
@@ -727,6 +767,13 @@ export type Database = {
             referencedRelation: "leagues"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "league_members_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -739,6 +786,7 @@ export type Database = {
         Returns: boolean
       }
       generate_funny_join_code: { Args: never; Returns: string }
+      get_league_join_code: { Args: { p_league_id: string }; Returns: string }
       get_my_display_name: { Args: never; Returns: string }
       get_user_league_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
@@ -752,6 +800,7 @@ export type Database = {
         Args: { p_league_id: string; p_season: number; p_week: number }
         Returns: boolean
       }
+      validate_join_code: { Args: { p_join_code: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "player"
