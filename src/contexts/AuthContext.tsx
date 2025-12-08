@@ -1,6 +1,9 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+
+// TODO: Biometric login - After successful email/password login, consider storing
+// credentials securely (via Capacitor Secure Storage) to enable Face ID/Touch ID login
 
 interface Profile {
   id: string;
@@ -107,13 +110,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
+    // TODO: Biometric login - Clear any stored biometric credentials here
+    // TODO: Account deletion - This is where account deletion would call
+    // supabase.rpc('delete_user_account') before signing out
+    
     await supabase.auth.signOut();
+    
+    // Clear all user-specific state
     setUser(null);
     setSession(null);
     setProfile(null);
     setIsAdmin(false);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, signOut, refreshProfile }}>
