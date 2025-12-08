@@ -214,15 +214,14 @@ const LeaguesHome = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-8 pb-24">
         {/* Header with user info */}
-        <div className="flex items-start justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-primary rounded-xl shadow-md">
-              <Trophy className="w-6 h-6 text-primary-foreground" />
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-primary rounded-xl shadow-md">
+                <Trophy className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground">EMMA</h1>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">EMMA</h1>
-          </div>
-          
-          <div className="flex flex-col items-end">
             <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5">
               <Avatar className="h-6 w-6">
                 {profile?.avatar_url ? (
@@ -235,9 +234,11 @@ const LeaguesHome = () => {
               </Avatar>
               <span className="text-sm font-medium text-foreground">{profile?.display_name?.split(" ")[0]}</span>
             </div>
+          </div>
+          <div className="flex justify-end mt-2">
             <button 
               onClick={handleSignOut}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 mt-2 pr-1"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
               <LogOut className="w-3 h-3" />
               Sign out
