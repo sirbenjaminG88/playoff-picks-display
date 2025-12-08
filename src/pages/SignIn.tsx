@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Trophy, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { z } from "zod";
@@ -14,10 +15,19 @@ const emailSchema = z.string().email("Please enter a valid email address");
 
 // Test accounts for development/preview mode
 const TEST_ACCOUNTS: Record<string, string> = {
-  "test@emma.dev": "testpass123",
+  "test1@emma.dev": "testpass123",
   "test2@emma.dev": "testpass123",
   "test3@emma.dev": "testpass123",
+  "test4@emma.dev": "testpass123",
+  "test5@emma.dev": "testpass123",
+  "test6@emma.dev": "testpass123",
+  "test7@emma.dev": "testpass123",
+  "test8@emma.dev": "testpass123",
+  "test9@emma.dev": "testpass123",
+  "test10@emma.dev": "testpass123",
 };
+
+const TEST_ACCOUNT_EMAILS = Object.keys(TEST_ACCOUNTS);
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -176,72 +186,120 @@ const SignIn = () => {
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleSignIn} className="space-y-4">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium text-foreground">
-                    Email address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 bg-background border-border"
+              <div className="space-y-6">
+                {/* Quick Test Account Selector */}
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 space-y-3">
+                  <p className="text-sm font-medium text-primary">Quick Sign In (Dev Mode)</p>
+                  <Select
+                    onValueChange={(value) => {
+                      setEmail(value);
+                      setPassword("testpass123");
+                    }}
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select a test account..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TEST_ACCOUNT_EMAILS.map((email) => (
+                        <SelectItem key={email} value={email}>
+                          {email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {isTestEmail && (
+                    <Button
+                      type="button"
+                      className="w-full"
                       disabled={loading}
-                      required
-                    />
+                      onClick={handleSignIn}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        `Sign in as ${email}`
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or use email</span>
                   </div>
                 </div>
 
-                {/* Password field for test account only */}
-                {isTestEmail && (
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <div className="space-y-2">
-                    <label htmlFor="password" className="text-sm font-medium text-foreground">
-                      Test Password
+                    <label htmlFor="email" className="text-sm font-medium text-foreground">
+                      Email address
                     </label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
-                        id="password"
-                        type="password"
-                        placeholder="Enter test password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 bg-background border-border"
                         disabled={loading}
                         required
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Dev mode: Use password "testpass123"
-                    </p>
                   </div>
-                )}
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={loading || !email || (isTestEmail && !password)}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {isTestEmail ? "Signing in..." : "Sending..."}
-                    </>
-                  ) : (
-                    isTestEmail ? "Sign in (Test Mode)" : "Send magic link"
+                  {/* Password field for test account only */}
+                  {isTestEmail && (
+                    <div className="space-y-2">
+                      <label htmlFor="password" className="text-sm font-medium text-foreground">
+                        Test Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Enter test password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="pl-10 bg-background border-border"
+                          disabled={loading}
+                          required
+                        />
+                      </div>
+                    </div>
                   )}
-                </Button>
-              </form>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={loading || !email || (isTestEmail && !password)}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        {isTestEmail ? "Signing in..." : "Sending..."}
+                      </>
+                    ) : (
+                      isTestEmail ? "Sign in (Test Mode)" : "Send magic link"
+                    )}
+                  </Button>
+                </form>
+              </div>
             )}
             
             <div className="text-center">
