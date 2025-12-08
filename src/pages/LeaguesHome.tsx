@@ -222,7 +222,10 @@ const LeaguesHome = () => {
               </div>
               <h1 className="text-2xl font-bold text-foreground">EMMA</h1>
             </div>
-            <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5">
+            <button
+              onClick={() => navigate("/profile")}
+              className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5 hover:bg-muted/50 transition-colors"
+            >
               <Avatar className="h-6 w-6">
                 {profile?.avatar_url ? (
                   <AvatarImage src={profile.avatar_url} alt={profile.display_name || ""} />
@@ -233,7 +236,7 @@ const LeaguesHome = () => {
                 )}
               </Avatar>
               <span className="text-sm font-medium text-foreground">{profile?.display_name?.split(" ")[0]}</span>
-            </div>
+            </button>
           </div>
           <div className="flex justify-end mt-2">
             <button 
