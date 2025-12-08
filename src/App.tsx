@@ -21,7 +21,6 @@ import ResetPassword from "./pages/ResetPassword";
 import LeaguesHome from "./pages/LeaguesHome";
 import JoinLeague from "./pages/JoinLeague";
 import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,14 +50,6 @@ const App = () => (
                     } 
                   />
                   <Route path="/join/:code" element={<JoinLeague />} />
-                  <Route 
-                    path="/settings" 
-                    element={
-                      <ProtectedRoute>
-                        <Settings />
-                      </ProtectedRoute>
-                    } 
-                  />
                   <Route 
                     path="/results" 
                     element={

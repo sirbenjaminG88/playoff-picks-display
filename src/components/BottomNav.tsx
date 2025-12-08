@@ -1,5 +1,9 @@
-import { Home, ClipboardList, Trophy, Settings } from "lucide-react";
+import { Home, ClipboardList, Trophy } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+
+// TODO: Once the temporary season selector is removed from Submissions/Results headers,
+// add the same top-right profile icon used on Home here
+// to navigate to /profile for a consistent entry point.
 
 export function BottomNav() {
   return (
@@ -30,15 +34,6 @@ export function BottomNav() {
         >
           <Trophy className="h-5 w-5" />
           <span className="text-xs font-medium">Results</span>
-        </NavLink>
-
-        <NavLink
-          to="/settings"
-          className="flex flex-col items-center justify-center gap-1 flex-1 py-2 text-nav-inactive transition-colors"
-          activeClassName="text-primary"
-        >
-          <Settings className="h-5 w-5" />
-          <span className="text-xs font-medium">Settings</span>
         </NavLink>
       </div>
     </nav>
