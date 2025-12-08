@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,15 +27,26 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const SPLASH_MIN_DURATION_MS = 2000;
+
 /**
  * AppContent - Main app content rendered after auth initialization.
- * Shows SplashScreen while auth is loading, then renders routes.
+ * Shows SplashScreen for minimum duration while auth is loading.
  */
 const AppContent = () => {
   const { loading } = useAuth();
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
-  // Show branded splash screen while auth is initializing
-  if (loading) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinTimeElapsed(true);
+    }, SPLASH_MIN_DURATION_MS);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show splash until both auth is done AND minimum time has passed
+  if (loading || !minTimeElapsed) {
     return <SplashScreen />;
   }
 
