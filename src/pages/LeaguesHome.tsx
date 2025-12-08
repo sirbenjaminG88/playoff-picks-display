@@ -171,19 +171,11 @@ const LeaguesHome = () => {
 
             <div className="flex flex-col items-center justify-center gap-3">
               <Link to="/signin" state={{ from: "/leagues-home" }}>
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
+                <Button size="lg" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
                   <LogIn className="w-5 h-5 mr-2" />
                   Sign In / Sign Up
                 </Button>
               </Link>
-              <Button 
-                size="lg" 
-                className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all"
-                onClick={handleJoinLeague}
-              >
-                <UserPlus className="w-5 h-5 mr-2" />
-                Join League
-              </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
@@ -193,6 +185,12 @@ const LeaguesHome = () => {
                 <Plus className="w-5 h-5 mr-2" />
                 Create League
               </Button>
+              <button 
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
+                onClick={handleJoinLeague}
+              >
+                Have a join code? <span className="underline">Enter it here</span>
+              </button>
             </div>
           </div>
         </div>
