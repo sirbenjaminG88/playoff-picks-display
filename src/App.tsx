@@ -10,7 +10,6 @@ import { SeasonProvider } from "@/contexts/SeasonContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Index from "./pages/Index";
 import Results from "./pages/Results";
 import Picks from "./pages/Picks";
 import Admin from "./pages/Admin";
@@ -38,7 +37,6 @@ const App = () => (
               <div className="min-h-screen pb-16">
                 <Routes>
                   <Route path="/" element={<LeaguesHome />} />
-                  <Route path="/test-home" element={<Index />} />
                   <Route path="/signin" element={<SignIn />} />
                   <Route path="/profile-setup" element={<ProfileSetup />} />
                   <Route 
