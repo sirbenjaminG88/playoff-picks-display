@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ const TEST_ACCOUNTS: Record<string, string> = {
 
 const SignIn = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,16 +32,21 @@ const SignIn = () => {
   const isTestEmail = emailLower in TEST_ACCOUNTS;
   const testPassword = TEST_ACCOUNTS[emailLower];
 
+  // Get the redirect location from state
+  const locationState = location.state as { from?: string; action?: string } | null;
+
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && user) {
       if (!profile || !profile.display_name) {
-        navigate("/profile-setup", { replace: true });
+        navigate("/profile-setup", { replace: true, state: locationState });
       } else {
-        navigate("/picks", { replace: true });
+        // Redirect to the original location or default to /picks
+        const redirectTo = locationState?.from || "/picks";
+        navigate(redirectTo, { replace: true, state: { action: locationState?.action } });
       }
     }
-  }, [user, profile, authLoading, navigate]);
+  }, [user, profile, authLoading, navigate, locationState]);
 
   // Show loading spinner while checking auth
   if (authLoading) {
