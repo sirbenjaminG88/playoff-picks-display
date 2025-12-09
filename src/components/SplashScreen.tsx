@@ -12,7 +12,7 @@ export const SplashScreen = () => {
       <div className="w-[180px] h-[180px]">
         <Lottie
           animationData={emmaHome}
-          loop={true}
+          loop={false}
           autoplay={true}
         />
       </div>
