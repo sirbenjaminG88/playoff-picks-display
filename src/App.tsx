@@ -27,7 +27,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const SPLASH_MIN_DURATION_MS = 2000;
+const SPLASH_MIN_DURATION_MS = 3000;
 
 /**
  * AppContent - Main app content rendered after auth initialization.
