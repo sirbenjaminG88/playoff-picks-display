@@ -1,0 +1,18 @@
+<svg
+  width="512"
+  height="512"
+  viewBox="0 0 512 512"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Rounded green background -->
+  <rect width="512" height="512" rx="100" fill="#4ADE80"/>
+  
+  <!-- Trophy icon (white, centered) -->
+  <g transform="translate(128, 128)" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M64 32h128M80 32v64a48 48 0 0 0 96 0V32"/>
+    <path d="M48 32v48a72 72 0 0 0 72 72h16a72 72 0 0 0 72-72V32"/>
+    <path d="M100 176h56"/>
+    <path d="M88 200h80v40H88z"/>
+  </g>
+</svg>
