@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SplashScreen as NativeSplashScreen } from "@capacitor/splash-screen";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LeagueProvider } from "@/contexts/LeagueContext";
@@ -44,6 +45,15 @@ const AppContent = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Hide native splash when app is ready (auth loaded + min time elapsed)
+  useEffect(() => {
+    if (!loading && minTimeElapsed) {
+      NativeSplashScreen.hide().catch(() => {
+        // Ignore if running in web or plugin not available
+      });
+    }
+  }, [loading, minTimeElapsed]);
 
   // Show splash until both auth is done AND minimum time has passed
   if (loading || !minTimeElapsed) {
