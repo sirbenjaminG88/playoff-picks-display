@@ -23,7 +23,7 @@ export const SplashScreen = () => {
           EMMA
         </h1>
         <p className="text-lg text-gray-400 mt-2">
-          Finally — fantasy football in the playoffs.
+          Fantasy football, in the playoffs. Finally.
         </p>
       </div>
     </div>
