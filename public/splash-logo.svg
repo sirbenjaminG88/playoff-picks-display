@@ -1,0 +1,15 @@
+<svg
+  width="200"
+  height="200"
+  viewBox="0 0 200 200"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Trophy icon (white, centered on transparent) -->
+  <g transform="translate(36, 36)" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M40 16h64M48 16v32a24 24 0 0 0 48 0V16"/>
+    <path d="M24 16v24a36 36 0 0 0 36 36h8a36 36 0 0 0 36-36V16"/>
+    <path d="M50 88h28"/>
+    <path d="M44 100h40v20H44z"/>
+  </g>
+</svg>
