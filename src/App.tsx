@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,13 +28,95 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const SPLASH_MIN_DURATION_MS = 3000;
-
 /**
- * AppContent - TEMPORARY: Always render SplashScreen for native iOS testing.
+ * AppContent - Main app content rendered after auth initialization.
+ * Hides native splash when auth is ready.
  */
 const AppContent = () => {
-  return <SplashScreen />;
+  const { loading } = useAuth();
+
+  // Hide native splash when auth is ready
+  useEffect(() => {
+    if (!loading) {
+      NativeSplashScreen.hide().catch(() => {
+        // Ignore if running in web or plugin not available
+      });
+    }
+  }, [loading]);
+
+  // Show loading state while auth initializes
+  if (loading) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <LeagueProvider>
+      <SeasonProvider>
+        <div className="min-h-screen pb-16">
+          <Routes>
+            {/* Test route for splash screen - dev only */}
+            <Route path="/splash-test" element={<SplashScreen />} />
+            <Route path="/" element={<LeaguesHome />} />
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/profile-setup" element={<ProfileSetup />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/join/:code" element={<JoinLeague />} />
+            <Route 
+              path="/results" 
+              element={
+                <ProtectedRoute>
+                  <Results />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/picks" 
+              element={
+                <ProtectedRoute>
+                  <Picks />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <AdminRoute>
+                  <Admin />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/players" 
+              element={
+                <AdminRoute>
+                  <AdminPlayers />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              } 
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <BottomNav />
+        </div>
+      </SeasonProvider>
+    </LeagueProvider>
+  );
 };
 
 const App = () => (
