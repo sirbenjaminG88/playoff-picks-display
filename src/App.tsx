@@ -1,18 +1,15 @@
-import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SplashScreen as NativeSplashScreen } from "@capacitor/splash-screen";
 import { BottomNav } from "@/components/BottomNav";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { LeagueProvider } from "@/contexts/LeagueContext";
 import { SeasonProvider } from "@/contexts/SeasonContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { SplashScreen } from "@/components/SplashScreen";
 import { SafeArea } from "@/components/SafeArea";
 import Results from "./pages/Results";
 import Picks from "./pages/Picks";
@@ -30,34 +27,15 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 /**
- * AppContent - Main app content rendered after auth initialization.
- * Hides native splash when auth is ready.
+ * AppContent - Main app content. No splash delays.
  */
 const AppContent = () => {
-  const { loading } = useAuth();
-
-  // Hide native splash when auth is ready
-  useEffect(() => {
-    if (!loading) {
-      NativeSplashScreen.hide().catch(() => {
-        // Ignore if running in web or plugin not available
-      });
-    }
-  }, [loading]);
-
-  // Show loading state while auth initializes
-  if (loading) {
-    return <SplashScreen />;
-  }
-
   return (
     <SafeArea className="min-h-screen flex flex-col bg-background">
       <LeagueProvider>
         <SeasonProvider>
           <div className="flex-1 pb-16">
             <Routes>
-            {/* Test route for splash screen - dev only */}
-            <Route path="/splash-test" element={<SplashScreen />} />
             <Route path="/" element={<LeaguesHome />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/profile-setup" element={<ProfileSetup />} />
