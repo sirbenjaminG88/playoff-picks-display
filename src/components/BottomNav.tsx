@@ -1,13 +1,19 @@
 import { Home, ClipboardList, Trophy } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { Capacitor } from "@capacitor/core";
 
 // TODO: Once the temporary season selector is removed from Submissions/Results headers,
 // add the same top-right profile icon used on Home here
 // to navigate to /profile for a consistent entry point.
 
 export function BottomNav() {
+  const isNative = Capacitor.isNativePlatform();
+  
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-nav-bg">
+    <nav 
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-nav-bg"
+      style={isNative ? { paddingBottom: "env(safe-area-inset-bottom)" } : undefined}
+    >
       <div className="flex items-center justify-around h-16 max-w-md mx-auto px-4">
         <NavLink
           to="/"
