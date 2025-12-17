@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashScreen } from "@/components/SplashScreen";
+import { SafeArea } from "@/components/SafeArea";
 import Results from "./pages/Results";
 import Picks from "./pages/Picks";
 import Admin from "./pages/Admin";
@@ -50,10 +51,11 @@ const AppContent = () => {
   }
 
   return (
-    <LeagueProvider>
-      <SeasonProvider>
-        <div className="min-h-screen pb-16">
-          <Routes>
+    <SafeArea className="min-h-screen flex flex-col bg-background">
+      <LeagueProvider>
+        <SeasonProvider>
+          <div className="flex-1 pb-16">
+            <Routes>
             {/* Test route for splash screen - dev only */}
             <Route path="/splash-test" element={<SplashScreen />} />
             <Route path="/" element={<LeaguesHome />} />
@@ -111,11 +113,12 @@ const AppContent = () => {
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
-          </Routes>
-          <BottomNav />
-        </div>
-      </SeasonProvider>
-    </LeagueProvider>
+            </Routes>
+            <BottomNav />
+          </div>
+        </SeasonProvider>
+      </LeagueProvider>
+    </SafeArea>
   );
 };
 
