@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24412" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
     <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24405"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -17,7 +17,7 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gJO-TU-7fq">
-                                <rect key="frame" x="28.5" y="213.5" width="318" height="240"/>
+                                <rect key="frame" x="28.5" y="220.5" width="318" height="226"/>
                                 <subviews>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="EmmaSplash" translatesAutoresizingMaskIntoConstraints="NO" id="C36-tN-REm">
                                         <rect key="frame" x="95" y="0.0" width="128" height="128"/>
@@ -26,15 +26,15 @@
                                             <constraint firstAttribute="height" constant="128" id="ucA-hG-7t8"/>
                                         </constraints>
                                     </imageView>
-                                    <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="center" contentVerticalAlignment="center" text="EMMA" borderStyle="roundedRect" textAlignment="center" adjustsFontForContentSizeCategory="YES" minimumFontSize="24" translatesAutoresizingMaskIntoConstraints="NO" id="2k0-42-mY8">
-                                        <rect key="frame" x="91.5" y="161" width="135" height="45.5"/>
+                                    <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="center" contentVerticalAlignment="center" text="EMMA" textAlignment="center" adjustsFontForContentSizeCategory="YES" minimumFontSize="24" translatesAutoresizingMaskIntoConstraints="NO" id="2k0-42-mY8">
+                                        <rect key="frame" x="114" y="161" width="90" height="36"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="30"/>
                                         <textInputTraits key="textInputTraits"/>
                                     </textField>
-                                    <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="center" contentVerticalAlignment="center" text="Fantasy football, in the playoffs. Finally." borderStyle="roundedRect" textAlignment="center" adjustsFontForContentSizeCategory="YES" minimumFontSize="24" translatesAutoresizingMaskIntoConstraints="NO" id="NvN-gO-8tV">
-                                        <rect key="frame" x="0.0" y="214.5" width="318" height="25.5"/>
+                                    <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="center" contentVerticalAlignment="center" text="Fantasy football, in the playoffs. Finally." textAlignment="center" adjustsFontForContentSizeCategory="YES" minimumFontSize="24" translatesAutoresizingMaskIntoConstraints="NO" id="NvN-gO-8tV">
+                                        <rect key="frame" x="0.0" y="205" width="318" height="21"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <color key="textColor" red="0.81238591978230423" green="0.81238591978230423" blue="0.81238591978230423" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
@@ -43,27 +43,21 @@
                                 </subviews>
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <constraints>
-                                    <!-- Image: top of container, centered horizontally -->
-                                    <constraint firstItem="C36-tN-REm" firstAttribute="top" secondItem="gJO-TU-7fq" secondAttribute="top" id="img-top"/>
-                                    <constraint firstItem="C36-tN-REm" firstAttribute="centerX" secondItem="gJO-TU-7fq" secondAttribute="centerX" id="img-centerX"/>
-                                    <!-- EMMA title: 33pt below image, centered -->
-                                    <constraint firstItem="2k0-42-mY8" firstAttribute="top" secondItem="C36-tN-REm" secondAttribute="bottom" constant="33" id="title-top"/>
-                                    <constraint firstItem="2k0-42-mY8" firstAttribute="centerX" secondItem="gJO-TU-7fq" secondAttribute="centerX" id="title-centerX"/>
-                                    <!-- Tagline: 8pt below title, full width, centered -->
-                                    <constraint firstItem="NvN-gO-8tV" firstAttribute="top" secondItem="2k0-42-mY8" secondAttribute="bottom" constant="8" id="tagline-top"/>
-                                    <constraint firstItem="NvN-gO-8tV" firstAttribute="leading" secondItem="gJO-TU-7fq" secondAttribute="leading" id="tagline-leading"/>
-                                    <constraint firstItem="NvN-gO-8tV" firstAttribute="trailing" secondItem="gJO-TU-7fq" secondAttribute="trailing" id="tagline-trailing"/>
-                                    <!-- Tagline bottom defines container height -->
                                     <constraint firstAttribute="bottom" secondItem="NvN-gO-8tV" secondAttribute="bottom" id="container-bottom"/>
-                                    <!-- Container width -->
                                     <constraint firstAttribute="width" constant="318" id="container-width"/>
+                                    <constraint firstItem="C36-tN-REm" firstAttribute="centerX" secondItem="gJO-TU-7fq" secondAttribute="centerX" id="img-centerX"/>
+                                    <constraint firstItem="C36-tN-REm" firstAttribute="top" secondItem="gJO-TU-7fq" secondAttribute="top" id="img-top"/>
+                                    <constraint firstItem="NvN-gO-8tV" firstAttribute="leading" secondItem="gJO-TU-7fq" secondAttribute="leading" id="tagline-leading"/>
+                                    <constraint firstItem="NvN-gO-8tV" firstAttribute="top" secondItem="2k0-42-mY8" secondAttribute="bottom" constant="8" id="tagline-top"/>
+                                    <constraint firstItem="NvN-gO-8tV" firstAttribute="trailing" secondItem="gJO-TU-7fq" secondAttribute="trailing" id="tagline-trailing"/>
+                                    <constraint firstItem="2k0-42-mY8" firstAttribute="centerX" secondItem="gJO-TU-7fq" secondAttribute="centerX" id="title-centerX"/>
+                                    <constraint firstItem="2k0-42-mY8" firstAttribute="top" secondItem="C36-tN-REm" secondAttribute="bottom" constant="33" id="title-top"/>
                                 </constraints>
                             </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="dUF-g7-fyT"/>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
-                            <!-- Container centered in screen -->
                             <constraint firstItem="gJO-TU-7fq" firstAttribute="centerX" secondItem="fqP-48-Ufx" secondAttribute="centerX" id="container-centerX"/>
                             <constraint firstItem="gJO-TU-7fq" firstAttribute="centerY" secondItem="fqP-48-Ufx" secondAttribute="centerY" id="container-centerY"/>
                         </constraints>
