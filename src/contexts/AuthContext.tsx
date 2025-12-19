@@ -69,25 +69,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    console.log('[AuthContext] Setting up auth...');
+
+    // Safety timeout: Stop loading after 8 seconds no matter what
+    const safetyTimeout = setTimeout(() => {
+      console.log('[AuthContext] Safety timeout - forcing loading to false');
+      setLoading(false);
+    }, 8000);
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('[AuthContext] Auth state changed:', event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         // Defer Supabase calls with setTimeout to prevent deadlocks
         if (session?.user) {
           setTimeout(async () => {
-            const profileData = await fetchProfile(session.user.id);
-            setProfile(profileData);
-            
-            const adminStatus = await checkAdminRole(session.user.id);
-            setIsAdmin(adminStatus);
+            try {
+              const profileData = await fetchProfile(session.user.id);
+              setProfile(profileData);
+
+              const adminStatus = await checkAdminRole(session.user.id);
+              setIsAdmin(adminStatus);
+              console.log('[AuthContext] Auth loaded (from listener)');
+            } catch (error) {
+              console.error('[AuthContext] Error loading profile:', error);
+            }
+            clearTimeout(safetyTimeout);
             setLoading(false);
           }, 0);
         } else {
           setProfile(null);
           setIsAdmin(false);
+          console.log('[AuthContext] No session, auth loaded');
+          clearTimeout(safetyTimeout);
           setLoading(false);
         }
       }
@@ -95,20 +112,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('[AuthContext] Got session:', !!session);
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        const profileData = await fetchProfile(session.user.id);
-        setProfile(profileData);
-        
-        const adminStatus = await checkAdminRole(session.user.id);
-        setIsAdmin(adminStatus);
+        try {
+          const profileData = await fetchProfile(session.user.id);
+          setProfile(profileData);
+
+          const adminStatus = await checkAdminRole(session.user.id);
+          setIsAdmin(adminStatus);
+        } catch (error) {
+          console.error('[AuthContext] Error loading profile:', error);
+        }
       }
+      console.log('[AuthContext] Auth loaded (from getSession)');
+      clearTimeout(safetyTimeout);
+      setLoading(false);
+    }).catch((error) => {
+      console.error('[AuthContext] Error getting session:', error);
+      clearTimeout(safetyTimeout);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = useCallback(async () => {

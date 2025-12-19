@@ -1,16 +1,18 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LeagueProvider } from "@/contexts/LeagueContext";
 import { SeasonProvider } from "@/contexts/SeasonContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SafeArea } from "@/components/SafeArea";
+import { SplashScreen } from '@capacitor/splash-screen';
 import Results from "./pages/Results";
 import Picks from "./pages/Picks";
 import Admin from "./pages/Admin";
@@ -27,9 +29,25 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 /**
- * AppContent - Main app content. No splash delays.
+ * AppContent - Main app content with splash screen handling.
  */
 const AppContent = () => {
+  const { loading } = useAuth();
+
+  useEffect(() => {
+    console.log('[AppContent] Auth loading:', loading);
+
+    // Hide splash screen once auth loading is complete
+    if (!loading && window.Capacitor) {
+      console.log('[AppContent] Auth loaded, hiding splash screen in 500ms');
+      // Small delay to ensure render is complete
+      setTimeout(() => {
+        SplashScreen.hide();
+      }, 500);
+    }
+  }, [loading]);
+
+  // Keep rendering the app even while loading - just hide splash when ready
   return (
     <SafeArea className="min-h-screen flex flex-col bg-background">
       <LeagueProvider>
