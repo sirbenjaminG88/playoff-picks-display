@@ -68,3 +68,6 @@ verify_jwt = true
 
 [functions.send-pick-deadline-notifications]
 verify_jwt = false
+
+[functions.check-pick-deadlines]
+verify_jwt = false
