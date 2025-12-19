@@ -58,16 +58,23 @@ function getWeekIndex(weekLabel: string): number | null {
   return mapping[weekLabel] ?? null;
 }
 
-// Helper to verify admin role
-async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?: string }> {
+// Helper to verify admin role OR internal cron call
+async function verifyAdminOrCron(req: Request): Promise<{ authorized: boolean; error?: string; isCron?: boolean }> {
   const authHeader = req.headers.get('Authorization');
+  
+  // Check for cron job (anon key from internal scheduler)
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  
+  if (authHeader === `Bearer ${supabaseAnonKey}`) {
+    console.log('Request from internal cron job (anon key) - allowing');
+    return { authorized: true, isCron: true };
+  }
+  
   if (!authHeader) {
     return { authorized: false, error: 'Missing authorization header' };
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-  
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } }
   });
@@ -88,7 +95,7 @@ async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?:
   }
 
   console.log(`Admin verified: ${user.id}`);
-  return { authorized: true };
+  return { authorized: true, isCron: false };
 }
 
 Deno.serve(async (req) => {
@@ -97,14 +104,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify admin role
-    const { authorized, error: authError } = await verifyAdmin(req);
+    // Verify admin role or internal cron call
+    const { authorized, error: authError, isCron } = await verifyAdminOrCron(req);
     if (!authorized) {
       return new Response(
         JSON.stringify({ success: false, error: authError }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log(`Auth passed. isCron: ${isCron}`);
 
     const apiSportsKey = Deno.env.get('API_SPORTS_KEY');
     if (!apiSportsKey) {
