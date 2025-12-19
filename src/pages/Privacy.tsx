@@ -77,7 +77,7 @@ const Privacy = () => {
             <h2 className="text-xl font-semibold text-foreground mb-3">Data Retention</h2>
             <p className="text-muted-foreground leading-relaxed">
               We retain your account information and game data for as long as your account is active. You may request deletion of 
-              your account and associated data by contacting us at support@emmaplayoffpicks.com.
+              your account and associated data by contacting us at support@playoffpicks.app.
             </p>
           </section>
 
@@ -111,8 +111,8 @@ const Privacy = () => {
             <h2 className="text-xl font-semibold text-foreground mb-3">Contact Us</h2>
             <p className="text-muted-foreground leading-relaxed">
               If you have any questions about this Privacy Policy, please contact us at{" "}
-              <a href="mailto:support@emmaplayoffpicks.com" className="text-primary hover:underline">
-                support@emmaplayoffpicks.com
+              <a href="mailto:support@playoffpicks.app" className="text-primary hover:underline">
+                support@playoffpicks.app
               </a>
             </p>
           </section>

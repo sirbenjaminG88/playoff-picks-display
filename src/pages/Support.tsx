@@ -42,10 +42,10 @@ const Support = () => {
               Have a question or need help? We're here for you.
             </p>
             <a 
-              href="mailto:support@emmaplayoffpicks.com" 
+              href="mailto:support@playoffpicks.app" 
               className="text-primary hover:underline font-medium"
             >
-              support@emmaplayoffpicks.com
+              support@playoffpicks.app
             </a>
             <p className="text-sm text-muted-foreground mt-2">
               We typically respond within 24 hours.
