@@ -36,16 +36,51 @@ async function getAccessToken(): Promise<string> {
 
   // Import the private key
   const pemKey = serviceAccount.private_key;
-  const pemContents = pemKey
-    .replace('-----BEGIN PRIVATE KEY-----', '')
-    .replace('-----END PRIVATE KEY-----', '')
-    .replace(/\s/g, '');
+  
+  console.log('Raw key first 100 chars:', pemKey.substring(0, 100));
+  console.log('Raw key last 100 chars:', pemKey.substring(pemKey.length - 100));
+  console.log('Contains BEGIN:', pemKey.includes('BEGIN'));
+  console.log('Contains END:', pemKey.includes('END'));
+  console.log('Contains escaped newlines:', pemKey.includes('\\n'));
+  
+  // Handle escaped newlines from JSON
+  const keyWithNewlines = pemKey.replace(/\\n/g, '\n');
+  
+  console.log('After newline fix, first 100:', keyWithNewlines.substring(0, 100));
+  
+  // Match everything between BEGIN and END markers (handle extra spaces in malformed keys)
+  const match = keyWithNewlines.match(/-----BEGIN PRIVATE KEY-----([\s\S]*?)-----END\s+PRIVATE\s+KEY-----/);
+  
+  if (!match) {
+    console.error('Could not find PEM key markers in private key');
+    throw new Error('Invalid private key format');
+  }
+  
+  // Clean the base64 content - remove all whitespace
+  const base64Clean = match[1].replace(/[\s]/g, '');
 
-  const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  console.log('Cleaned key length:', base64Clean.length);
+  console.log('First 20 chars:', base64Clean.substring(0, 20));
+  console.log('Last 20 chars:', base64Clean.substring(base64Clean.length - 20));
 
+  let binaryKey: Uint8Array;
+  try {
+    const decoded = atob(base64Clean);
+    binaryKey = new Uint8Array(decoded.length);
+    for (let i = 0; i < decoded.length; i++) {
+      binaryKey[i] = decoded.charCodeAt(i);
+    }
+  } catch (e) {
+    console.error('Failed to decode base64 private key. Key length:', base64Clean.length);
+    console.error('atob error:', e);
+    throw new Error('Failed to decode base64');
+  }
+
+  const keyBuffer = binaryKey.buffer.slice(binaryKey.byteOffset, binaryKey.byteOffset + binaryKey.byteLength) as ArrayBuffer;
+  
   const key = await crypto.subtle.importKey(
     'pkcs8',
-    binaryKey,
+    keyBuffer,
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     false,
     ['sign']
