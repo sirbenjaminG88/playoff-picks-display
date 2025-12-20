@@ -13,96 +13,144 @@ interface PushToken {
   platform: 'ios' | 'android';
 }
 
-// Send push notification via APNs (Apple Push Notification service)
-async function sendAPNsPush(
+// Get OAuth 2.0 access token from Firebase service account
+async function getAccessToken(): Promise<string> {
+  const serviceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
+
+  if (!serviceAccountJson) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT not configured');
+  }
+
+  const serviceAccount = JSON.parse(serviceAccountJson);
+
+  // Create JWT for Google OAuth
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iss: serviceAccount.client_email,
+    scope: 'https://www.googleapis.com/auth/firebase.messaging',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now,
+  };
+
+  // Import the private key
+  const pemKey = serviceAccount.private_key;
+  const pemContents = pemKey
+    .replace('-----BEGIN PRIVATE KEY-----', '')
+    .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\s/g, '');
+
+  const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+
+  const key = await crypto.subtle.importKey(
+    'pkcs8',
+    binaryKey,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  // Create JWT
+  const encoder = new TextEncoder();
+  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const signatureInput = encoder.encode(`${headerB64}.${payloadB64}`);
+
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    signatureInput
+  );
+
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+
+  const jwt = `${headerB64}.${payloadB64}.${signatureB64}`;
+
+  // Exchange JWT for access token
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const error = await tokenResponse.text();
+    throw new Error(`Failed to get access token: ${error}`);
+  }
+
+  const { access_token } = await tokenResponse.json();
+  return access_token;
+}
+
+// Send push notification via Firebase Cloud Messaging
+async function sendFCMPush(
   token: string,
   title: string,
   body: string,
-  data?: Record<string, unknown>
+  data?: Record<string, string>
 ): Promise<{ success: boolean; error?: string }> {
-  const keyId = Deno.env.get('APNS_KEY_ID');
-  const teamId = Deno.env.get('APNS_TEAM_ID');
-  const authKey = Deno.env.get('APNS_AUTH_KEY');
-  const bundleId = Deno.env.get('APNS_BUNDLE_ID') || 'app.lovable.2eefee5788904711a2bb541c24b6a97b';
-  
-  if (!keyId || !teamId || !authKey) {
-    console.error('Missing APNs credentials');
-    return { success: false, error: 'Missing APNs credentials' };
-  }
-
   try {
-    // Create JWT for APNs authentication
-    const header = { alg: 'ES256', kid: keyId };
-    const payload = { iss: teamId, iat: Math.floor(Date.now() / 1000) };
-    
-    // Import the private key
-    const pemKey = authKey.replace(/\\n/g, '\n');
-    const pemContents = pemKey.replace('-----BEGIN PRIVATE KEY-----', '')
-      .replace('-----END PRIVATE KEY-----', '')
-      .replace(/\s/g, '');
-    
-    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-    
-    const key = await crypto.subtle.importKey(
-      'pkcs8',
-      binaryKey,
-      { name: 'ECDSA', namedCurve: 'P-256' },
-      false,
-      ['sign']
-    );
+    const serviceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
+    if (!serviceAccountJson) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT not configured');
+    }
 
-    // Create JWT
-    const encoder = new TextEncoder();
-    const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    const signatureInput = encoder.encode(`${headerB64}.${payloadB64}`);
-    
-    const signature = await crypto.subtle.sign(
-      { name: 'ECDSA', hash: 'SHA-256' },
-      key,
-      signatureInput
-    );
-    
-    const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-      .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    
-    const jwt = `${headerB64}.${payloadB64}.${signatureB64}`;
+    const serviceAccount = JSON.parse(serviceAccountJson);
+    const projectId = serviceAccount.project_id;
 
-    // Send to APNs
-    const apnsUrl = `https://api.push.apple.com/3/device/${token}`;
-    
-    const apnsPayload = {
-      aps: {
-        alert: { title, body },
-        sound: 'default',
-        badge: 1,
+    // Get OAuth access token
+    const accessToken = await getAccessToken();
+
+    // FCM v1 API endpoint
+    const fcmUrl = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+
+    // Build notification payload
+    const message: any = {
+      token: token,
+      notification: {
+        title: title,
+        body: body,
       },
-      ...data,
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+          },
+        },
+      },
     };
 
-    const response = await fetch(apnsUrl, {
+    // Add custom data if provided
+    if (data) {
+      message.data = data;
+    }
+
+    const response = await fetch(fcmUrl, {
       method: 'POST',
       headers: {
-        'authorization': `bearer ${jwt}`,
-        'apns-topic': bundleId,
-        'apns-push-type': 'alert',
-        'apns-priority': '10',
-        'content-type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(apnsPayload),
+      body: JSON.stringify({ message }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`APNs error for token ${token.substring(0, 10)}...: ${response.status} - ${errorText}`);
-      return { success: false, error: `APNs error: ${response.status}` };
+      console.error(`FCM error for token ${token.substring(0, 10)}...: ${response.status} - ${errorText}`);
+      return { success: false, error: `FCM error: ${response.status}` };
     }
 
     console.log(`Successfully sent push to token ${token.substring(0, 10)}...`);
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`Error sending APNs push: ${errorMessage}`);
+    console.error(`Error sending FCM push: ${errorMessage}`);
     return { success: false, error: errorMessage };
   }
 }
@@ -116,12 +164,12 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
-    const { 
+    const {
       title = "Pick Deadline Reminder",
       message = "Don't forget to make your picks before the games start!",
       userIds, // Optional: specific user IDs to notify
@@ -134,7 +182,7 @@ serve(async (req) => {
     let query = supabase
       .from('push_tokens')
       .select('*');
-    
+
     if (userIds && Array.isArray(userIds) && userIds.length > 0) {
       query = query.in('user_id', userIds);
     }
@@ -159,14 +207,10 @@ serve(async (req) => {
 
     console.log(`Found ${tokens.length} push tokens`);
 
-    // Send notifications
+    // Send notifications via FCM
     const results = await Promise.all(
       tokens.map(async (token: PushToken) => {
-        if (token.platform === 'ios') {
-          return sendAPNsPush(token.token, title, message, data);
-        }
-        // Android support can be added here with FCM
-        return { success: false, error: 'Unsupported platform' };
+        return sendFCMPush(token.token, title, message, data);
       })
     );
 
@@ -176,11 +220,11 @@ serve(async (req) => {
     console.log(`Notifications sent. Success: ${successCount}, Failed: ${failCount}`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        sent: successCount, 
+      JSON.stringify({
+        success: true,
+        sent: successCount,
         failed: failCount,
-        total: tokens.length 
+        total: tokens.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

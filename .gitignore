@@ -31,3 +31,5 @@ playwright-report/
 # Sensitive credentials - DO NOT COMMIT
 AuthKey_*.p8
 GoogleService-Info.plist
+*firebase*.json
+*service-account*.json
