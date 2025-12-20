@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Emma Fantasy Football',
   webDir: 'dist',
   plugins: {
-    PushNotifications: {
+    FirebaseMessaging: {
       presentationOptions: ['badge', 'sound', 'alert']
     },
     SplashScreen: {
@@ -16,7 +16,12 @@ const config: CapacitorConfig = {
     }
   },
   ios: {
-    contentInset: 'always'
+    contentInset: 'always',
+    infoPlist: {
+      NSCameraUsageDescription: 'This app needs access to your camera to take profile photos.',
+      NSPhotoLibraryUsageDescription: 'This app needs access to your photo library to select profile photos.',
+      NSPhotoLibraryAddUsageDescription: 'This app needs access to save photos to your library.'
+    }
   }
 };
 

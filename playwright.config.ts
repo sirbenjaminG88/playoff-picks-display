@@ -19,13 +19,46 @@ export default defineConfig({
     navigationTimeout: 15000,
   },
   projects: [
+    // Setup project - runs first to create authenticated user
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
     },
+
+    // Tests that require authentication
     {
-      name: 'Mobile Safari',
+      name: 'chromium-authenticated',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/user.json',
+      },
+      dependencies: ['setup'],
+      testMatch: /user-journeys\.spec\.ts/,
+    },
+
+    // Tests that should run unauthenticated (auth & navigation tests)
+    {
+      name: 'chromium-unauthenticated',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /(auth|navigation)\.spec\.ts/,
+    },
+
+    // Mobile tests - authenticated
+    {
+      name: 'mobile-authenticated',
+      use: {
+        ...devices['iPhone 13'],
+        storageState: '.auth/user.json',
+      },
+      dependencies: ['setup'],
+      testMatch: /user-journeys\.spec\.ts/,
+    },
+
+    // Mobile tests - unauthenticated
+    {
+      name: 'mobile-unauthenticated',
       use: { ...devices['iPhone 13'] },
+      testMatch: /(auth|navigation)\.spec\.ts/,
     },
   ],
   webServer: {

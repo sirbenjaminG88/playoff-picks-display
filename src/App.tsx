@@ -13,6 +13,7 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SafeArea } from "@/components/SafeArea";
 import { SplashScreen } from '@capacitor/splash-screen';
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import Results from "./pages/Results";
 import Picks from "./pages/Picks";
 import Admin from "./pages/Admin";
@@ -35,6 +36,9 @@ const queryClient = new QueryClient();
  */
 const AppContent = () => {
   const { loading } = useAuth();
+
+  // Initialize push notifications
+  usePushNotifications();
 
   useEffect(() => {
     console.log('[AppContent] Auth loading:', loading);

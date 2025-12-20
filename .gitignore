@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright
+test-results/
+playwright-report/
+.auth/
+
+# Sensitive credentials - DO NOT COMMIT
+AuthKey_*.p8
+GoogleService-Info.plist

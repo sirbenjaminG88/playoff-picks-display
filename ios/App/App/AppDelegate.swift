@@ -1,6 +1,8 @@
 import UIKit
 import Capacitor
 import WebKit
+import UserNotifications
+import FirebaseCore
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -9,8 +11,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     private var warmupWebView: WKWebView?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Initialize Firebase
+        FirebaseApp.configure()
+
         // Pre-warm WebKit processes to reduce cold-start delay
         warmUpWebView()
+
+        // Set up notification delegate
+        UNUserNotificationCenter.current().delegate = self
+
         return true
     }
     
@@ -50,5 +59,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+    // MARK: - Push Notification Handlers
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        // Post notification for our custom bridge
+        NotificationCenter.default.post(
+            name: Notification.Name.capacitorDidRegisterForRemoteNotifications,
+            object: deviceToken
+        )
+
+        print("[AppDelegate] Device token forwarded to bridge")
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        // Post notification for our custom bridge
+        NotificationCenter.default.post(
+            name: Notification.Name.capacitorDidFailToRegisterForRemoteNotifications,
+            object: error
+        )
+
+        print("[AppDelegate] Registration error: \(error.localizedDescription)")
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+
+    // Called when a notification is delivered to a foreground app
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // Show notification even when app is in foreground
+        completionHandler([.banner, .sound, .badge])
+    }
+
+    // Called when user taps on a notification
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        // Handle notification tap
+        completionHandler()
+    }
 }
 
