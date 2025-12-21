@@ -14,10 +14,9 @@ import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useSeason, SEASON_OPTIONS } from "@/contexts/SeasonContext";
 import { useLeague } from "@/contexts/LeagueContext";
 import { formatGameDateET } from "@/lib/timezone";
+import { LeagueSwitcher } from "@/components/LeagueSwitcher";
 
 // Beta weeks for 2025 regular season
 const REGULAR_SEASON_WEEKS = [14, 15, 16, 17];
@@ -987,7 +986,10 @@ function OverallLeaderboard({ throughWeek }: { throughWeek: number }) {
 export default function Results() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
-  const { selectedSeason, setSelectedSeason } = useSeason();
+  const { currentLeague } = useLeague();
+  
+  // Derive isRegularSeason from current league's season_type
+  const isRegularSeason = currentLeague?.season_type === "REG";
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -997,29 +999,18 @@ export default function Results() {
           <div className="flex items-start justify-between gap-4 mb-2">
             <h1 className="text-4xl font-bold text-foreground">Results</h1>
             
-            {/* Season Toggle */}
-            <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as any)}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Select season" />
-              </SelectTrigger>
-              <SelectContent>
-                {SEASON_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* League Switcher */}
+            <LeagueSwitcher />
           </div>
           <p className="text-muted-foreground">
-            {selectedSeason === "2025-regular" 
+            {isRegularSeason 
               ? "2025 Regular Season Beta — Fantasy Results" 
               : "Weekly scores and overall standings"}
           </p>
         </div>
 
         {/* 2025 Regular Season Fantasy View */}
-        {selectedSeason === "2025-regular" ? (
+        {isRegularSeason ? (
           <RegularSeasonResults />
         ) : (
           /* 2024 Playoffs View (Default) */
