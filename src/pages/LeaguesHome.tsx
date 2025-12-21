@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Trophy, BarChart3, Users, LogIn, LogOut, Plus, TrendingUp, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getInitials } from "@/lib/displayName";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreateLeagueModal } from "@/components/leagues/CreateLeagueModal";
@@ -102,9 +103,7 @@ const LeaguesHome = () => {
     setLeaguesLoading(false);
   };
 
-  const getInitials = (name: string) => {
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-  };
+  // getInitials is now imported from @/lib/displayName
 
   const handleSignOut = async () => {
     await signOut();

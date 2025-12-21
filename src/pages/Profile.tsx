@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Camera, Loader2, Mail, User, Trash2, LogOut, Fingerprint, Lock, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { getInitials, validateDisplayName } from "@/lib/displayName";
 
 // TODO: Biometric login - When implemented:
 // - Check if device supports biometrics via Capacitor plugin
@@ -99,9 +100,7 @@ const Profile = () => {
     );
   }
 
-  const getInitials = (name: string) => {
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-  };
+  // getInitials is now imported from @/lib/displayName
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -146,8 +145,9 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
 
-    if (!displayName.trim()) {
-      setError("Please enter your name.");
+    const validationError = validateDisplayName(displayName);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 

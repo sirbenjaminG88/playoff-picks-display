@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Users, ChevronDown, ChevronUp, Clock, Crown, FileText } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { LeagueIcon } from "./LeagueIcon";
+import { getInitials } from "@/lib/displayName";
 
 interface LeagueMember {
   user_id: string;
@@ -138,9 +139,7 @@ export function LeagueCard({
     }
   };
 
-  const getInitials = (name: string) => {
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-  };
+  // getInitials is now imported from @/lib/displayName
 
   const formatDeadline = (date: Date) => {
     return formatInTimeZone(date, "America/New_York", "EEE MMM d, h:mm a 'ET'");
