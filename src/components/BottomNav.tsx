@@ -10,9 +10,14 @@ export function BottomNav() {
   const isNative = Capacitor.isNativePlatform();
   
   return (
-    <nav 
+    <nav
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-nav-bg"
-      style={isNative ? { paddingBottom: "env(safe-area-inset-bottom)" } : undefined}
+      style={isNative ? {
+        paddingBottom: "env(safe-area-inset-bottom)",
+        transform: "translateZ(0)", // Hardware acceleration to prevent scroll issues
+      } : {
+        transform: "translateZ(0)",
+      }}
     >
       <div className="flex items-center justify-around h-16 max-w-md mx-auto px-4">
         <NavLink
