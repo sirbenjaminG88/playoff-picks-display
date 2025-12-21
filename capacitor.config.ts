@@ -10,14 +10,14 @@ const config: CapacitorConfig = {
     },
     SplashScreen: {
       launchAutoHide: false,
-      backgroundColor: "#0E0F11",
+      backgroundColor: "#111214",
       androidScaleType: "CENTER_CROP",
       showSpinner: false
     }
   },
   ios: {
     contentInset: 'always',
-    backgroundColor: '#0E0F11',
+    backgroundColor: '#111214',
     infoPlist: {
       NSCameraUsageDescription: 'This app needs access to your camera to take profile photos.',
       NSPhotoLibraryUsageDescription: 'This app needs access to your photo library to select profile photos.',
