@@ -151,12 +151,32 @@ const Support = () => {
         </section>
 
         {/* Footer */}
-        <footer className="pt-6 border-t border-border text-center">
+        <footer className="pt-6 border-t border-border text-center space-y-2">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Emma Playoff Picks. All rights reserved.
           </p>
-          <p className="text-xs text-tertiary-text mt-2">
+          <p className="text-xs text-tertiary-text">
             NFL and all related marks are trademarks of the National Football League.
+          </p>
+          <p className="text-xs text-tertiary-text">
+            Icons by{" "}
+            <a 
+              href="https://thenounproject.com/creator/nawiconstudio/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-muted-foreground"
+            >
+              Nawicon
+            </a>
+            {" "}from{" "}
+            <a 
+              href="https://thenounproject.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-muted-foreground"
+            >
+              Noun Project
+            </a>
           </p>
         </footer>
       </main>
