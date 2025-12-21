@@ -54,7 +54,7 @@ const LeaguesHome = () => {
     if (user) {
       fetchUserLeagues();
     }
-  }, [user]);
+  }, [user, selectedSeason]);
 
   // Refetch leagues when page regains focus (e.g., after joining a league)
   useEffect(() => {
@@ -70,9 +70,12 @@ const LeaguesHome = () => {
 
   const fetchUserLeagues = async () => {
     if (!user) return;
-    
+
     setLeaguesLoading(true);
-    
+
+    // Map UI season type to database season_type
+    const dbSeasonType = seasonConfig.seasonType === "playoffs" ? "POST" : "REG";
+
     const { data, error } = await supabase
       .from("league_members")
       .select(`
@@ -86,13 +89,16 @@ const LeaguesHome = () => {
     if (error) {
       console.error("Error fetching leagues:", error);
     } else if (data) {
-      // Filter to only show playoff leagues (POST) for now
-      const playoffLeagues = data.filter(
-        (m) => m.league && (m.league as any).season_type === "POST"
+      // Filter leagues by selected season and season type
+      const filteredLeagues = data.filter(
+        (m) =>
+          m.league &&
+          (m.league as any).season === seasonConfig.season &&
+          (m.league as any).season_type === dbSeasonType
       ) as UserLeague[];
-      setLeagues(playoffLeagues);
+      setLeagues(filteredLeagues);
     }
-    
+
     setLeaguesLoading(false);
   };
 
