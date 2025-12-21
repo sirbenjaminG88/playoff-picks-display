@@ -27,10 +27,10 @@ import { formatDeadlineET, formatGameDateET } from "@/lib/timezone";
 import { Pick, Week } from "@/domain/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
-import { useSeason, SEASON_OPTIONS } from "@/contexts/SeasonContext";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRegularSeasonData, RegularSeasonPlayer } from "@/hooks/useRegularSeasonData";
+import { LeagueSwitcher } from "@/components/LeagueSwitcher";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -110,11 +110,11 @@ const getTeamAbbrev = (teamName: string): string => {
 };
 
 const Picks = () => {
-  const { selectedSeason, setSelectedSeason, seasonConfig } = useSeason();
   const { currentLeague, isCommissioner, loading: leagueLoading } = useLeague();
   const { profile, user, loading: authLoading, isAdmin } = useAuth();
   
-  const isRegularSeason = selectedSeason === "2025-regular";
+  // Derive isRegularSeason from current league's season_type
+  const isRegularSeason = currentLeague?.season_type === "REG";
   const CURRENT_TIME = USE_DEBUG_TIME ? DEBUG_NOW : new Date();
 
   // Regular season data
@@ -718,19 +718,8 @@ const Picks = () => {
               </h1>
             </div>
             
-            {/* Season Toggle */}
-            <Select value={selectedSeason} onValueChange={(v) => setSelectedSeason(v as any)}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Select season" />
-              </SelectTrigger>
-              <SelectContent>
-                {SEASON_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* League Switcher */}
+            <LeagueSwitcher />
           </div>
           <p className="text-muted-foreground">
             {isRegularSeason

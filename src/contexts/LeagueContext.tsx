@@ -10,6 +10,7 @@ export interface League {
   season: number;
   season_type: string;
   created_at: string;
+  icon_url: string | null;
 }
 
 export interface LeagueMembership {
@@ -61,7 +62,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
             user_id,
             role,
             joined_at,
-            league:leagues(id, name, season, season_type, created_at)
+            league:leagues(id, name, season, season_type, created_at, icon_url)
           `)
           .eq("user_id", user.id);
 
