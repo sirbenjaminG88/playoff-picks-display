@@ -1,12 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { Capacitor } from "@capacitor/core";
-import { Preferences } from "@capacitor/preferences";
-import { NativeBiometric } from "@capgo/capacitor-native-biometric";
 import { supabase } from "@/integrations/supabase/client";
 
-const BIOMETRIC_CREDENTIALS_KEY = 'biometric_credentials';
-const BIOMETRIC_SERVER = 'emma-app';
 interface Profile {
   id: string;
   display_name: string | null;
@@ -145,15 +140,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    // Clear biometric credentials on sign out
-    try {
-      if (Capacitor.isNativePlatform()) {
-        await NativeBiometric.deleteCredentials({ server: BIOMETRIC_SERVER });
-      }
-      await Preferences.remove({ key: BIOMETRIC_CREDENTIALS_KEY });
-    } catch (error) {
-      console.error('[AuthContext] Error clearing biometric credentials:', error);
-    }
+    // Note: We intentionally DON'T clear biometric credentials on sign out.
+    // The user has enabled Face ID/Touch ID, and they want it to auto-trigger
+    // on the next app open (like DraftKings). Credentials are only cleared when
+    // the user explicitly disables biometric from Profile settings.
 
     await supabase.auth.signOut();
 
