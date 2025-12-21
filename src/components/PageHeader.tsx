@@ -21,7 +21,7 @@ export function PageHeader({ title, subtitle, icon }: PageHeaderProps) {
         <div className="flex items-start justify-between gap-4 mb-2">
           <div className="flex items-center gap-3">
             {icon}
-            <h1 className="text-4xl font-bold text-foreground">{title}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{title}</h1>
           </div>
           
           <div className="flex items-center gap-2">
