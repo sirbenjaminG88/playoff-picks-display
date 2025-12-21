@@ -708,7 +708,7 @@ const Picks = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="border-b border-border bg-card">
+      <header className="border-b border-border bg-background">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-start justify-between gap-4 mb-2">
             <div className="flex items-center gap-3">
@@ -1077,17 +1077,9 @@ const Picks = () => {
                         </>
                       )}
 
-                      <Alert className="bg-muted/20 border-border">
-                        <Info className="h-4 w-4 text-muted-foreground" />
-                        <AlertDescription className="text-sm text-muted-foreground">
-                          Your picks are private to you until either:
-                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li>Everyone in your league has submitted, or</li>
-                            <li>The first game of the week kicks off</li>
-                          </ul>
-                          After that, all league members will be able to see everyone's picks.
-                        </AlertDescription>
-                      </Alert>
+                      <p className="text-xs text-muted-foreground text-center leading-relaxed">
+                        Your picks are private until everyone in your league has submitted or the first game kicks off.
+                      </p>
                     </CardContent>
                   </Card>
                 </TabsContent>

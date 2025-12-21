@@ -11,7 +11,7 @@ export function BottomNav() {
   
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-nav-bg"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background"
       style={isNative ? {
         paddingBottom: "env(safe-area-inset-bottom)",
         transform: "translateZ(0)", // Hardware acceleration to prevent scroll issues
