@@ -56,7 +56,16 @@ export function useBiometricAuth() {
       const result = await NativeBiometric.isAvailable();
       console.log('[useBiometricAuth] Biometric result:', result);
       setBiometricAvailable(result.isAvailable);
-      setBiometricType(result.biometryType || 'none');
+      // Map plugin BiometryType enum to our string type
+      const typeMap: Record<string, BiometryType> = {
+        'touchId': 'touchId',
+        'faceId': 'faceId',
+        'fingerprintAuthentication': 'fingerprintAuthentication',
+        'faceAuthentication': 'faceAuthentication',
+        'irisAuthentication': 'irisAuthentication',
+      };
+      const mappedType = result.biometryType ? typeMap[result.biometryType] || 'none' : 'none';
+      setBiometricType(mappedType);
     } catch (error) {
       console.error('[useBiometricAuth] Error checking biometric availability:', error);
       setBiometricAvailable(false);

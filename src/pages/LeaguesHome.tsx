@@ -148,11 +148,37 @@ const LeaguesHome = () => {
             <p className="text-2xl font-semibold text-foreground mb-3">
               Fantasy Football Doesn't Have to End.
             </p>
-            <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               Keep playing through the NFL Playoffs in the most exciting four weeks of the season.
             </p>
 
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
+            {/* CTAs - now above the fold */}
+            <div className="flex flex-col items-center justify-center gap-3 mb-12">
+              <Link to="/signin" state={{ from: "/" }}>
+                <Button size="lg" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
+                  <LogIn className="w-5 h-5 mr-2" />
+                  Sign In / Sign Up
+                </Button>
+              </Link>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all"
+                onClick={handleCreateLeague}
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Create League
+              </Button>
+              <button 
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
+                onClick={handleJoinLeague}
+              >
+                Have a join code? <span className="underline">Enter it here</span>
+              </button>
+            </div>
+
+            {/* Feature cards - now below CTAs */}
+            <div className="grid md:grid-cols-3 gap-6">
               <div className="bg-card border-2 border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
                 <Users className="w-8 h-8 text-primary mx-auto mb-3" />
                 <h3 className="font-bold text-lg mb-2">Play With Any League Size</h3>
@@ -176,30 +202,6 @@ const LeaguesHome = () => {
                   Rack up fantasy points each week. Highest total after the playoffs wins it all.
                 </p>
               </div>
-            </div>
-
-            <div className="flex flex-col items-center justify-center gap-3">
-              <Link to="/signin" state={{ from: "/" }}>
-                <Button size="lg" className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all">
-                  <LogIn className="w-5 h-5 mr-2" />
-                  Sign In / Sign Up
-                </Button>
-              </Link>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all"
-                onClick={handleCreateLeague}
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Create League
-              </Button>
-              <button 
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
-                onClick={handleJoinLeague}
-              >
-                Have a join code? <span className="underline">Enter it here</span>
-              </button>
             </div>
           </div>
         </div>
