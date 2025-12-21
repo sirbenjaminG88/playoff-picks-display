@@ -987,7 +987,7 @@ export default function Results() {
   const isRegularSeason = currentLeague?.season_type === "REG";
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="bg-background pb-20">
       <PageHeader
         title="Results"
         subtitle={isRegularSeason 
