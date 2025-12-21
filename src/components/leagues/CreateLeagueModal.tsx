@@ -159,7 +159,10 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
   };
 
   const getShareText = () => {
-    return `Join my "${createdLeague?.name}" playoff fantasy league on EMMA!\n\nJoin code: ${createdLeague?.join_code}\n\nDownload EMMA and enter this code to join!`;
+    // TODO: Replace with actual App Store URL once published
+    const appStoreUrl = "https://apps.apple.com/app/emma-playoff-fantasy";
+
+    return `Join my "${createdLeague?.name}" playoff fantasy league on EMMA!\n\nJoin code: ${createdLeague?.join_code}\n\nDownload EMMA:\n${appStoreUrl}\n\nEnter this code to join!`;
   };
 
   const handleShare = async () => {
