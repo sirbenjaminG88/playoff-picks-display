@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
+import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 import { supabase } from '@/integrations/supabase/client';
 
 const BIOMETRIC_CREDENTIALS_KEY = 'biometric_credentials';
@@ -13,21 +14,6 @@ interface BiometricResult {
   success: boolean;
   error?: unknown;
   data?: unknown;
-}
-
-// Dynamic import for native biometric plugin to avoid web errors
-let NativeBiometric: any = null;
-
-async function loadNativeBiometric() {
-  if (Capacitor.isNativePlatform() && !NativeBiometric) {
-    try {
-      const module = await import('@capgo/capacitor-native-biometric');
-      NativeBiometric = module.NativeBiometric;
-    } catch (error) {
-      console.error('Failed to load NativeBiometric:', error);
-    }
-  }
-  return NativeBiometric;
 }
 
 export function useBiometricAuth() {
@@ -47,22 +33,19 @@ export function useBiometricAuth() {
 
   const checkBiometricAvailability = async () => {
     if (!Capacitor.isNativePlatform()) {
+      console.log('[useBiometricAuth] Not on native platform');
       setBiometricAvailable(false);
       return;
     }
 
     try {
-      const plugin = await loadNativeBiometric();
-      if (!plugin) {
-        setBiometricAvailable(false);
-        return;
-      }
-
-      const result = await plugin.isAvailable();
+      console.log('[useBiometricAuth] Checking biometric availability...');
+      const result = await NativeBiometric.isAvailable();
+      console.log('[useBiometricAuth] Biometric result:', result);
       setBiometricAvailable(result.isAvailable);
       setBiometricType(result.biometryType || 'none');
     } catch (error) {
-      console.error('Error checking biometric availability:', error);
+      console.error('[useBiometricAuth] Error checking biometric availability:', error);
       setBiometricAvailable(false);
     }
   };
@@ -83,19 +66,14 @@ export function useBiometricAuth() {
     }
 
     try {
-      const plugin = await loadNativeBiometric();
-      if (!plugin) {
-        return { success: false, error: 'Biometric plugin not available' };
-      }
-
       // Verify identity first (prompts Face ID/Touch ID)
-      await plugin.verifyIdentity({
+      await NativeBiometric.verifyIdentity({
         reason: 'Enable biometric login',
         title: 'Enable Face ID/Touch ID',
       });
 
       // Store credentials securely in device keychain
-      await plugin.setCredentials({
+      await NativeBiometric.setCredentials({
         username: email,
         password: password,
         server: BIOMETRIC_SERVER,
@@ -110,7 +88,7 @@ export function useBiometricAuth() {
       setBiometricEnabled(true);
       return { success: true };
     } catch (error) {
-      console.error('Error enabling biometric:', error);
+      console.error('[useBiometricAuth] Error enabling biometric:', error);
       return { success: false, error };
     }
   }, []);
@@ -118,15 +96,12 @@ export function useBiometricAuth() {
   const disableBiometric = useCallback(async (): Promise<void> => {
     try {
       if (Capacitor.isNativePlatform()) {
-        const plugin = await loadNativeBiometric();
-        if (plugin) {
-          await plugin.deleteCredentials({ server: BIOMETRIC_SERVER });
-        }
+        await NativeBiometric.deleteCredentials({ server: BIOMETRIC_SERVER });
       }
       await Preferences.remove({ key: BIOMETRIC_CREDENTIALS_KEY });
       setBiometricEnabled(false);
     } catch (error) {
-      console.error('Error disabling biometric:', error);
+      console.error('[useBiometricAuth] Error disabling biometric:', error);
     }
   }, []);
 
@@ -136,19 +111,14 @@ export function useBiometricAuth() {
     }
 
     try {
-      const plugin = await loadNativeBiometric();
-      if (!plugin) {
-        return { success: false, error: 'Biometric plugin not available' };
-      }
-
       // Verify identity (prompts Face ID/Touch ID)
-      await plugin.verifyIdentity({
+      await NativeBiometric.verifyIdentity({
         reason: 'Log in to your account',
         title: 'Log In',
       });
 
       // Get stored credentials from keychain
-      const credentials = await plugin.getCredentials({ server: BIOMETRIC_SERVER });
+      const credentials = await NativeBiometric.getCredentials({ server: BIOMETRIC_SERVER });
 
       // Sign in with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -160,7 +130,7 @@ export function useBiometricAuth() {
 
       return { success: true, data };
     } catch (error) {
-      console.error('Biometric login error:', error);
+      console.error('[useBiometricAuth] Biometric login error:', error);
       return { success: false, error };
     }
   }, []);

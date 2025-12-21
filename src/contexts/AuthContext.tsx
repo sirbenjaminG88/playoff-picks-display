@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { User, Session } from "@supabase/supabase-js";
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
+import { NativeBiometric } from "@capgo/capacitor-native-biometric";
 import { supabase } from "@/integrations/supabase/client";
 
 const BIOMETRIC_CREDENTIALS_KEY = 'biometric_credentials';
@@ -147,16 +148,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear biometric credentials on sign out
     try {
       if (Capacitor.isNativePlatform()) {
-        const module = await import('@capgo/capacitor-native-biometric');
-        await module.NativeBiometric.deleteCredentials({ server: BIOMETRIC_SERVER });
+        await NativeBiometric.deleteCredentials({ server: BIOMETRIC_SERVER });
       }
       await Preferences.remove({ key: BIOMETRIC_CREDENTIALS_KEY });
     } catch (error) {
-      console.error('Error clearing biometric credentials:', error);
+      console.error('[AuthContext] Error clearing biometric credentials:', error);
     }
-    
+
     await supabase.auth.signOut();
-    
+
     // Clear all user-specific state
     setUser(null);
     setSession(null);
