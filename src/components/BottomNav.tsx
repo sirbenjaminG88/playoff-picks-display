@@ -11,7 +11,7 @@ export function BottomNav() {
   
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-background"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-nav-bg"
       style={{
         transform: "translateZ(0)", // Hardware acceleration to prevent scroll issues
         paddingBottom: isNative ? "env(safe-area-inset-bottom)" : "0",
