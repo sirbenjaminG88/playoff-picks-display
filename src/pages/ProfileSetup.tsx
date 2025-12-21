@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, User, Loader2, Camera } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { getInitials, validateDisplayName } from "@/lib/displayName";
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
@@ -104,8 +105,9 @@ const ProfileSetup = () => {
       return;
     }
 
-    if (!displayName.trim()) {
-      setError("Please enter your name.");
+    const validationError = validateDisplayName(displayName);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -167,9 +169,7 @@ const ProfileSetup = () => {
     }
   };
 
-  const getInitials = (name: string) => {
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-  };
+  // getInitials is now imported from @/lib/displayName
 
   const isSubmitting = loading || uploading;
 

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getInitials } from "@/lib/displayName";
 
 interface LeagueMembership {
   membership_id: string;
@@ -49,9 +50,9 @@ const AdminUsers = () => {
     fetchMemberships();
   }, []);
 
-  const getInitials = (name: string | null, email: string) => {
+  const getInitialsWithFallback = (name: string | null, email: string) => {
     if (name) {
-      return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+      return getInitials(name);
     }
     return email.slice(0, 2).toUpperCase();
   };
@@ -129,7 +130,7 @@ const AdminUsers = () => {
                           <Avatar className="w-8 h-8">
                             {m.avatar_url && <AvatarImage src={m.avatar_url} />}
                             <AvatarFallback className="text-xs">
-                              {getInitials(m.display_name, m.email)}
+                              {getInitialsWithFallback(m.display_name, m.email)}
                             </AvatarFallback>
                           </Avatar>
                           <span className="font-medium">

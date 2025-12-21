@@ -21,13 +21,7 @@ import { LeagueSwitcher } from "@/components/LeagueSwitcher";
 // Beta weeks for 2025 regular season
 const REGULAR_SEASON_WEEKS = [14, 15, 16, 17];
 
-const getInitials = (name: string): string => {
-  const parts = name.split(" ");
-  if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  }
-  return name.substring(0, 2).toUpperCase();
-};
+import { getInitials } from "@/lib/displayName";
 
 // Stat tile component for the grid layout
 const StatTile = ({ label, value }: { label: string; value: number | string }) => (
