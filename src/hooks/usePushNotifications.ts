@@ -19,6 +19,14 @@ export function usePushNotifications() {
         console.log('[FirebaseMessaging] Setting up push notifications...');
         console.log('[FirebaseMessaging] User ID:', user?.id);
 
+        // Clear any existing badge count when app opens
+        try {
+          await FirebaseMessaging.setBadgeCount({ count: 0 });
+          console.log('[FirebaseMessaging] Badge count cleared');
+        } catch (badgeError) {
+          console.error('[FirebaseMessaging] Error clearing badge:', badgeError);
+        }
+
         // Request permission to use push notifications
         const result = await FirebaseMessaging.requestPermissions();
 
@@ -71,8 +79,17 @@ export function usePushNotifications() {
     });
 
     // Listen for notification actions (when user taps notification)
-    const actionListener = FirebaseMessaging.addListener('notificationActionPerformed', (event) => {
+    const actionListener = FirebaseMessaging.addListener('notificationActionPerformed', async (event) => {
       console.log('[FirebaseMessaging] Notification action performed:', event);
+
+      // Clear badge when user interacts with notification
+      try {
+        await FirebaseMessaging.setBadgeCount({ count: 0 });
+        console.log('[FirebaseMessaging] Badge cleared after notification tap');
+      } catch (error) {
+        console.error('[FirebaseMessaging] Error clearing badge after tap:', error);
+      }
+
       // TODO: Navigate to picks page when notification is tapped
     });
 
