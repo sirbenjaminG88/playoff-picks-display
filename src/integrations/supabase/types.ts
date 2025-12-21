@@ -858,7 +858,6 @@ export type Database = {
         Args: { p_league_id: string; p_season: number; p_week: number }
         Returns: boolean
       }
-      send_pick_deadline_reminders: { Args: never; Returns: Json }
       validate_join_code: { Args: { p_join_code: string }; Returns: string }
     }
     Enums: {

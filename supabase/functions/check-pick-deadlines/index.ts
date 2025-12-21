@@ -11,9 +11,10 @@ const CURRENT_SEASON = 2025;
 
 interface NotificationWindow {
   type: "24h" | "1h";
-  weekIndex: number;
+  week: number;
   weekLabel: string;
-  hoursRemaining: number;
+  gameType: "regular" | "playoff";
+  firstGameTime: Date;
 }
 
 serve(async (req) => {
@@ -29,20 +30,64 @@ serve(async (req) => {
     const now = new Date();
     console.log(`[check-pick-deadlines] Running at ${now.toISOString()}`);
 
-    // Get all upcoming playoff games for the current season
-    const { data: games, error: gamesError } = await supabase
+    // Get upcoming games from both regular season and playoffs
+    const upcomingWeeks = new Map<string, { week: number; weekLabel: string; gameType: "regular" | "playoff"; firstGameTime: Date }>();
+
+    // Fetch regular season games
+    const { data: regularGames, error: regularError } = await supabase
+      .from("regular_season_games")
+      .select("week, game_date")
+      .eq("season", CURRENT_SEASON)
+      .gt("game_date", now.toISOString())
+      .order("game_date", { ascending: true });
+
+    if (regularError) {
+      console.error("Error fetching regular season games:", regularError);
+    } else if (regularGames && regularGames.length > 0) {
+      for (const game of regularGames) {
+        if (!game.game_date) continue;
+        const key = `regular-${game.week}`;
+        const gameTime = new Date(game.game_date);
+        const existing = upcomingWeeks.get(key);
+        if (!existing || gameTime < existing.firstGameTime) {
+          upcomingWeeks.set(key, {
+            week: game.week,
+            weekLabel: `Week ${game.week}`,
+            gameType: "regular",
+            firstGameTime: gameTime,
+          });
+        }
+      }
+    }
+
+    // Fetch playoff games
+    const { data: playoffGames, error: playoffError } = await supabase
       .from("playoff_games")
       .select("week_index, week_label, kickoff_at")
       .eq("season", CURRENT_SEASON)
       .gt("kickoff_at", now.toISOString())
       .order("kickoff_at", { ascending: true });
 
-    if (gamesError) {
-      console.error("Error fetching games:", gamesError);
-      throw gamesError;
+    if (playoffError) {
+      console.error("Error fetching playoff games:", playoffError);
+    } else if (playoffGames && playoffGames.length > 0) {
+      for (const game of playoffGames) {
+        if (!game.kickoff_at) continue;
+        const key = `playoff-${game.week_index}`;
+        const gameTime = new Date(game.kickoff_at);
+        const existing = upcomingWeeks.get(key);
+        if (!existing || gameTime < existing.firstGameTime) {
+          upcomingWeeks.set(key, {
+            week: game.week_index,
+            weekLabel: game.week_label,
+            gameType: "playoff",
+            firstGameTime: gameTime,
+          });
+        }
+      }
     }
 
-    if (!games || games.length === 0) {
+    if (upcomingWeeks.size === 0) {
       console.log("No upcoming games found");
       return new Response(
         JSON.stringify({ message: "No upcoming games", notificationsSent: 0 }),
@@ -50,47 +95,37 @@ serve(async (req) => {
       );
     }
 
-    // Group games by week and get first kickoff for each week
-    const weekFirstKickoffs = new Map<number, { kickoffAt: Date; weekLabel: string }>();
-    for (const game of games) {
-      if (!game.kickoff_at) continue;
-      const kickoff = new Date(game.kickoff_at);
-      const existing = weekFirstKickoffs.get(game.week_index);
-      if (!existing || kickoff < existing.kickoffAt) {
-        weekFirstKickoffs.set(game.week_index, {
-          kickoffAt: kickoff,
-          weekLabel: game.week_label,
-        });
-      }
-    }
+    console.log(`Found ${upcomingWeeks.size} upcoming weeks with games`);
 
     // Check which weeks are in notification windows
     const activeWindows: NotificationWindow[] = [];
     
-    for (const [weekIndex, { kickoffAt, weekLabel }] of weekFirstKickoffs) {
-      const msUntilKickoff = kickoffAt.getTime() - now.getTime();
+    for (const [key, weekData] of upcomingWeeks) {
+      const msUntilKickoff = weekData.firstGameTime.getTime() - now.getTime();
       const hoursUntilKickoff = msUntilKickoff / (1000 * 60 * 60);
 
-      // 24-hour window: Between 24 hours and 23 hours before kickoff
-      if (hoursUntilKickoff <= 24 && hoursUntilKickoff > 23) {
+      // 24-hour window: Between 23 and 25 hours before kickoff (1 hour tolerance)
+      if (hoursUntilKickoff >= 23 && hoursUntilKickoff <= 25) {
         activeWindows.push({
           type: "24h",
-          weekIndex,
-          weekLabel,
-          hoursRemaining: Math.round(hoursUntilKickoff),
+          week: weekData.week,
+          weekLabel: weekData.weekLabel,
+          gameType: weekData.gameType,
+          firstGameTime: weekData.firstGameTime,
         });
-        console.log(`Week ${weekIndex} (${weekLabel}) is in 24-hour notification window`);
+        console.log(`${weekData.weekLabel} (${weekData.gameType}) is in 24-hour notification window (${hoursUntilKickoff.toFixed(1)}h until kickoff)`);
       }
 
-      // 1-hour window: Between 1 hour and 30 minutes before kickoff
-      if (hoursUntilKickoff <= 1 && hoursUntilKickoff > 0.5) {
+      // 1-hour window: Between 50 minutes and 70 minutes before kickoff
+      if (hoursUntilKickoff >= 0.83 && hoursUntilKickoff <= 1.17) {
         activeWindows.push({
           type: "1h",
-          weekIndex,
-          weekLabel,
-          hoursRemaining: 1,
+          week: weekData.week,
+          weekLabel: weekData.weekLabel,
+          gameType: weekData.gameType,
+          firstGameTime: weekData.firstGameTime,
         });
-        console.log(`Week ${weekIndex} (${weekLabel}) is in 1-hour notification window`);
+        console.log(`${weekData.weekLabel} (${weekData.gameType}) is in 1-hour notification window (${(hoursUntilKickoff * 60).toFixed(0)} minutes until kickoff)`);
       }
     }
 
@@ -145,50 +180,75 @@ serve(async (req) => {
     const results: { window: NotificationWindow; usersNotified: number }[] = [];
 
     for (const window of activeWindows) {
+      // Check which users have already been reminded for this window
+      const { data: alreadyReminded, error: reminderLogError } = await supabase
+        .from("pick_reminder_sent_log")
+        .select("user_id")
+        .eq("season", CURRENT_SEASON)
+        .eq("week", window.week)
+        .eq("reminder_type", window.type);
+
+      if (reminderLogError) {
+        console.error("Error checking reminder log:", reminderLogError);
+      }
+
+      const alreadyRemindedUserIds = new Set((alreadyReminded || []).map(r => r.user_id));
+      console.log(`${alreadyRemindedUserIds.size} users already reminded for ${window.weekLabel} (${window.type})`);
+
       // Get all picks for this week
       const { data: picks, error: picksError } = await supabase
         .from("user_picks")
-        .select("auth_user_id, position_slot")
+        .select("auth_user_id, league_id, position_slot")
         .eq("season", CURRENT_SEASON)
-        .eq("week", window.weekIndex);
+        .eq("week", window.week);
 
       if (picksError) {
-        console.error(`Error fetching picks for week ${window.weekIndex}:`, picksError);
+        console.error(`Error fetching picks for week ${window.week}:`, picksError);
         continue;
       }
 
-      // Group picks by user and check completeness
-      const userPickSlots = new Map<string, Set<string>>();
+      // Group picks by user+league and check completeness
+      const userLeaguePickSlots = new Map<string, Set<string>>();
       for (const pick of picks || []) {
         if (!pick.auth_user_id) continue;
-        if (!userPickSlots.has(pick.auth_user_id)) {
-          userPickSlots.set(pick.auth_user_id, new Set());
+        const key = `${pick.auth_user_id}-${pick.league_id}`;
+        if (!userLeaguePickSlots.has(key)) {
+          userLeaguePickSlots.set(key, new Set());
         }
-        userPickSlots.get(pick.auth_user_id)!.add(pick.position_slot);
+        userLeaguePickSlots.get(key)!.add(pick.position_slot);
       }
 
-      // Find users without complete picks
-      const usersWithoutCompletePicks: string[] = [];
+      // Find users without complete picks who haven't been reminded
+      const usersToNotify: string[] = [];
+      const userLeaguesToLog: { userId: string; leagueId: string }[] = [];
+
       for (const member of members) {
         const userId = member.user_id;
-        const slots = userPickSlots.get(userId);
+        const leagueId = member.league_id;
+        
+        // Skip if already reminded
+        if (alreadyRemindedUserIds.has(userId)) continue;
+        
+        const key = `${userId}-${leagueId}`;
+        const slots = userLeaguePickSlots.get(key);
         const hasAllSlots = slots && REQUIRED_SLOTS.every((s) => slots.has(s));
         
         if (!hasAllSlots) {
-          usersWithoutCompletePicks.push(userId);
+          usersToNotify.push(userId);
+          userLeaguesToLog.push({ userId, leagueId });
         }
       }
 
-      // Remove duplicates
-      const uniqueUsers = [...new Set(usersWithoutCompletePicks)];
+      // Remove duplicates (user might be in multiple leagues)
+      const uniqueUsers = [...new Set(usersToNotify)];
 
       if (uniqueUsers.length === 0) {
-        console.log(`All users have complete picks for week ${window.weekIndex}`);
+        console.log(`All users have complete picks or already reminded for week ${window.week}`);
         results.push({ window, usersNotified: 0 });
         continue;
       }
 
-      console.log(`Found ${uniqueUsers.length} users without complete picks for week ${window.weekIndex}`);
+      console.log(`Found ${uniqueUsers.length} users to notify for ${window.weekLabel}`);
 
       // Get push tokens for these users
       const { data: tokens, error: tokensError } = await supabase
@@ -215,8 +275,8 @@ serve(async (req) => {
       const title = "Pick Deadline Reminder";
       const message =
         window.type === "24h"
-          ? `Your picks for ${window.weekLabel} are due in 24 hours!`
-          : `Your picks for ${window.weekLabel} are due in 1 hour!`;
+          ? `Games start in 24 hours! Don't forget to submit your picks for ${window.weekLabel}.`
+          : `Games start in 1 hour! Submit your picks for ${window.weekLabel} now!`;
 
       const notifyResponse = await fetch(
         `${supabaseUrl}/functions/v1/send-pick-deadline-notifications`,
@@ -243,6 +303,30 @@ serve(async (req) => {
 
       const notifyResult = await notifyResponse.json();
       console.log(`Notification result for ${window.weekLabel}:`, notifyResult);
+
+      // Log sent reminders to prevent duplicates
+      const reminderLogs = userLeaguesToLog
+        .filter(ul => usersWithTokens.includes(ul.userId))
+        .map(ul => ({
+          user_id: ul.userId,
+          league_id: ul.leagueId,
+          season: CURRENT_SEASON,
+          week: window.week,
+          reminder_type: window.type,
+        }));
+
+      if (reminderLogs.length > 0) {
+        const { error: logError } = await supabase
+          .from("pick_reminder_sent_log")
+          .upsert(reminderLogs, { onConflict: "user_id,league_id,season,week,reminder_type" });
+
+        if (logError) {
+          console.error("Error logging reminders:", logError);
+        } else {
+          console.log(`Logged ${reminderLogs.length} reminder records`);
+        }
+      }
+
       results.push({ window, usersNotified: usersWithTokens.length });
     }
 
@@ -252,6 +336,7 @@ serve(async (req) => {
       activeWindows: activeWindows.length,
       results: results.map((r) => ({
         weekLabel: r.window.weekLabel,
+        gameType: r.window.gameType,
         windowType: r.window.type,
         usersNotified: r.usersNotified,
       })),
