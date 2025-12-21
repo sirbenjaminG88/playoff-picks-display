@@ -16,7 +16,8 @@ import { toast } from "@/hooks/use-toast";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useLeague } from "@/contexts/LeagueContext";
 import { formatGameDateET } from "@/lib/timezone";
-import { LeagueSwitcher } from "@/components/LeagueSwitcher";
+import { PageHeader } from "@/components/PageHeader";
+import { Trophy } from "lucide-react";
 
 // Beta weeks for 2025 regular season
 const REGULAR_SEASON_WEEKS = [14, 15, 16, 17];
@@ -987,21 +988,15 @@ export default function Results() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <PageHeader
+        title="Results"
+        subtitle={isRegularSeason 
+          ? "2025 Regular Season Beta — Fantasy Results" 
+          : "Weekly scores and overall standings"}
+        icon={<Trophy className="w-8 h-8 text-primary" />}
+      />
+      
       <div className="container max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <h1 className="text-4xl font-bold text-foreground">Results</h1>
-            
-            {/* League Switcher */}
-            <LeagueSwitcher />
-          </div>
-          <p className="text-muted-foreground">
-            {isRegularSeason 
-              ? "2025 Regular Season Beta — Fantasy Results" 
-              : "Weekly scores and overall standings"}
-          </p>
-        </div>
 
         {/* 2025 Regular Season Fantasy View */}
         {isRegularSeason ? (
