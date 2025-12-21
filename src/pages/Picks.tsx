@@ -21,8 +21,8 @@ import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock, Trash2 } from "l
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { teamColorMap } from "@/lib/teamColors";
-import { playoffWeeks } from "@/data/playoffWeeks";
 import { getWeekStatus, getCurrentOpenWeek } from "@/lib/weekStatus";
+import { usePlayoffSchedule } from "@/hooks/usePlayoffSchedule";
 import { formatDeadlineET, formatGameDateET } from "@/lib/timezone";
 import { Pick, Week } from "@/domain/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,16 +118,17 @@ const Picks = () => {
   const CURRENT_TIME = USE_DEBUG_TIME ? DEBUG_NOW : new Date();
 
   // Regular season data
-  const { 
-    players: regularSeasonPlayers, 
-    weeks: regularSeasonWeeks, 
+  const {
+    players: regularSeasonPlayers,
+    weeks: regularSeasonWeeks,
     domainWeeks: regularDomainWeeks,
-    loading: loadingRegularSeason 
+    loading: loadingRegularSeason
   } = useRegularSeasonData(2025);
 
   // Playoff data
   const [playoffPlayers, setPlayoffPlayers] = useState<PlayoffPlayer[]>([]);
   const [loadingPlayoffs, setLoadingPlayoffs] = useState(true);
+  const { weeks: playoffWeeks, loading: loadingPlayoffSchedule } = usePlayoffSchedule(2025);
 
   // Determine which weeks to use - ensure we always have a valid array
   const activeWeeks = isRegularSeason ? (regularDomainWeeks.length > 0 ? regularDomainWeeks : []) : playoffWeeks;
@@ -413,6 +414,8 @@ const Picks = () => {
   }, [isRegularSeason, regularSeasonPlayers, playoffPlayers]);
 
   const loadingPlayers = isRegularSeason ? loadingRegularSeason : loadingPlayoffs;
+  const loadingSchedule = isRegularSeason ? loadingRegularSeason : loadingPlayoffSchedule;
+  const isLoading = loadingPlayers || loadingSchedule;
 
   const handleOpenSheet = (weekNumber: number, positionSlot: PositionSlot, label: string) => {
     setSheetConfig({ weekNumber, positionSlot, label });
@@ -739,7 +742,7 @@ const Picks = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {loadingPlayers || activeWeeks.length === 0 ? (
+        {isLoading || activeWeeks.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">Loading...</div>
         ) : (
           <Tabs value={activeWeek} onValueChange={(v) => setActiveWeek(v)} className="w-full">
