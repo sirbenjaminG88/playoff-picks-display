@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ChevronDown, Loader2, RefreshCw, Radio, Lock, Clock } from "lucide-react";
+import { ChevronDown, Loader2, Radio, Lock, Clock } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
 import { useWeekPicks, GroupedPlayer, PlayerWeekStats, UserProfile } from "@/hooks/useWeekPicks";
 import { useRegularSeasonPicks, GroupedPlayer as RegularGroupedPlayer, UserProfile as RegularUserProfile } from "@/hooks/useRegularSeasonPicks";
@@ -238,15 +238,8 @@ const PositionSection = ({
 };
 
 // Playoff week results component
-const WeekResults = ({ week, onSyncStats }: { week: number; onSyncStats: (week: number) => void }) => {
+const WeekResults = ({ week }: { week: number }) => {
   const { data, isLoading, error } = useWeekPicks(week);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const handleSync = async () => {
-    setIsSyncing(true);
-    await onSyncStats(week);
-    setIsSyncing(false);
-  };
 
   if (isLoading) {
     return (
@@ -286,24 +279,6 @@ const WeekResults = ({ week, onSyncStats }: { week: number; onSyncStats: (week: 
 
   return (
     <div className="space-y-6">
-      {/* Admin Sync Button */}
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSync}
-          disabled={isSyncing}
-          className="text-xs"
-        >
-          {isSyncing ? (
-            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-          ) : (
-            <RefreshCw className="w-3 h-3 mr-1" />
-          )}
-          Sync Stats for This Week
-        </Button>
-      </div>
-      
       <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} />
       <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} />
       <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} />
@@ -312,26 +287,14 @@ const WeekResults = ({ week, onSyncStats }: { week: number; onSyncStats: (week: 
 };
 
 // Regular season week results component
-const RegularSeasonWeekResults = ({ 
-  week, 
+const RegularSeasonWeekResults = ({
+  week,
   leagueId,
-  isAdmin,
-  onSyncStats 
-}: { 
-  week: number; 
+}: {
+  week: number;
   leagueId: string;
-  isAdmin?: boolean;
-  onSyncStats?: (week: number) => void;
 }) => {
   const { data, isLoading, error } = useRegularSeasonPicks(week, leagueId);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const handleSync = async () => {
-    if (!onSyncStats) return;
-    setIsSyncing(true);
-    await onSyncStats(week);
-    setIsSyncing(false);
-  };
 
   if (isLoading) {
     return (
@@ -430,26 +393,6 @@ const RegularSeasonWeekResults = ({
 
   return (
     <div className="space-y-6">
-      {/* Admin Sync Button */}
-      {isAdmin && onSyncStats && (
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSync}
-            disabled={isSyncing}
-            className="text-xs"
-          >
-            {isSyncing ? (
-              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-            ) : (
-              <RefreshCw className="w-3 h-3 mr-1" />
-            )}
-            Sync Stats Now (Admin)
-          </Button>
-        </div>
-      )}
-      
       <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} />
       <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} />
       <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} />
@@ -814,41 +757,6 @@ function RegularSeasonResults() {
     };
   }, [currentLeague, queryClient]);
 
-  // Handle manual sync
-  const handleSyncStats = async (week: number) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-live-stats?week=${week}&force=true`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session?.access_token || ''}`,
-          },
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to sync stats');
-      }
-
-      toast({
-        title: "Stats synced successfully",
-        description: `Synced ${result.statsUpserted}/${result.playersProcessed} players for Week ${week}`,
-      });
-
-      // Invalidate queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['regularSeasonPicks'] });
-    } catch (error) {
-      console.error('Error syncing stats:', error);
-      toast({
-        title: "Error syncing stats",
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: "destructive",
-      });
-    }
-  };
 
   // Show loading state while league is being fetched
   if (leagueLoading) {
@@ -898,11 +806,9 @@ function RegularSeasonResults() {
 
         {REGULAR_SEASON_WEEKS.map((weekNum) => (
           <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
-            <RegularSeasonWeekResults 
-              week={weekNum} 
+            <RegularSeasonWeekResults
+              week={weekNum}
               leagueId={currentLeague.id}
-              isAdmin={isCommissioner}
-              onSyncStats={handleSyncStats}
             />
 
             {/* Leaderboards Section */}
@@ -1082,42 +988,6 @@ export default function Results() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
   const { selectedSeason, setSelectedSeason } = useSeason();
-  const queryClient = useQueryClient();
-
-  const handleSyncStats = async (week: number) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-player-stats-for-week?week=${week}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session?.access_token || ''}`,
-          },
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to sync stats');
-      }
-
-      toast({
-        title: "Stats synced successfully",
-        description: `Synced ${result.statsUpserted}/${result.playersProcessed} players for ${getWeekTabLabel(week).abbrev}`,
-      });
-
-      // Invalidate queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['weekPicks'] });
-    } catch (error) {
-      console.error('Error syncing stats:', error);
-      toast({
-        title: "Error syncing stats",
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -1172,7 +1042,7 @@ export default function Results() {
 
             {[1, 2, 3, 4].map((weekNum) => (
               <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
-                <WeekResults week={weekNum} onSyncStats={handleSyncStats} />
+                <WeekResults week={weekNum} />
 
                 {/* Leaderboards Section */}
                 <div className="mt-8">
