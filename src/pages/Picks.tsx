@@ -194,13 +194,13 @@ const Picks = () => {
   // Fetch playoff players
   useEffect(() => {
     if (isRegularSeason) return;
-    
+
     const fetchPlayers = async () => {
       setLoadingPlayoffs(true);
       const { data, error } = await supabase
         .from("playoff_players")
         .select("*")
-        .eq("season", 2024)
+        .eq("season", 2025)
         .eq("group", "Offense")
         .order("team_name")
         .order("name");
@@ -250,7 +250,7 @@ const Picks = () => {
     }
 
     const fetchUserPicks = async () => {
-      const season = isRegularSeason ? 2025 : 2024;
+      const season = isRegularSeason ? 2025 : 2025;
       const leagueId = currentLeague.id;
       const currentWeekNum = parseInt(activeWeek, 10);
       
@@ -478,7 +478,7 @@ const Picks = () => {
     setIsSubmitting(true);
 
     try {
-      const season = isRegularSeason ? 2025 : 2024;
+      const season = isRegularSeason ? 2025 : 2025;
       
       // Prepare the picks to insert
       const picksToInsert = [
@@ -580,7 +580,7 @@ const Picks = () => {
     setIsResetting(true);
 
     try {
-      const season = isRegularSeason ? 2025 : 2024;
+      const season = isRegularSeason ? 2025 : 2025;
       
       const { error } = await supabase
         .from("user_picks")
