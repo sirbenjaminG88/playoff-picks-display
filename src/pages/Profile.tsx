@@ -94,7 +94,7 @@ const Profile = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex-1 bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -304,7 +304,7 @@ const Profile = () => {
     avatarFile !== null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="flex-1 bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-8 pb-24 max-w-lg">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">

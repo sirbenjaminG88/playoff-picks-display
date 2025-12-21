@@ -134,7 +134,7 @@ const LeaguesHome = () => {
   // LOGGED-OUT VIEW
   if (!loading && !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      <div className="flex-1 bg-gradient-to-br from-background via-background to-primary/5">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-2xl mb-6 shadow-lg">
@@ -211,7 +211,7 @@ const LeaguesHome = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
+      <div className="flex-1 bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
       </div>
     );
@@ -221,7 +221,7 @@ const LeaguesHome = () => {
 
   // LOGGED-IN VIEW - Leagues Hub
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="flex-1 bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-8 pb-24">
         {/* Header with user info */}
         <div className="mb-8">
