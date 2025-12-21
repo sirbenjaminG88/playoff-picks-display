@@ -711,8 +711,8 @@ const Picks = () => {
       <PageHeader
         title="Submissions"
         subtitle={isRegularSeason
-          ? "2025 Regular Season Beta — Pick 1 QB, 1 RB, and 1 FLEX each week"
-          : "Make Your Weekly Picks — Pick one QB, one RB, and one FLEX for each playoff week"}
+          ? "Pick 1 QB, 1 RB, and 1 FLEX each week"
+          : "Pick one QB, one RB, and one FLEX for each playoff week"}
         icon={<ClipboardList className="w-6 h-6 text-primary" />}
       />
 
