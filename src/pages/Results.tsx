@@ -993,7 +993,7 @@ export default function Results() {
         subtitle={isRegularSeason 
           ? "2025 Regular Season Beta — Fantasy Results" 
           : "Weekly scores and overall standings"}
-        icon={<Trophy className="w-8 h-8 text-primary" />}
+        icon={<Trophy className="w-6 h-6 text-primary" />}
       />
       
       <div className="container max-w-4xl mx-auto px-4 py-8">
