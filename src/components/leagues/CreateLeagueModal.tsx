@@ -159,24 +159,29 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
   };
 
   const getShareText = () => {
-    return `Join my EMMA playoff league! Use code: ${createdLeague?.join_code}`;
+    return `Join my "${createdLeague?.name}" playoff fantasy league on EMMA!\n\n${getShareUrl()}\n\nUse code: ${createdLeague?.join_code}`;
   };
 
   const handleShare = async () => {
+    // For native iOS share, we want to share the full message with URL
     const shareData = {
-      title: "Join my EMMA league",
+      title: `Join "${createdLeague?.name}" on EMMA`,
       text: getShareText(),
-      url: getShareUrl(),
     };
 
-    if (navigator.share && navigator.canShare(shareData)) {
+    if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (error) {
-        // User cancelled or error - fall back to copy
-        handleCopy();
+      } catch (error: any) {
+        // User cancelled - do nothing
+        if (error.name !== 'AbortError') {
+          console.error('Share failed:', error);
+          // Fall back to copy on actual errors
+          handleCopy();
+        }
       }
     } else {
+      // Web fallback - just copy the link
       handleCopy();
     }
   };
@@ -327,8 +332,8 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
 
             {/* Share Text Preview */}
             <div className="bg-muted/50 rounded-lg p-3">
-              <p className="text-sm text-muted-foreground text-center">
-                "{getShareText()}"
+              <p className="text-xs text-muted-foreground text-center whitespace-pre-line">
+                {getShareText()}
               </p>
             </div>
 
