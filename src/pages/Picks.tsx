@@ -712,7 +712,7 @@ const Picks = () => {
         title="Submissions"
         subtitle={isRegularSeason
           ? "Pick 1 QB, 1 RB, and 1 FLEX each week"
-          : "Pick one QB, one RB, and one FLEX for each playoff week"}
+          : "Pick a QB, RB and FLEX each playoff week."}
         icon={<ClipboardList className="w-6 h-6 text-primary" />}
       />
 
