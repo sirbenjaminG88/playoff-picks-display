@@ -97,13 +97,6 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "league_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_league_memberships"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       leagues: {
@@ -829,6 +822,13 @@ export type Database = {
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "league_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
