@@ -796,7 +796,6 @@ export type Database = {
           app_role: Database["public"]["Enums"]["app_role"] | null
           avatar_url: string | null
           display_name: string | null
-          email: string | null
           joined_at: string | null
           league_id: string | null
           league_name: string | null
