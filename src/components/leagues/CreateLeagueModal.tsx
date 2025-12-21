@@ -159,7 +159,7 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
   };
 
   const getShareText = () => {
-    return `Join my "${createdLeague?.name}" playoff fantasy league on EMMA!\n\n${getShareUrl()}\n\nUse code: ${createdLeague?.join_code}`;
+    return `Join my "${createdLeague?.name}" playoff fantasy league on EMMA!\n\nJoin code: ${createdLeague?.join_code}\n\nDownload EMMA and enter this code to join!`;
   };
 
   const handleShare = async () => {
@@ -188,12 +188,12 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(getShareUrl());
+      await navigator.clipboard.writeText(createdLeague?.join_code || '');
       setCopied(true);
-      toast.success("Link copied to clipboard!");
+      toast.success("Join code copied to clipboard!");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Failed to copy link");
+      toast.error("Failed to copy code");
     }
   };
 
@@ -324,16 +324,16 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
                 ) : (
                   <>
                     <Copy className="w-4 h-4 mr-2" />
-                    Copy Link
+                    Copy Code
                   </>
                 )}
               </Button>
             </div>
 
-            {/* Share Text Preview */}
-            <div className="bg-muted/50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground text-center whitespace-pre-line">
-                {getShareText()}
+            {/* Invite Instructions */}
+            <div className="bg-muted/50 rounded-lg p-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Share the join code with your friends to invite them to the league!
               </p>
             </div>
 
