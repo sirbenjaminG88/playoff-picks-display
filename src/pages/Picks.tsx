@@ -30,7 +30,7 @@ import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRegularSeasonData, RegularSeasonPlayer } from "@/hooks/useRegularSeasonData";
-import { LeagueSwitcher } from "@/components/LeagueSwitcher";
+import { PageHeader } from "@/components/PageHeader";
 import { QBIcon, RBIcon, FlexIcon } from "@/components/PositionIcons";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
@@ -708,27 +708,13 @@ const Picks = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <header className="border-b border-border bg-background">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div className="flex items-center gap-3">
-              <ClipboardList className="w-8 h-8 text-primary" />
-              <h1 className="text-4xl font-bold text-foreground">
-                EMMA
-              </h1>
-            </div>
-            
-            {/* League Switcher */}
-            <LeagueSwitcher />
-          </div>
-          <p className="text-muted-foreground">
-            {isRegularSeason
-              ? "2025 Regular Season Beta — Pick 1 QB, 1 RB, and 1 FLEX each week"
-              : "Make Your Weekly Picks — Pick one QB, one RB, and one FLEX for each playoff week"}
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        title="EMMA"
+        subtitle={isRegularSeason
+          ? "2025 Regular Season Beta — Pick 1 QB, 1 RB, and 1 FLEX each week"
+          : "Make Your Weekly Picks — Pick one QB, one RB, and one FLEX for each playoff week"}
+        icon={<ClipboardList className="w-8 h-8 text-primary" />}
+      />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
