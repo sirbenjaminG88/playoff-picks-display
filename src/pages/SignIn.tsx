@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Trophy, Mail, Loader2, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Trophy, Mail, Loader2, Lock, Eye, EyeOff, CheckCircle2, Fingerprint } from "lucide-react";
 import { z } from "zod";
+import { toast } from "sonner";
 
 // Validation schemas
 const emailSchema = z.string().trim().email("Please enter a valid email address");
@@ -19,6 +21,14 @@ const SignIn = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile, loading: authLoading, resetPassword } = useAuth();
+  const { 
+    biometricAvailable, 
+    biometricEnabled, 
+    enableBiometric, 
+    loginWithBiometric,
+    getBiometricLabel,
+    isLoading: biometricLoading 
+  } = useBiometricAuth();
   
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
@@ -26,8 +36,11 @@ const SignIn = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [biometricLoginLoading, setBiometricLoginLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+  const [pendingCredentials, setPendingCredentials] = useState<{email: string; password: string} | null>(null);
 
   // Get the redirect location from state
   const locationState = location.state as { from?: string; action?: string } | null;
@@ -110,13 +123,20 @@ const SignIn = () => {
   };
 
   const handleSignIn = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+      email: trimmedEmail,
       password,
     });
 
     if (error) {
       throw error;
+    }
+    
+    // If biometric is available but not enabled, prompt user to enable it
+    if (biometricAvailable && !biometricEnabled) {
+      setPendingCredentials({ email: trimmedEmail, password });
+      setShowBiometricPrompt(true);
     }
     // Success - auth state change will trigger redirect
   };
@@ -228,6 +248,44 @@ const SignIn = () => {
       default:
         return "Sign in";
     }
+  };
+
+  const handleBiometricLogin = async () => {
+    setBiometricLoginLoading(true);
+    setError(null);
+    
+    try {
+      const result = await loginWithBiometric();
+      if (!result.success) {
+        // User cancelled or biometric failed - show error only if not cancelled
+        const errorMessage = result.error?.toString() || '';
+        if (!errorMessage.includes('cancel') && !errorMessage.includes('Cancel')) {
+          setError('Biometric login failed. Please try again or use your password.');
+        }
+      }
+      // Success - auth state change will trigger redirect
+    } catch (err: any) {
+      console.error('Biometric login error:', err);
+      setError('Biometric login failed. Please try again or use your password.');
+    } finally {
+      setBiometricLoginLoading(false);
+    }
+  };
+
+  const handleEnableBiometric = async () => {
+    if (!pendingCredentials) return;
+    
+    const result = await enableBiometric(pendingCredentials.email, pendingCredentials.password);
+    if (result.success) {
+      toast.success(`${getBiometricLabel()} enabled for future logins`);
+    }
+    setShowBiometricPrompt(false);
+    setPendingCredentials(null);
+  };
+
+  const handleSkipBiometric = () => {
+    setShowBiometricPrompt(false);
+    setPendingCredentials(null);
   };
 
   return (
@@ -397,7 +455,71 @@ const SignIn = () => {
                     getSubmitText()
                   )}
                 </Button>
+
+                {/* Biometric Login Button (Sign In mode only, when biometric is available and enabled) */}
+                {mode === "signin" && biometricAvailable && biometricEnabled && !biometricLoading && (
+                  <>
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">or</span>
+                      </div>
+                    </div>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-12 text-base"
+                      onClick={handleBiometricLogin}
+                      disabled={biometricLoginLoading || loading}
+                    >
+                      {biometricLoginLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Authenticating...
+                        </>
+                      ) : (
+                        <>
+                          <Fingerprint className="w-5 h-5 mr-2" />
+                          Sign in with {getBiometricLabel()}
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
               </form>
+            )}
+
+            {/* Biometric Enable Prompt */}
+            {showBiometricPrompt && (
+              <div className="text-center space-y-4 py-4 border-t border-border">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-full mx-auto">
+                  <Fingerprint className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Enable {getBiometricLabel()}?</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Log in faster next time using {getBiometricLabel()}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleSkipBiometric}
+                  >
+                    Not now
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={handleEnableBiometric}
+                  >
+                    Enable
+                  </Button>
+                </div>
+              </div>
             )}
 
             {/* Mode Toggle (not shown when reset email sent) */}

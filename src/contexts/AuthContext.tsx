@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
+import { Preferences } from "@capacitor/preferences";
 import { supabase } from "@/integrations/supabase/client";
 
-// TODO: Biometric login - After successful email/password login, consider storing
-// credentials securely (via Capacitor Secure Storage) to enable Face ID/Touch ID login
-
+const BIOMETRIC_CREDENTIALS_KEY = 'biometric_credentials';
+const BIOMETRIC_SERVER = 'emma-app';
 interface Profile {
   id: string;
   display_name: string | null;
@@ -143,9 +144,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    // TODO: Biometric login - Clear any stored biometric credentials here
-    // TODO: Account deletion - This is where account deletion would call
-    // supabase.rpc('delete_user_account') before signing out
+    // Clear biometric credentials on sign out
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const module = await import('@capgo/capacitor-native-biometric');
+        await module.NativeBiometric.deleteCredentials({ server: BIOMETRIC_SERVER });
+      }
+      await Preferences.remove({ key: BIOMETRIC_CREDENTIALS_KEY });
+    } catch (error) {
+      console.error('Error clearing biometric credentials:', error);
+    }
     
     await supabase.auth.signOut();
     
