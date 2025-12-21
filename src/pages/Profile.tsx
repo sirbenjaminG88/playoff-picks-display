@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAccountDeletion } from "@/hooks/useAccountDeletion";
+import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +51,13 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading, refreshProfile, signOut } = useAuth();
   const { deleteAccount, isDeleting, error: deleteError, clearError } = useAccountDeletion();
+  const {
+    biometricAvailable,
+    biometricEnabled,
+    disableBiometric,
+    getBiometricLabel,
+    isLoading: biometricLoading
+  } = useBiometricAuth();
   const [displayName, setDisplayName] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -445,25 +453,44 @@ const Profile = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Biometric Toggle (Disabled - Coming Soon) */}
+              {/* Biometric Toggle */}
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
                   <Fingerprint className="w-4 h-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      Use Face ID / Touch ID
+                      Use {getBiometricLabel()}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Biometric login coming soon.
+                      {biometricAvailable
+                        ? (biometricEnabled ? "Enabled" : "Enable biometric login")
+                        : "Not available on this device"
+                      }
                     </p>
                   </div>
                 </div>
-                <Switch
-                  disabled
-                  checked={false}
-                  className="opacity-50"
-                  aria-label="Enable biometric login (coming soon)"
-                />
+                {biometricAvailable && (
+                  <Switch
+                    checked={biometricEnabled}
+                    disabled={biometricLoading}
+                    onCheckedChange={async (checked) => {
+                      if (checked) {
+                        // Can't enable from here - need credentials
+                        toast({
+                          title: "Sign out to enable",
+                          description: `Sign out and sign in again to enable ${getBiometricLabel()}`,
+                        });
+                      } else {
+                        await disableBiometric();
+                        toast({
+                          title: `${getBiometricLabel()} disabled`,
+                          description: "You can re-enable it next time you sign in.",
+                        });
+                      }
+                    }}
+                    aria-label={`Enable ${getBiometricLabel()}`}
+                  />
+                )}
               </div>
 
               <Separator />

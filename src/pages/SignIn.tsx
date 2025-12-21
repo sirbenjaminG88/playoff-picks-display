@@ -45,9 +45,9 @@ const SignIn = () => {
   // Get the redirect location from state
   const locationState = location.state as { from?: string; action?: string } | null;
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but not if showing biometric prompt)
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !showBiometricPrompt) {
       if (!profile || !profile.display_name) {
         navigate("/profile-setup", { replace: true, state: locationState });
       } else {
@@ -55,7 +55,7 @@ const SignIn = () => {
         navigate(redirectTo, { replace: true, state: { action: locationState?.action } });
       }
     }
-  }, [user, profile, authLoading, navigate, locationState]);
+  }, [user, profile, authLoading, navigate, locationState, showBiometricPrompt]);
 
   // Show loading spinner while checking auth
   if (authLoading) {
