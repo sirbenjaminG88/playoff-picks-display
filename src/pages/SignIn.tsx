@@ -41,6 +41,7 @@ const SignIn = () => {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
   const [pendingCredentials, setPendingCredentials] = useState<{email: string; password: string} | null>(null);
+  const [biometricAttempted, setBiometricAttempted] = useState(false);
 
   // Get the redirect location from state
   const locationState = location.state as { from?: string; action?: string } | null;
@@ -56,6 +57,24 @@ const SignIn = () => {
       }
     }
   }, [user, profile, authLoading, navigate, locationState, showBiometricPrompt]);
+
+  // Auto-trigger biometric login if enabled (like DraftKings)
+  useEffect(() => {
+    if (
+      mode === "signin" &&
+      !authLoading &&
+      !user &&
+      biometricAvailable &&
+      biometricEnabled &&
+      !biometricLoading &&
+      !biometricAttempted &&
+      !loading
+    ) {
+      console.log('[SignIn] Auto-triggering biometric login...');
+      setBiometricAttempted(true);
+      handleBiometricLogin();
+    }
+  }, [mode, authLoading, user, biometricAvailable, biometricEnabled, biometricLoading, biometricAttempted, loading]);
 
   // Show loading spinner while checking auth
   if (authLoading) {

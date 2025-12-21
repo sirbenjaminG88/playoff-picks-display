@@ -31,6 +31,19 @@ export function useBiometricAuth() {
     init();
   }, []);
 
+  // Re-check biometric enabled status when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[useBiometricAuth] Page visible, re-checking enabled status...');
+        checkBiometricEnabled();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const checkBiometricAvailability = async () => {
     if (!Capacitor.isNativePlatform()) {
       console.log('[useBiometricAuth] Not on native platform');
@@ -53,9 +66,11 @@ export function useBiometricAuth() {
   const checkBiometricEnabled = async () => {
     try {
       const { value } = await Preferences.get({ key: BIOMETRIC_CREDENTIALS_KEY });
-      setBiometricEnabled(!!value);
+      const enabled = !!value;
+      console.log('[useBiometricAuth] Biometric enabled check:', { key: BIOMETRIC_CREDENTIALS_KEY, value, enabled });
+      setBiometricEnabled(enabled);
     } catch (error) {
-      console.error('Error checking biometric enabled:', error);
+      console.error('[useBiometricAuth] Error checking biometric enabled:', error);
       setBiometricEnabled(false);
     }
   };
