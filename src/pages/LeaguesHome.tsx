@@ -249,15 +249,6 @@ const LeaguesHome = () => {
               <span className="text-sm font-medium text-foreground">{profile?.display_name?.split(" ")[0]}</span>
             </button>
           </div>
-          <div className="flex justify-end mt-2">
-            <button 
-              onClick={handleSignOut}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <LogOut className="w-3 h-3" />
-              Sign out
-            </button>
-          </div>
         </div>
 
         {/* Season Toggle */}
