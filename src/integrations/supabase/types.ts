@@ -139,6 +139,36 @@ export type Database = {
         }
         Relationships: []
       }
+      pick_reminder_sent_log: {
+        Row: {
+          created_at: string
+          id: string
+          league_id: string
+          reminder_type: string
+          season: number
+          user_id: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          league_id: string
+          reminder_type: string
+          season: number
+          user_id: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          league_id?: string
+          reminder_type?: string
+          season?: number
+          user_id?: string
+          week?: number
+        }
+        Relationships: []
+      }
       player_week_stats: {
         Row: {
           created_at: string
@@ -828,6 +858,7 @@ export type Database = {
         Args: { p_league_id: string; p_season: number; p_week: number }
         Returns: boolean
       }
+      send_pick_deadline_reminders: { Args: never; Returns: Json }
       validate_join_code: { Args: { p_join_code: string }; Returns: string }
     }
     Enums: {
