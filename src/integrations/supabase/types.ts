@@ -745,7 +745,6 @@ export type Database = {
           created_at: string | null
           icon_url: string | null
           id: string | null
-          join_code: string | null
           max_members: number | null
           name: string | null
           season: number | null
@@ -755,7 +754,6 @@ export type Database = {
           created_at?: string | null
           icon_url?: string | null
           id?: string | null
-          join_code?: never
           max_members?: number | null
           name?: string | null
           season?: number | null
@@ -765,7 +763,6 @@ export type Database = {
           created_at?: string | null
           icon_url?: string | null
           id?: string | null
-          join_code?: never
           max_members?: number | null
           name?: string | null
           season?: number | null
