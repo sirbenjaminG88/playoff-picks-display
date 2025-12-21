@@ -707,7 +707,7 @@ const Picks = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="bg-background pb-20">
       <PageHeader
         title="Submissions"
         subtitle={isRegularSeason
