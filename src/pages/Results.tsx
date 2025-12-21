@@ -991,7 +991,7 @@ export default function Results() {
       <PageHeader
         title="Results"
         subtitle={isRegularSeason 
-          ? "2025 Regular Season Beta — Fantasy Results" 
+          ? "Weekly scores and standings" 
           : "Weekly scores and overall standings"}
         icon={<Trophy className="w-6 h-6 text-primary" />}
       />
