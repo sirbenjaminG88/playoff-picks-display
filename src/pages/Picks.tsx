@@ -31,6 +31,7 @@ import { useLeague } from "@/contexts/LeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRegularSeasonData, RegularSeasonPlayer } from "@/hooks/useRegularSeasonData";
 import { LeagueSwitcher } from "@/components/LeagueSwitcher";
+import { QBIcon, RBIcon, FlexIcon } from "@/components/PositionIcons";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -870,7 +871,7 @@ const Picks = () => {
                   {/* QB Section */}
                   <div className="mb-4">
                     <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-foreground">
-                      <span className="inline-block w-1 h-5 bg-primary rounded"></span>
+                      <QBIcon className="text-primary" />
                       Quarterback
                     </h3>
                     <Card
@@ -922,7 +923,7 @@ const Picks = () => {
                   {/* RB Section */}
                   <div className="mb-4">
                     <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-foreground">
-                      <span className="inline-block w-1 h-5 bg-primary rounded"></span>
+                      <RBIcon className="text-primary" />
                       Running Back
                     </h3>
                     <Card
@@ -973,8 +974,8 @@ const Picks = () => {
 
                   {/* FLEX Section */}
                   <div className="mb-8">
-                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                      <span className="inline-block w-1 h-5 bg-green-500 rounded"></span>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-foreground">
+                      <FlexIcon className="text-primary" />
                       Flex (WR/TE)
                     </h3>
                     <Card
