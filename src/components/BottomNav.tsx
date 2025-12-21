@@ -11,15 +11,14 @@ export function BottomNav() {
   
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background"
-      style={isNative ? {
-        paddingBottom: "env(safe-area-inset-bottom)",
+      className="fixed bottom-0 left-0 right-0 z-50 bg-background"
+      style={{
         transform: "translateZ(0)", // Hardware acceleration to prevent scroll issues
-      } : {
-        transform: "translateZ(0)",
+        paddingBottom: isNative ? "env(safe-area-inset-bottom)" : "0",
       }}
     >
-      <div className="flex items-center justify-around h-16 max-w-md mx-auto px-4">
+      <div className="border-t border-border">
+        <div className="flex items-center justify-around h-16 max-w-md mx-auto px-4">
         <NavLink
           to="/"
           className="flex flex-col items-center justify-center gap-1 flex-1 py-2 text-nav-inactive transition-colors"
@@ -46,6 +45,7 @@ export function BottomNav() {
           <Trophy className="h-5 w-5" />
           <span className="text-xs font-medium">Results</span>
         </NavLink>
+        </div>
       </div>
     </nav>
   );
