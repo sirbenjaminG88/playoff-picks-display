@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { FirebaseMessaging } from '@capacitor-firebase/messaging';
+import { Badge } from '@capawesome/capacitor-badge';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +20,13 @@ export function usePushNotifications() {
         console.log('[FirebaseMessaging] Setting up push notifications...');
         console.log('[FirebaseMessaging] User ID:', user?.id);
 
-        // Note: Badge count management would require @capacitor/badge plugin
+        // Clear badge on app open
+        try {
+          await Badge.clear();
+          console.log('[Badge] Badge cleared on app open');
+        } catch (badgeError) {
+          console.error('[Badge] Error clearing badge:', badgeError);
+        }
 
         // Request permission to use push notifications
         const result = await FirebaseMessaging.requestPermissions();
@@ -76,7 +83,13 @@ export function usePushNotifications() {
     const actionListener = FirebaseMessaging.addListener('notificationActionPerformed', async (event) => {
       console.log('[FirebaseMessaging] Notification action performed:', event);
 
-      // Note: Badge count management would require @capacitor/badge plugin
+      // Clear badge when user taps notification
+      try {
+        await Badge.clear();
+        console.log('[Badge] Badge cleared on notification tap');
+      } catch (error) {
+        console.error('[Badge] Error clearing badge:', error);
+      }
 
       // TODO: Navigate to picks page when notification is tapped
     });

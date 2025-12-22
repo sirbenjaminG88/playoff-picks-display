@@ -13,6 +13,8 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SafeArea } from "@/components/SafeArea";
 import { SplashScreen } from '@capacitor/splash-screen';
+import { Badge } from '@capawesome/capacitor-badge';
+import { Capacitor } from '@capacitor/core';
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import Results from "./pages/Results";
 import Picks from "./pages/Picks";
@@ -39,6 +41,23 @@ const AppContent = () => {
 
   // Initialize push notifications
   usePushNotifications();
+
+  // Clear badge immediately on app mount
+  useEffect(() => {
+    const clearBadgeOnMount = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          console.log('[App] Clearing badge on app mount...');
+          await Badge.clear();
+          console.log('[App] ✅ Badge cleared on mount');
+        } catch (error) {
+          console.error('[App] ❌ Error clearing badge on mount:', error);
+        }
+      }
+    };
+
+    clearBadgeOnMount();
+  }, []);
 
   useEffect(() => {
     console.log('[AppContent] Auth loading:', loading);

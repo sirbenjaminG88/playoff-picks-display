@@ -308,8 +308,8 @@ const SignIn = () => {
   };
 
   return (
-    <div className="flex-1 bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="flex-1 bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 py-8">
+      <div className="w-full max-w-md -mt-8">
         <Card className="border-border bg-card">
           <CardHeader className="text-center space-y-4">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mx-auto shadow-lg">

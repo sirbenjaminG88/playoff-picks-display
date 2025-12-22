@@ -7,7 +7,7 @@ import emmaHome from "@/assets/emma-home.json";
  */
 export const SplashScreen = () => {
   return (
-    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center">
+    <div className="fixed inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: '#111214' }}>
       {/* Lottie Animation */}
       <div className="w-[180px] h-[180px]">
         <Lottie

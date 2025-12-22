@@ -10,6 +10,7 @@ interface SafeAreaProps {
  * SafeArea wrapper component that applies iOS safe area insets.
  * Only applies padding when running inside Capacitor (native iOS/Android).
  * Uses CSS env() variables for dynamic safe area values.
+ * Note: Bottom padding is NOT applied here since BottomNav handles it with a dedicated spacer.
  */
 export function SafeArea({ children, className = "" }: SafeAreaProps) {
   const isNative = Capacitor.isNativePlatform();
@@ -21,7 +22,6 @@ export function SafeArea({ children, className = "" }: SafeAreaProps) {
         isNative
           ? {
               paddingTop: "env(safe-area-inset-top)",
-              paddingBottom: "env(safe-area-inset-bottom)",
               paddingLeft: "env(safe-area-inset-left)",
               paddingRight: "env(safe-area-inset-right)",
             }

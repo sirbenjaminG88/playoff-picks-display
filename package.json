@@ -25,6 +25,7 @@
     "@capacitor/ios": "^7.4.4",
     "@capacitor/preferences": "^6.0.2",
     "@capacitor/splash-screen": "^7.0.4",
+    "@capawesome/capacitor-badge": "^7.0.1",
     "@capgo/capacitor-native-biometric": "^8.0.3",
     "@hookform/resolvers": "^3.10.0",
     "@playwright/test": "^1.57.0",

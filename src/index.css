@@ -65,6 +65,10 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    @apply bg-background;
+  }
+
   body {
     @apply bg-background text-foreground;
     overscroll-behavior-y: none; /* Prevent iOS rubber band effect that moves fixed nav */
@@ -75,6 +79,7 @@ All colors MUST be HSL.
   }
 
   #root {
+    @apply bg-background;
     width: 100%;
     height: 100%;
     overflow-y: auto;
