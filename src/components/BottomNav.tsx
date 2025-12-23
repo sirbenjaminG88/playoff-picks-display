@@ -16,33 +16,33 @@ export function BottomNav() {
         transform: "translateZ(0)", // Hardware acceleration to prevent scroll issues
       }}
     >
-      <div className="bg-nav-bg border-t border-border">
-        <div className="flex items-center justify-around h-16 max-w-md mx-auto px-4">
+      <div className="bg-nav-bg/90 backdrop-blur border-t border-border">
+        <div className="flex items-center justify-around h-14 max-w-md mx-auto px-3">
           <NavLink
             to="/"
-            className="flex flex-col items-center justify-center gap-1 flex-1 py-2 text-nav-inactive transition-colors"
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 text-nav-inactive transition-colors"
             activeClassName="text-primary"
           >
-            <Home className="h-5 w-5" />
-            <span className="text-xs font-medium">Home</span>
+            <Home className="h-6 w-6" />
+            <span className="text-[10px] leading-none font-medium">Home</span>
           </NavLink>
 
           <NavLink
             to="/picks"
-            className="flex flex-col items-center justify-center gap-1 flex-1 py-2 text-nav-inactive transition-colors"
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 text-nav-inactive transition-colors"
             activeClassName="text-primary"
           >
-            <ClipboardList className="h-5 w-5" />
-            <span className="text-xs font-medium">Submissions</span>
+            <ClipboardList className="h-6 w-6" />
+            <span className="text-[10px] leading-none font-medium">Submissions</span>
           </NavLink>
 
           <NavLink
             to="/results"
-            className="flex flex-col items-center justify-center gap-1 flex-1 py-2 text-nav-inactive transition-colors"
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 text-nav-inactive transition-colors"
             activeClassName="text-primary"
           >
-            <Trophy className="h-5 w-5" />
-            <span className="text-xs font-medium">Results</span>
+            <Trophy className="h-6 w-6" />
+            <span className="text-[10px] leading-none font-medium">Results</span>
           </NavLink>
         </div>
       </div>
