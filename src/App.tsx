@@ -42,6 +42,15 @@ const AppContent = () => {
   // Initialize push notifications
   usePushNotifications();
 
+  // Handle recovery token redirect - must run before auth processes the token
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      // Redirect to reset-password page while preserving the hash
+      window.location.href = `/reset-password${hash}`;
+    }
+  }, []);
+
   // Clear badge immediately on app mount
   useEffect(() => {
     const clearBadgeOnMount = async () => {

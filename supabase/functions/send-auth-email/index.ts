@@ -4,6 +4,7 @@ import { Resend } from 'https://esm.sh/resend@4.0.0'
 import { render } from 'https://esm.sh/@react-email/render@0.0.12'
 import { MagicLinkEmail } from './_templates/magic-link.tsx'
 import { EmailChangeEmail } from './_templates/email-change.tsx'
+import { RecoveryEmail } from './_templates/recovery.tsx'
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
 const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET') as string
@@ -72,6 +73,14 @@ Deno.serve(async (req) => {
         React.createElement(EmailChangeEmail, {
           supabase_url: Deno.env.get('SUPABASE_URL') ?? '',
           token,
+          token_hash,
+          redirect_to,
+        })
+      )
+    } else if (email_action_type === 'recovery') {
+      html = render(
+        React.createElement(RecoveryEmail, {
+          supabase_url: Deno.env.get('SUPABASE_URL') ?? '',
           token_hash,
           redirect_to,
         })
