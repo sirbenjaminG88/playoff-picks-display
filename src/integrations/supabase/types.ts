@@ -838,6 +838,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_league: {
+        Args: {
+          p_icon_url?: string
+          p_max_members?: number
+          p_name: string
+          p_season: number
+          p_season_type: string
+        }
+        Returns: {
+          id: string
+          join_code: string
+          name: string
+        }[]
+      }
       delete_user_account: { Args: never; Returns: undefined }
       generate_funny_join_code: { Args: never; Returns: string }
       get_league_join_code: { Args: { p_league_id: string }; Returns: string }

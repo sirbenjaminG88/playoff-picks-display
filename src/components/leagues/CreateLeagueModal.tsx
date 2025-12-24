@@ -125,42 +125,18 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
     setIsSubmitting(true);
 
     try {
-      // Generate join code
-      const { data: joinCodeData, error: joinCodeError } = await supabase
-        .rpc("generate_funny_join_code");
-
-      if (joinCodeError) throw joinCodeError;
-
-      const joinCode = joinCodeData as string;
-
-      // Create league with selected icon stored in icon_url field
+      // Use atomic RPC that creates league + adds commissioner in one transaction
       const { data: leagueData, error: leagueError } = await supabase
-        .from("leagues")
-        .insert({
-          name: trimmedName,
-          season: 2025,
-          season_type: "POST",
-          join_code: joinCode,
-          max_members: maxMembers,
-          icon_url: `lucide:${selectedIcon}`, // Store as lucide:iconname
+        .rpc("create_league", {
+          p_name: trimmedName,
+          p_season: 2025,
+          p_season_type: "POST",
+          p_max_members: maxMembers,
+          p_icon_url: `lucide:${selectedIcon}`,
         })
-        .select("id, name, join_code")
         .single();
 
       if (leagueError) throw leagueError;
-
-      if (leagueError) throw leagueError;
-
-      // Add creator as commissioner
-      const { error: memberError } = await supabase
-        .from("league_members")
-        .insert({
-          league_id: leagueData.id,
-          user_id: user.id,
-          role: "commissioner",
-        });
-
-      if (memberError) throw memberError;
 
       setCreatedLeague(leagueData);
       setStep("success");
