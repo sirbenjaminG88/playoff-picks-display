@@ -19,7 +19,7 @@ export const QBIcon = ({ className }: IconProps) => (
 
 export const RBIcon = ({ className }: IconProps) => (
   <img 
-    src="/icon-qb.png"
+    src="/icon-rb.png"
     alt="RB"
     className={cn("w-6 h-6", className)}
     style={{ filter: greenFilter }}
