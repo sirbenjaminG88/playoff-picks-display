@@ -28,9 +28,9 @@ export const RBIcon = ({ className }: IconProps) => (
 
 export const FlexIcon = ({ className }: IconProps) => (
   <img 
-    src="/icon-qb.png"
+    src="/icon-flex.png"
     alt="Flex"
     className={cn("w-6 h-6", className)}
-    style={{ filter: greenFilter }}
+    style={{ filter: greenFilter, transform: "scaleX(-1)" }}
   />
 );
