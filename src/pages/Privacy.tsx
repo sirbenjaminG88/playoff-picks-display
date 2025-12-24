@@ -118,6 +118,22 @@ const Privacy = () => {
           </section>
         </div>
 
+        {/* Credits */}
+        <section>
+          <h2 className="text-xl font-semibold text-foreground mb-3">Credits</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            <a 
+              href="https://www.flaticon.com/free-icons/american-football" 
+              title="american football icons"
+              className="text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              American football icons created by Freepik - Flaticon
+            </a>
+          </p>
+        </section>
+
         {/* Footer */}
         <footer className="pt-8 mt-8 border-t border-border text-center">
           <p className="text-sm text-muted-foreground">
