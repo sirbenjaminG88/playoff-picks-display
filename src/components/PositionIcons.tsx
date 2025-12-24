@@ -13,7 +13,7 @@ export const QBIcon = ({ className }: IconProps) => (
     src="/icon-qb.png"
     alt="QB"
     className={cn("w-6 h-6", className)}
-    style={{ filter: greenFilter }}
+    style={{ filter: greenFilter, transform: "scaleX(-1)" }}
   />
 );
 
