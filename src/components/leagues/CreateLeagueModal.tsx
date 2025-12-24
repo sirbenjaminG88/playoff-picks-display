@@ -87,9 +87,27 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast.error("You must be signed in to create a league");
+      return;
+    }
+
+    // Defensive check: ensure we actually have an authenticated session token
+    // before attempting inserts protected by RLS.
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      console.error("Error getting session:", sessionError);
+      toast.error("Session error. Please try again.");
+      return;
+    }
+
+    if (!session) {
+      toast.error("Your session expired. Please sign in again.");
       return;
     }
 
@@ -128,6 +146,8 @@ export function CreateLeagueModal({ open, onOpenChange }: CreateLeagueModalProps
         })
         .select("id, name, join_code")
         .single();
+
+      if (leagueError) throw leagueError;
 
       if (leagueError) throw leagueError;
 
