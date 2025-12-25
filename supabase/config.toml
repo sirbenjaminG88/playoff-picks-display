@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.check-pick-deadlines]
 verify_jwt = false
+
+[functions.notify-pick-submission]
+verify_jwt = false
