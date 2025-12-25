@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-const LEAGUE_ID = "playoff-league-2024";
-const SEASON = 2024;
+import { usePickRevealStatus, PickRevealStatus } from "./usePickRevealStatus";
 
 export interface PlayerWeekStats {
   pass_yds: number;
@@ -41,15 +39,41 @@ export interface WeekPicksData {
   flex: GroupedPlayer[];
   allUsers: string[];
   userProfiles: Map<string, UserProfile>;
+  // Reveal status info
+  revealStatus?: PickRevealStatus;
+  canViewPicks: boolean;  // Whether current user can see picks
 }
 
-async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
+async function fetchWeekPicks(
+  week: number,
+  leagueId: string,
+  season: number,
+  revealStatus?: PickRevealStatus
+): Promise<WeekPicksData> {
+  // Determine what picks the user can see based on reveal status
+  const canViewPicks = revealStatus
+    ? (revealStatus.currentUserSubmitted || revealStatus.pastDeadline)
+    : false;
+
+  // If user can't view picks yet, return empty data with status
+  if (!canViewPicks) {
+    return {
+      qbs: [],
+      rbs: [],
+      flex: [],
+      allUsers: [],
+      userProfiles: new Map(),
+      revealStatus,
+      canViewPicks: false,
+    };
+  }
+
   // Fetch user picks
   const { data: picks, error: picksError } = await supabase
     .from("user_picks")
     .select("*")
-    .eq("league_id", LEAGUE_ID)
-    .eq("season", SEASON)
+    .eq("league_id", leagueId)
+    .eq("season", season)
     .eq("week", week);
 
   if (picksError) {
@@ -57,18 +81,49 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
   }
 
   if (!picks || picks.length === 0) {
-    return { qbs: [], rbs: [], flex: [], allUsers: [], userProfiles: new Map() };
+    return {
+      qbs: [],
+      rbs: [],
+      flex: [],
+      allUsers: [],
+      userProfiles: new Map(),
+      revealStatus,
+      canViewPicks: true,
+    };
+  }
+
+  // Filter picks based on reveal status:
+  // - If past deadline: show all picks
+  // - If before deadline: only show picks from users who have submitted
+  let filteredPicks = picks;
+  if (revealStatus && !revealStatus.pastDeadline) {
+    // Only show picks from submitted users
+    filteredPicks = picks.filter(pick =>
+      pick.auth_user_id && revealStatus.submittedUserIds.includes(pick.auth_user_id)
+    );
+  }
+
+  if (filteredPicks.length === 0) {
+    return {
+      qbs: [],
+      rbs: [],
+      flex: [],
+      allUsers: [],
+      userProfiles: new Map(),
+      revealStatus,
+      canViewPicks: true,
+    };
   }
 
   // Get unique player_ids to fetch their images and stats
-  const playerIds = [...new Set(picks.map((p) => p.player_id))];
+  const playerIds = [...new Set(filteredPicks.map((p) => p.player_id))];
 
   // Fetch player images from playoff_players
   const { data: players, error: playersError } = await supabase
     .from("playoff_players")
     .select("player_id, image_url")
     .in("player_id", playerIds)
-    .eq("season", SEASON);
+    .eq("season", season);
 
   if (playersError) {
     console.error("Error fetching player images:", playersError);
@@ -79,7 +134,7 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
     .from("player_week_stats")
     .select("player_id, pass_yds, pass_tds, interceptions, rush_yds, rush_tds, rec_yds, rec_tds, fumbles_lost, fantasy_points_standard")
     .in("player_id", playerIds)
-    .eq("season", SEASON)
+    .eq("season", season)
     .eq("week", week);
 
   if (statsError) {
@@ -108,7 +163,7 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
   });
 
   // Group by position_slot and player_id
-  const groupByPositionAndPlayer = (allPicks: typeof picks, positionSlot: string): GroupedPlayer[] => {
+  const groupByPositionAndPlayer = (allPicks: typeof filteredPicks, positionSlot: string): GroupedPlayer[] => {
     const filtered = allPicks.filter((p) => p.position_slot === positionSlot);
     const grouped = new Map<number, GroupedPlayer>();
 
@@ -116,7 +171,7 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
       const existing = grouped.get(pick.player_id);
       const playerStats = playerStatsMap.get(pick.player_id);
       const hasStats = playerStats !== undefined;
-      
+
       if (existing) {
         if (!existing.selectedBy.includes(pick.user_id)) {
           existing.selectedBy.push(pick.user_id);
@@ -145,8 +200,8 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
     });
   };
 
-  // Get all unique users
-  const allUsers = [...new Set(picks.map((p) => p.user_id))];
+  // Get all unique users from filtered picks
+  const allUsers = [...new Set(filteredPicks.map((p) => p.user_id))];
 
   // Fetch user profiles to get avatar URLs from public_profiles view
   // (public_profiles bypasses RLS restrictions on users table)
@@ -166,17 +221,28 @@ async function fetchWeekPicks(week: number): Promise<WeekPicksData> {
   });
 
   return {
-    qbs: groupByPositionAndPlayer(picks, "QB"),
-    rbs: groupByPositionAndPlayer(picks, "RB"),
-    flex: groupByPositionAndPlayer(picks, "FLEX"),
+    qbs: groupByPositionAndPlayer(filteredPicks, "QB"),
+    rbs: groupByPositionAndPlayer(filteredPicks, "RB"),
+    flex: groupByPositionAndPlayer(filteredPicks, "FLEX"),
     allUsers,
     userProfiles,
+    revealStatus,
+    canViewPicks: true,
   };
 }
 
-export function useWeekPicks(week: number) {
+export function useWeekPicks(
+  week: number,
+  leagueId: string | null,
+  currentUserId: string | null,
+  season: number = 2025
+) {
+  // First check reveal status
+  const revealQuery = usePickRevealStatus(week, leagueId, currentUserId, season);
+
   return useQuery({
-    queryKey: ["weekPicks", week],
-    queryFn: () => fetchWeekPicks(week),
+    queryKey: ["weekPicks", week, leagueId, currentUserId, season, revealQuery.data?.currentUserSubmitted, revealQuery.data?.pastDeadline],
+    queryFn: () => fetchWeekPicks(week, leagueId!, season, revealQuery.data),
+    enabled: !!leagueId && !!currentUserId && week >= 1 && week <= 4 && revealQuery.isSuccess,
   });
 }

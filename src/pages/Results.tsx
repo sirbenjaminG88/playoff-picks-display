@@ -9,18 +9,21 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ChevronDown, Loader2, Radio, Lock, Clock } from "lucide-react";
 import { teamColorMap } from "@/lib/teamColors";
 import { useWeekPicks, GroupedPlayer, PlayerWeekStats, UserProfile } from "@/hooks/useWeekPicks";
+import { SubmittedUser } from "@/hooks/usePickRevealStatus";
 import { useRegularSeasonPicks, GroupedPlayer as RegularGroupedPlayer, UserProfile as RegularUserProfile } from "@/hooks/useRegularSeasonPicks";
 import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useLeague } from "@/contexts/LeagueContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatGameDateET } from "@/lib/timezone";
 import { PageHeader } from "@/components/PageHeader";
 import { Trophy } from "lucide-react";
+import { QBIcon, RBIcon, FlexIcon } from "@/components/PositionIcons";
 
 // Beta weeks for 2025 regular season
-const REGULAR_SEASON_WEEKS = [14, 15, 16, 17];
+const REGULAR_SEASON_WEEKS = [14, 15, 16, 17, 18];
 
 import { getInitials } from "@/lib/displayName";
 
@@ -205,21 +208,29 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
   );
 };
 
-const PositionSection = ({ 
-  title, 
+const PositionSection = ({
+  title,
   players,
   userProfiles
-}: { 
-  title: string; 
+}: {
+  title: string;
   players: (GroupedPlayer | RegularGroupedPlayer)[];
   userProfiles?: Map<string, UserProfile | RegularUserProfile>;
 }) => {
   if (players.length === 0) return null;
-  
+
+  // Get the appropriate icon based on title
+  const getPositionIcon = () => {
+    if (title.includes("Quarterback")) return <QBIcon className="w-6 h-6" />;
+    if (title.includes("Running Back")) return <RBIcon className="w-6 h-6" />;
+    if (title.includes("Flex")) return <FlexIcon className="w-6 h-6" />;
+    return null;
+  };
+
   return (
     <div className="space-y-3">
       <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-        <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+        {getPositionIcon()}
         {title}
       </h2>
       <div className="space-y-3">
@@ -232,8 +243,8 @@ const PositionSection = ({
 };
 
 // Playoff week results component
-const WeekResults = ({ week }: { week: number }) => {
-  const { data, isLoading, error } = useWeekPicks(week);
+const WeekResults = ({ week, leagueId, userId }: { week: number; leagueId: string; userId: string }) => {
+  const { data, isLoading, error } = useWeekPicks(week, leagueId, userId);
 
   if (isLoading) {
     return (
@@ -257,7 +268,98 @@ const WeekResults = ({ week }: { week: number }) => {
     );
   }
 
+  // Check if user can view picks (has submitted or past deadline)
+  if (data && !data.canViewPicks && data.revealStatus) {
+    const { submittedCount, leagueMemberCount, submittedUsers } = data.revealStatus;
+    return (
+      <div className="space-y-6">
+        {/* Info banner - user needs to submit to see picks */}
+        <Alert className="bg-muted/30 border-border">
+          <Lock className="h-4 w-4" />
+          <AlertDescription>
+            <span className="font-medium text-foreground">Submit your picks to see league results.</span>
+          </AlertDescription>
+        </Alert>
+
+        {/* Show who has submitted */}
+        <Card className="border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span>Who's Submitted</span>
+              <Badge variant="secondary" className="text-sm">
+                {submittedCount}/{leagueMemberCount}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {submittedUsers && submittedUsers.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {submittedUsers.map((user) => (
+                  <div key={user.userId} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30">
+                    <Avatar className="h-7 w-7">
+                      {user.avatarUrl ? (
+                        <AvatarImage src={user.avatarUrl} alt={user.displayName} />
+                      ) : null}
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
+                        {getInitials(user.displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium text-foreground">{user.displayName}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-2">
+                No one has submitted yet. Be the first!
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Position sections with hidden placeholder */}
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <QBIcon className="w-6 h-6" />
+            Quarterbacks
+          </h2>
+          <Card className="border-border bg-muted/10">
+            <CardContent className="py-6 text-center text-muted-foreground">
+              Submit your picks to reveal
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <RBIcon className="w-6 h-6" />
+            Running Backs
+          </h2>
+          <Card className="border-border bg-muted/10">
+            <CardContent className="py-6 text-center text-muted-foreground">
+              Submit your picks to reveal
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <FlexIcon className="w-6 h-6" />
+            Flex (WR/TE)
+          </h2>
+          <Card className="border-border bg-muted/10">
+            <CardContent className="py-6 text-center text-muted-foreground">
+              Submit your picks to reveal
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   const hasAnyPicks = data && (data.qbs.length > 0 || data.rbs.length > 0 || data.flex.length > 0);
+
+  // Show partial results message if before deadline and user has submitted
+  const showPartialMessage = data?.revealStatus && !data.revealStatus.pastDeadline && data.revealStatus.currentUserSubmitted;
 
   if (!hasAnyPicks) {
     return (
@@ -273,6 +375,19 @@ const WeekResults = ({ week }: { week: number }) => {
 
   return (
     <div className="space-y-6">
+      {showPartialMessage && data?.revealStatus && (
+        <Alert className="bg-muted/30 border-border">
+          <Clock className="h-4 w-4" />
+          <AlertDescription>
+            <span className="font-medium text-foreground">
+              Showing {data.revealStatus.submittedCount} submitted picks.
+            </span>
+            <span className="text-muted-foreground ml-1">
+              Full results after kickoff.
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
       <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} />
       <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} />
       <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} />
@@ -284,11 +399,13 @@ const WeekResults = ({ week }: { week: number }) => {
 const RegularSeasonWeekResults = ({
   week,
   leagueId,
+  userId,
 }: {
   week: number;
   leagueId: string;
+  userId: string;
 }) => {
-  const { data, isLoading, error } = useRegularSeasonPicks(week, leagueId);
+  const { data, isLoading, error } = useRegularSeasonPicks(week, leagueId, userId);
 
   if (isLoading) {
     return (
@@ -312,58 +429,87 @@ const RegularSeasonWeekResults = ({
     );
   }
 
-  // Check if picks are revealed
-  if (data && !data.isRevealed && data.revealStatus) {
-    const { submittedCount, leagueMemberCount, firstGameKickoff } = data.revealStatus;
+  // Check if user can view picks (has submitted or past deadline)
+  if (data && !data.canViewPicks && data.revealStatus) {
+    const { submittedCount, leagueMemberCount, submittedUsers } = data.revealStatus;
     return (
       <div className="space-y-6">
-        {/* Info banner */}
+        {/* Info banner - user needs to submit to see picks */}
         <Alert className="bg-muted/30 border-border">
-          <Clock className="h-4 w-4" />
+          <Lock className="h-4 w-4" />
           <AlertDescription>
-            <span className="font-medium text-foreground">Picks will be revealed after kickoff.</span>
-            <span className="text-muted-foreground ml-1">
-              {firstGameKickoff ? `First game: ${formatGameDateET(firstGameKickoff)}` : ''}
-            </span>
-            <span className="text-muted-foreground ml-2">
-              ({submittedCount}/{leagueMemberCount} submitted)
-            </span>
+            <span className="font-medium text-foreground">Submit your picks to see league results.</span>
           </AlertDescription>
         </Alert>
+
+        {/* Show who has submitted */}
+        <Card className="border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span>Who's Submitted</span>
+              <Badge variant="secondary" className="text-sm">
+                {submittedCount}/{leagueMemberCount}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {submittedUsers && submittedUsers.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {submittedUsers.map((user) => (
+                  <div key={user.userId} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30">
+                    <Avatar className="h-7 w-7">
+                      {user.avatarUrl ? (
+                        <AvatarImage src={user.avatarUrl} alt={user.displayName} />
+                      ) : null}
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
+                        {getInitials(user.displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium text-foreground">{user.displayName}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-2">
+                No one has submitted yet. Be the first!
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Position sections with hidden placeholder */}
         <div className="space-y-3">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+            <QBIcon className="w-6 h-6" />
             Quarterbacks
           </h2>
           <Card className="border-border bg-muted/10">
             <CardContent className="py-6 text-center text-muted-foreground">
-              Hidden until kickoff
+              Submit your picks to reveal
             </CardContent>
           </Card>
         </div>
 
         <div className="space-y-3">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+            <RBIcon className="w-6 h-6" />
             Running Backs
           </h2>
           <Card className="border-border bg-muted/10">
             <CardContent className="py-6 text-center text-muted-foreground">
-              Hidden until kickoff
+              Submit your picks to reveal
             </CardContent>
           </Card>
         </div>
 
         <div className="space-y-3">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <span className="inline-block w-1 h-6 bg-primary rounded"></span>
+            <FlexIcon className="w-6 h-6" />
             Flex (WR/TE)
           </h2>
           <Card className="border-border bg-muted/10">
             <CardContent className="py-6 text-center text-muted-foreground">
-              Hidden until kickoff
+              Submit your picks to reveal
             </CardContent>
           </Card>
         </div>
@@ -372,6 +518,9 @@ const RegularSeasonWeekResults = ({
   }
 
   const hasAnyPicks = data && (data.qbs.length > 0 || data.rbs.length > 0 || data.flex.length > 0);
+
+  // Show partial results message if before deadline and user has submitted
+  const showPartialMessage = data?.revealStatus && !data.revealStatus.pastDeadline && data.revealStatus.currentUserSubmitted;
 
   if (!hasAnyPicks) {
     return (
@@ -387,6 +536,19 @@ const RegularSeasonWeekResults = ({
 
   return (
     <div className="space-y-6">
+      {showPartialMessage && data?.revealStatus && (
+        <Alert className="bg-muted/30 border-border">
+          <Clock className="h-4 w-4" />
+          <AlertDescription>
+            <span className="font-medium text-foreground">
+              Showing {data.revealStatus.submittedCount} submitted picks.
+            </span>
+            <span className="text-muted-foreground ml-1">
+              Full results after kickoff.
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
       <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} />
       <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} />
       <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} />
@@ -395,21 +557,14 @@ const RegularSeasonWeekResults = ({
 };
 
 // Regular season leaderboard for a specific week
-const RegularSeasonWeekLeaderboard = ({ week, leagueId }: { week: number; leagueId: string }) => {
-  const { data, isLoading } = useRegularSeasonPicks(week, leagueId);
+const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: string; userId: string }) => {
+  const { data, isLoading } = useRegularSeasonPicks(week, leagueId, userId);
 
   if (isLoading || !data) {
     return null;
   }
 
-  // If picks are not revealed, show simple message
-  if (!data.isRevealed) {
-    return (
-      <div className="py-6 text-center text-muted-foreground">
-        Hidden until kickoff
-      </div>
-    );
-  }
+  // Leaderboard is always visible (per user request)
 
   // Calculate points per user for this week
   const userPoints = new Map<string, number>();
@@ -480,11 +635,12 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId }: { week: number; league
 };
 
 // Regular season overall leaderboard
-const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWeek: number; leagueId: string }) => {
-  const week14 = useRegularSeasonPicks(14, leagueId);
-  const week15 = useRegularSeasonPicks(15, leagueId);
-  const week16 = useRegularSeasonPicks(16, leagueId);
-  const week17 = useRegularSeasonPicks(17, leagueId);
+const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { throughWeek: number; leagueId: string; userId: string }) => {
+  const week14 = useRegularSeasonPicks(14, leagueId, userId);
+  const week15 = useRegularSeasonPicks(15, leagueId, userId);
+  const week16 = useRegularSeasonPicks(16, leagueId, userId);
+  const week17 = useRegularSeasonPicks(17, leagueId, userId);
+  const week18 = useRegularSeasonPicks(18, leagueId, userId);
 
   // Build week queries based on throughWeek
   const weekQueriesMap: Record<number, typeof week14> = {
@@ -492,6 +648,7 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
     15: week15,
     16: week16,
     17: week17,
+    18: week18,
   };
 
   const weeksToInclude = REGULAR_SEASON_WEEKS.filter(w => w <= throughWeek);
@@ -512,8 +669,7 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
 
   weekQueries.forEach((weekQuery) => {
     if (!weekQuery?.data) return;
-    // Skip weeks where picks are not revealed
-    if (!weekQuery.data.isRevealed) return;
+    // Leaderboard always uses all available data
     
     const allPlayers = [
       ...(weekQuery.data.qbs || []), 
@@ -606,8 +762,8 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId }: { throughWee
   );
 };
 
-const WeekLeaderboard = ({ week }: { week: number }) => {
-  const { data, isLoading } = useWeekPicks(week);
+const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: string; userId: string }) => {
+  const { data, isLoading } = useWeekPicks(week, leagueId, userId);
 
   if (isLoading || !data) {
     return null;
@@ -705,6 +861,7 @@ function useLastStatsUpdate(week: number) {
 
 function RegularSeasonResults() {
   const { currentLeague, isCommissioner, loading: leagueLoading } = useLeague();
+  const { user } = useAuth();
   const [activeWeek, setActiveWeek] = useState(14);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
   const [isLive, setIsLive] = useState(false);
@@ -763,7 +920,7 @@ function RegularSeasonResults() {
     );
   }
 
-  if (!currentLeague) {
+  if (!currentLeague || !user) {
     return (
       <Card className="border-border">
         <CardContent className="py-8">
@@ -774,6 +931,8 @@ function RegularSeasonResults() {
       </Card>
     );
   }
+
+  const userId = user.id;
 
   return (
     <div>
@@ -803,6 +962,7 @@ function RegularSeasonResults() {
             <RegularSeasonWeekResults
               week={weekNum}
               leagueId={currentLeague.id}
+              userId={userId}
             />
 
             {/* Leaderboards Section */}
@@ -829,7 +989,7 @@ function RegularSeasonResults() {
                       <CardTitle className="text-foreground text-xl">Week {weekNum} Standings</CardTitle>
                     </CardHeader>
                     <CardContent className="px-6 pb-6">
-                      <RegularSeasonWeekLeaderboard week={weekNum} leagueId={currentLeague.id} />
+                      <RegularSeasonWeekLeaderboard week={weekNum} leagueId={currentLeague.id} userId={userId} />
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -840,7 +1000,7 @@ function RegularSeasonResults() {
                       <CardTitle className="text-foreground text-xl">Overall Standings (Through Week {weekNum})</CardTitle>
                     </CardHeader>
                     <CardContent className="px-6 pb-6">
-                      <RegularSeasonOverallLeaderboard throughWeek={weekNum} leagueId={currentLeague.id} />
+                      <RegularSeasonOverallLeaderboard throughWeek={weekNum} leagueId={currentLeague.id} userId={userId} />
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -869,12 +1029,12 @@ function RegularSeasonResults() {
   );
 }
 
-function OverallLeaderboard({ throughWeek }: { throughWeek: number }) {
+function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: number; leagueId: string; userId: string }) {
   // Fetch all weeks up to throughWeek
-  const week1 = useWeekPicks(1);
-  const week2 = useWeekPicks(2);
-  const week3 = useWeekPicks(3);
-  const week4 = useWeekPicks(4);
+  const week1 = useWeekPicks(1, leagueId, userId);
+  const week2 = useWeekPicks(2, leagueId, userId);
+  const week3 = useWeekPicks(3, leagueId, userId);
+  const week4 = useWeekPicks(4, leagueId, userId);
 
   const weekQueriesMap: Record<number, typeof week1> = {
     1: week1,
@@ -982,9 +1142,12 @@ export default function Results() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
   const { currentLeague } = useLeague();
-  
+  const { user } = useAuth();
+
   // Derive isRegularSeason from current league's season_type
   const isRegularSeason = currentLeague?.season_type === "REG";
+
+  const userId = user?.id;
 
   return (
     <div className="bg-background pb-20">
@@ -1001,17 +1164,25 @@ export default function Results() {
         {/* 2025 Regular Season Fantasy View */}
         {isRegularSeason ? (
           <RegularSeasonResults />
+        ) : !currentLeague || !userId ? (
+          <Card className="border-border">
+            <CardContent className="py-8">
+              <p className="text-muted-foreground text-center">
+                Please join a league to view results.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
-          /* 2024 Playoffs View (Default) */
+          /* 2025 Playoffs View (Default) */
           <Tabs value={`week-${activeWeek}`} onValueChange={(v) => setActiveWeek(Number(v.split("-")[1]))}>
-            <TabsList className="w-full flex overflow-x-auto mb-6 bg-muted/50 border border-border p-1 gap-1">
+            <TabsList className="w-full flex overflow-x-auto mb-8 h-auto p-1 bg-muted/50 border border-border gap-1">
               {[1, 2, 3, 4].map((weekNum) => {
                 const tabLabel = getWeekTabLabel(weekNum);
                 return (
-                  <TabsTrigger 
+                  <TabsTrigger
                     key={weekNum}
-                    value={`week-${weekNum}`} 
-                    className="flex-1 min-w-[70px] px-2 py-2 flex flex-col items-center gap-0.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    value={`week-${weekNum}`}
+                    className="flex-1 min-w-[70px] px-2 py-3 flex flex-col items-center gap-0.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
                     <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">{tabLabel.abbrev}</span>
                     <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{tabLabel.dates}</span>
@@ -1022,7 +1193,7 @@ export default function Results() {
 
             {[1, 2, 3, 4].map((weekNum) => (
               <TabsContent key={weekNum} value={`week-${weekNum}`} className="space-y-6">
-                <WeekResults week={weekNum} />
+                <WeekResults week={weekNum} leagueId={currentLeague.id} userId={userId} />
 
                 {/* Leaderboards Section */}
                 <div className="mt-8">
@@ -1034,7 +1205,7 @@ export default function Results() {
                       >
                         {getWeekLabel(weekNum)} Leaderboard
                       </TabsTrigger>
-                      <TabsTrigger 
+                      <TabsTrigger
                         value="overall"
                         className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                       >
@@ -1048,7 +1219,7 @@ export default function Results() {
                           <CardTitle className="text-foreground text-xl">{getWeekLabel(weekNum)} Standings</CardTitle>
                         </CardHeader>
                         <CardContent className="px-6 pb-6">
-                          <WeekLeaderboard week={weekNum} />
+                          <WeekLeaderboard week={weekNum} leagueId={currentLeague.id} userId={userId} />
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -1059,7 +1230,7 @@ export default function Results() {
                           <CardTitle className="text-foreground text-xl">Overall Standings (Through {getWeekLabel(weekNum)})</CardTitle>
                         </CardHeader>
                         <CardContent className="px-6 pb-6">
-                          <OverallLeaderboard throughWeek={weekNum} />
+                          <OverallLeaderboard throughWeek={weekNum} leagueId={currentLeague.id} userId={userId} />
                         </CardContent>
                       </Card>
                     </TabsContent>

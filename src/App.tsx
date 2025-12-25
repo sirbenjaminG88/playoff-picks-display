@@ -86,7 +86,7 @@ const AppContent = () => {
     <SafeArea className="min-h-screen flex flex-col bg-background">
       <LeagueProvider>
         <SeasonProvider>
-          <div className="flex-1 pb-16">
+          <div className="flex-1 pb-[131px]">
             <Routes>
             <Route path="/" element={<LeaguesHome />} />
             <Route path="/signin" element={<SignIn />} />

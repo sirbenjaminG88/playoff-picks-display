@@ -21,8 +21,8 @@ export interface RegularSeasonWeek {
   tabLabel: { abbrev: string; dates: string };
 }
 
-// Regular season weeks 14-17 for beta
-const BETA_WEEKS = [14, 15, 16, 17];
+// Regular season weeks 14-18 for beta
+const BETA_WEEKS = [14, 15, 16, 17, 18];
 
 // Format date for tab display
 const formatWeekDates = (date: Date): string => {

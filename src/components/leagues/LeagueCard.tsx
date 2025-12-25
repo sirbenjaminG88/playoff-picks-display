@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, ChevronDown, ChevronUp, Clock, Crown, FileText } from "lucide-react";
+import { Users, ChevronDown, ChevronUp, Clock, Crown, FileText, Trophy, Share2 } from "lucide-react";
+import { toast } from "sonner";
 import { formatInTimeZone } from "date-fns-tz";
 import { LeagueIcon } from "./LeagueIcon";
 import { getInitials } from "@/lib/displayName";
+import { useLeague } from "@/contexts/LeagueContext";
 
 interface LeagueMember {
   user_id: string;
@@ -37,6 +39,7 @@ export function LeagueCard({
   iconUrl
 }: LeagueCardProps) {
   const navigate = useNavigate();
+  const { setCurrentLeagueId } = useLeague();
   const [isOpen, setIsOpen] = useState(false);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [memberCount, setMemberCount] = useState(0);
@@ -146,8 +149,58 @@ export function LeagueCard({
   };
 
   const handleSubmitPicks = () => {
-    // TODO: Set the current league context before navigating
+    setCurrentLeagueId(leagueId);
     navigate("/picks");
+  };
+
+  const handleViewResults = () => {
+    setCurrentLeagueId(leagueId);
+    navigate("/results");
+  };
+
+  const handleShare = async () => {
+    try {
+      // Fetch the join code
+      const { data: joinCode, error } = await supabase
+        .rpc("get_league_join_code", { p_league_id: leagueId });
+
+      if (error) throw error;
+      if (!joinCode) {
+        toast.error("Unable to get join code");
+        return;
+      }
+
+      const appStoreUrl = "https://apps.apple.com/us/app/emma-playoff-picks/id6756786358";
+      const shareText = `Join my "${leagueName}" playoff fantasy league on EMMA!\n\nJoin code: ${joinCode}\n\nDownload EMMA:\n${appStoreUrl}\n\nEnter this code to join!`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `Join "${leagueName}" on EMMA`,
+            text: shareText,
+          });
+        } catch (err: any) {
+          if (err.name !== "AbortError") {
+            console.error("Share failed:", err);
+            await copyToClipboard(joinCode);
+          }
+        }
+      } else {
+        await copyToClipboard(joinCode);
+      }
+    } catch (err) {
+      console.error("Error sharing league:", err);
+      toast.error("Unable to share league");
+    }
+  };
+
+  const copyToClipboard = async (joinCode: string) => {
+    try {
+      await navigator.clipboard.writeText(joinCode);
+      toast.success("Join code copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy code");
+    }
   };
 
   return (
@@ -169,6 +222,9 @@ export function LeagueCard({
               </div>
             </div>
           </div>
+          <Button onClick={handleShare} variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-primary">
+            <Share2 className="w-5 h-5" />
+          </Button>
         </div>
       </CardHeader>
 
@@ -193,12 +249,20 @@ export function LeagueCard({
             <FileText className="w-4 h-4 mr-2" />
             Submit Picks
           </Button>
+          <Button onClick={handleViewResults} variant="outline" className="flex-1">
+            <Trophy className="w-4 h-4 mr-2" />
+            View Results
+          </Button>
         </div>
 
         {/* Expandable member list */}
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-between text-muted-foreground hover:text-muted-foreground hover:bg-muted/50 data-[state=open]:bg-transparent data-[state=open]:text-muted-foreground"
+            >
               <span>View League Members</span>
               {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </Button>

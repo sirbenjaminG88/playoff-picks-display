@@ -64,16 +64,17 @@ export function usePlayoffSchedule(season: number) {
             return new Date(game.kickoff_at) < new Date(earliest.kickoff_at) ? game : earliest;
           });
 
-          // Picks open 1 week before first game (or day after previous week ends)
+          // Deadline is first game kickoff (from actual schedule)
           const deadlineDate = new Date(firstGame.kickoff_at);
-          const openDate = new Date(deadlineDate);
-          openDate.setDate(openDate.getDate() - 7);
+
+          // Open date is fixed Monday noon EST for each week
+          const openAt = getFixedOpenDate(season, weekIndex);
 
           playoffWeeks.push({
             id: `week${weekIndex}`,
             season,
             weekNumber: weekIndex,
-            openAt: openDate.toISOString(),
+            openAt,
             deadlineAt: deadlineDate.toISOString(),
           });
         });
@@ -100,6 +101,23 @@ export function usePlayoffSchedule(season: number) {
 }
 
 /**
+ * Fixed open dates for each playoff week (Monday noon EST = 17:00 UTC).
+ * These are consistent regardless of actual game schedule.
+ */
+function getFixedOpenDate(season: number, weekIndex: number): string {
+  const year = season + 1; // 2025 season = Jan 2026 playoffs
+
+  const openDates: Record<number, string> = {
+    1: `${year}-01-06T17:00:00Z`, // Mon Jan 6, noon EST - Wild Card
+    2: `${year}-01-13T17:00:00Z`, // Mon Jan 13, noon EST - Divisional
+    3: `${year}-01-20T17:00:00Z`, // Mon Jan 20, noon EST - Conference
+    4: `${year}-01-27T17:00:00Z`, // Mon Jan 27, noon EST - Super Bowl
+  };
+
+  return openDates[weekIndex] || openDates[1];
+}
+
+/**
  * Placeholder dates used until the real NFL schedule is available.
  * These are approximate dates based on typical playoff schedule.
  */
@@ -107,34 +125,36 @@ function getPlaceholderWeeks(season: number): Week[] {
   // For 2025 season (2025-2026), playoffs are in Jan/Feb 2026
   const year = season + 1;
 
+  // All openAt times are noon EST (17:00 UTC)
+  // Deadlines are first game kickoff (approx 1pm EST = 18:00 UTC)
   return [
     {
       id: "week1",
       season,
       weekNumber: 1,
-      openAt: `${year}-01-10T12:00:00Z`,
-      deadlineAt: `${year}-01-11T18:00:00Z`, // first game kickoff
+      openAt: `${year}-01-06T17:00:00Z`, // Mon Jan 6, noon EST
+      deadlineAt: `${year}-01-10T18:00:00Z`, // Wild Card Sat Jan 10
     },
     {
       id: "week2",
       season,
       weekNumber: 2,
-      openAt: `${year}-01-18T12:00:00Z`, // day after week 1 finishes
-      deadlineAt: `${year}-01-19T18:00:00Z`,
+      openAt: `${year}-01-13T17:00:00Z`, // Mon Jan 13, noon EST
+      deadlineAt: `${year}-01-17T18:00:00Z`, // Divisional Sat Jan 17
     },
     {
       id: "week3",
       season,
       weekNumber: 3,
-      openAt: `${year}-01-25T12:00:00Z`,
-      deadlineAt: `${year}-01-26T18:00:00Z`,
+      openAt: `${year}-01-20T17:00:00Z`, // Mon Jan 20, noon EST
+      deadlineAt: `${year}-01-25T18:00:00Z`, // Conference Champ Sun Jan 25
     },
     {
       id: "week4",
       season,
       weekNumber: 4,
-      openAt: `${year}-02-01T12:00:00Z`,
-      deadlineAt: `${year}-02-02T18:00:00Z`,
+      openAt: `${year}-01-27T17:00:00Z`, // Mon Jan 27, noon EST
+      deadlineAt: `${year}-02-08T18:00:00Z`, // Super Bowl LX Sun Feb 8
     },
   ];
 }

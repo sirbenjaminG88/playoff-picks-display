@@ -35,7 +35,11 @@ const LeaguesHome = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [leagues, setLeagues] = useState<UserLeague[]>([]);
+  const [allLeagues, setAllLeagues] = useState<UserLeague[]>([]); // Unfiltered for beta access check
   const [leaguesLoading, setLeaguesLoading] = useState(false);
+
+  // Check if user has access to regular season beta (member of any REG league)
+  const isRegularSeasonBetaTester = allLeagues.some(l => l.league.season_type === 'REG');
 
   // Check for action from redirect (after signin)
   useEffect(() => {
@@ -90,13 +94,16 @@ const LeaguesHome = () => {
     if (error) {
       console.error("Error fetching leagues:", error);
     } else if (data) {
-      // Filter leagues by selected season and season type
-      const filteredLeagues = data.filter(
+      // Store all leagues for beta access check
+      const validLeagues = data.filter(m => m.league) as UserLeague[];
+      setAllLeagues(validLeagues);
+
+      // Filter leagues by selected season and season type for display
+      const filteredLeagues = validLeagues.filter(
         (m) =>
-          m.league &&
           (m.league as any).season === seasonConfig.season &&
           (m.league as any).season_type === dbSeasonType
-      ) as UserLeague[];
+      );
       setLeagues(filteredLeagues);
     }
 
@@ -217,7 +224,12 @@ const LeaguesHome = () => {
     );
   }
 
-  const hasLeagues = leagues.length > 0;
+  // Filter leagues based on beta tester status
+  const displayedLeagues = isRegularSeasonBetaTester
+    ? leagues
+    : leagues.filter(l => l.league.season_type === 'POST');
+
+  const hasLeagues = displayedLeagues.length > 0;
 
   // LOGGED-IN VIEW - Leagues Hub
   return (
@@ -250,26 +262,28 @@ const LeaguesHome = () => {
           </div>
         </div>
 
-        {/* Season Toggle */}
-        <div className="mb-6">
-          <Tabs 
-            value={selectedSeason} 
-            onValueChange={(v) => setSelectedSeason(v as any)}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2 bg-muted/50 border border-border">
-              {SEASON_OPTIONS.map((option) => (
-                <TabsTrigger 
-                  key={option.value} 
-                  value={option.value}
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  {option.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
+        {/* Season Toggle - Only show for beta testers */}
+        {isRegularSeasonBetaTester && (
+          <div className="mb-6">
+            <Tabs
+              value={selectedSeason}
+              onValueChange={(v) => setSelectedSeason(v as any)}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2 bg-muted/50 border border-border">
+                {SEASON_OPTIONS.map((option) => (
+                  <TabsTrigger
+                    key={option.value}
+                    value={option.value}
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    {option.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+        )}
 
         {/* Welcome Headline */}
         <div className="mb-6">
@@ -314,7 +328,7 @@ const LeaguesHome = () => {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {leagues.map((membership) => (
+            {displayedLeagues.map((membership) => (
               <LeagueCard
                 key={membership.id}
                 leagueId={membership.league.id}

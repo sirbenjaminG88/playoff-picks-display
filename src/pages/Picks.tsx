@@ -304,7 +304,7 @@ const Picks = () => {
       const picksByWeekMap: Record<number, WeekPicks> = {};
       
       // Use BETA weeks for regular season, or activeWeeks
-      const weekNums = isRegularSeason ? [14, 15, 16, 17] : activeWeeks.map(w => w.weekNumber);
+      const weekNums = isRegularSeason ? [14, 15, 16, 17, 18] : activeWeeks.map(w => w.weekNumber);
       for (const w of weekNums) {
         picksByWeekMap[w] = { submitted: false };
       }
@@ -1067,7 +1067,11 @@ const Picks = () => {
 
       {/* Player Selection Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="flex flex-col max-h-[80vh] bg-card border-t border-border">
+        <SheetContent
+          side="bottom"
+          className="flex flex-col h-[90vh] bg-card border-t border-border rounded-t-xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <SheetHeader>
             <SheetTitle className="text-foreground">
               {sheetConfig && `Select a ${sheetConfig.label} for ${getDisplayWeekLabel(sheetConfig.weekNumber)}`}
@@ -1081,6 +1085,8 @@ const Picks = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-background border-border"
+              autoFocus={false}
+              autoComplete="off"
             />
           </div>
 

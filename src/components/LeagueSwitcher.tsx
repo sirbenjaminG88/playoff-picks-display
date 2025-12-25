@@ -1,5 +1,6 @@
 import { Check, ChevronDown } from "lucide-react";
 import { useLeague, LeagueMembership } from "@/contexts/LeagueContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { LeagueIcon } from "@/components/leagues/LeagueIcon";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -25,11 +26,18 @@ interface LeagueSwitcherProps {
 
 export function LeagueSwitcher({ className }: LeagueSwitcherProps) {
   const { memberships, currentLeague, setCurrentLeagueId, loading } = useLeague();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Check if user has access to regular season beta (member of any REG league)
+  const isRegularSeasonBetaTester = memberships.some(m => m.league.season_type === 'REG');
+  const filteredMemberships = isRegularSeasonBetaTester
+    ? memberships
+    : memberships.filter(m => m.league.season_type === 'POST');
+
   // Don't render if no memberships or still loading
-  if (loading || memberships.length === 0) {
+  if (loading || filteredMemberships.length === 0) {
     return null;
   }
 
@@ -74,7 +82,7 @@ export function LeagueSwitcher({ className }: LeagueSwitcherProps) {
             <DrawerTitle>Select League</DrawerTitle>
           </DrawerHeader>
           <div className="px-4 pb-8 space-y-2">
-            {memberships.map((membership) => (
+            {filteredMemberships.map((membership) => (
               <LeagueOption
                 key={membership.league_id}
                 membership={membership}
@@ -108,7 +116,7 @@ export function LeagueSwitcher({ className }: LeagueSwitcherProps) {
         </div>
       </SelectTrigger>
       <SelectContent className="bg-background border-border">
-        {memberships.map((membership) => (
+        {filteredMemberships.map((membership) => (
           <SelectItem
             key={membership.league_id}
             value={membership.league_id}

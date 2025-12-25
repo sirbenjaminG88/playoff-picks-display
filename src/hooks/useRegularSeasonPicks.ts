@@ -42,7 +42,7 @@ export interface RegularSeasonPicksData {
   userProfiles: Map<string, UserProfile>;
   // Pick reveal status
   revealStatus?: PickRevealStatus;
-  isRevealed: boolean;
+  canViewPicks: boolean;  // Whether current user can see picks
 }
 
 // Team abbreviation map
@@ -84,19 +84,28 @@ const getTeamAbbrev = (teamName: string): string => {
   return abbrevMap[teamName] || teamName.substring(0, 3).toUpperCase();
 };
 
-async function fetchRegularSeasonPicks(week: number, leagueId: string, revealStatus?: PickRevealStatus): Promise<RegularSeasonPicksData> {
+async function fetchRegularSeasonPicks(
+  week: number,
+  leagueId: string,
+  revealStatus?: PickRevealStatus
+): Promise<RegularSeasonPicksData> {
   const SEASON = 2025;
 
-  // If picks are not revealed yet, return empty data with status
-  if (revealStatus && !revealStatus.isRevealed) {
-    return { 
-      qbs: [], 
-      rbs: [], 
-      flex: [], 
-      allUsers: [], 
+  // Determine what picks the user can see based on reveal status
+  const canViewPicks = revealStatus
+    ? (revealStatus.currentUserSubmitted || revealStatus.pastDeadline)
+    : false;
+
+  // If user can't view picks yet, return empty data with status
+  if (!canViewPicks) {
+    return {
+      qbs: [],
+      rbs: [],
+      flex: [],
+      allUsers: [],
       userProfiles: new Map(),
       revealStatus,
-      isRevealed: false,
+      canViewPicks: false,
     };
   }
 
@@ -113,11 +122,42 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string, revealSta
   }
 
   if (!picks || picks.length === 0) {
-    return { qbs: [], rbs: [], flex: [], allUsers: [], userProfiles: new Map(), revealStatus, isRevealed: true };
+    return {
+      qbs: [],
+      rbs: [],
+      flex: [],
+      allUsers: [],
+      userProfiles: new Map(),
+      revealStatus,
+      canViewPicks: true,
+    };
+  }
+
+  // Filter picks based on reveal status:
+  // - If past deadline: show all picks
+  // - If before deadline: only show picks from users who have submitted
+  let filteredPicks = picks;
+  if (revealStatus && !revealStatus.pastDeadline) {
+    // Only show picks from submitted users
+    filteredPicks = picks.filter(pick =>
+      pick.auth_user_id && revealStatus.submittedUserIds.includes(pick.auth_user_id)
+    );
+  }
+
+  if (filteredPicks.length === 0) {
+    return {
+      qbs: [],
+      rbs: [],
+      flex: [],
+      allUsers: [],
+      userProfiles: new Map(),
+      revealStatus,
+      canViewPicks: true,
+    };
   }
 
   // Get unique player_ids to fetch their stats and images
-  const playerIds = [...new Set(picks.map((p) => p.player_id))];
+  const playerIds = [...new Set(filteredPicks.map((p) => p.player_id))];
 
   // Fetch player stats for this week from player_week_stats
   const { data: stats, error: statsError } = await supabase
@@ -165,7 +205,7 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string, revealSta
   });
 
   // Group by position_slot and player_id
-  const groupByPositionAndPlayer = (allPicks: typeof picks, positionSlot: string): GroupedPlayer[] => {
+  const groupByPositionAndPlayer = (allPicks: typeof filteredPicks, positionSlot: string): GroupedPlayer[] => {
     const filtered = allPicks.filter((p) => p.position_slot === positionSlot);
     const grouped = new Map<number, GroupedPlayer>();
 
@@ -173,7 +213,7 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string, revealSta
       const existing = grouped.get(pick.player_id);
       const playerStats = playerStatsMap.get(pick.player_id);
       const hasStats = playerStats !== undefined;
-      
+
       if (existing) {
         if (!existing.selectedBy.includes(pick.user_id)) {
           existing.selectedBy.push(pick.user_id);
@@ -203,8 +243,8 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string, revealSta
     });
   };
 
-  // Get all unique users
-  const allUsers = [...new Set(picks.map((p) => p.user_id))];
+  // Get all unique users from filtered picks
+  const allUsers = [...new Set(filteredPicks.map((p) => p.user_id))];
 
   // Fetch user profiles to get avatar URLs from public_profiles view
   // (public_profiles bypasses RLS restrictions on users table)
@@ -224,23 +264,28 @@ async function fetchRegularSeasonPicks(week: number, leagueId: string, revealSta
   });
 
   return {
-    qbs: groupByPositionAndPlayer(picks, "QB"),
-    rbs: groupByPositionAndPlayer(picks, "RB"),
-    flex: groupByPositionAndPlayer(picks, "FLEX"),
+    qbs: groupByPositionAndPlayer(filteredPicks, "QB"),
+    rbs: groupByPositionAndPlayer(filteredPicks, "RB"),
+    flex: groupByPositionAndPlayer(filteredPicks, "FLEX"),
     allUsers,
     userProfiles,
     revealStatus,
-    isRevealed: true,
+    canViewPicks: true,
   };
 }
 
-export function useRegularSeasonPicks(week: number, leagueId: string | null) {
+export function useRegularSeasonPicks(
+  week: number,
+  leagueId: string | null,
+  currentUserId: string | null,
+  season: number = 2025
+) {
   // First check reveal status
-  const revealQuery = usePickRevealStatus(week, leagueId);
-  
+  const revealQuery = usePickRevealStatus(week, leagueId, currentUserId, season);
+
   return useQuery({
-    queryKey: ["regularSeasonPicks", week, leagueId, revealQuery.data?.isRevealed],
+    queryKey: ["regularSeasonPicks", week, leagueId, currentUserId, season, revealQuery.data?.currentUserSubmitted, revealQuery.data?.pastDeadline],
     queryFn: () => fetchRegularSeasonPicks(week, leagueId!, revealQuery.data),
-    enabled: !!leagueId && week >= 14 && week <= 17 && revealQuery.isSuccess,
+    enabled: !!leagueId && !!currentUserId && week >= 14 && week <= 18 && revealQuery.isSuccess,
   });
 }

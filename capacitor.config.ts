@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.emma.playoffs',
+  appId: 'com.sirbenjamingold.emma',
   appName: 'Emma Fantasy Football',
   webDir: 'dist',
   plugins: {
@@ -16,7 +16,7 @@ const config: CapacitorConfig = {
     }
   },
   ios: {
-    contentInset: 'always',
+    contentInset: 'never',
     backgroundColor: '#111214',
     infoPlist: {
       NSCameraUsageDescription: 'This app needs access to your camera to take profile photos.',
