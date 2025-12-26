@@ -48,40 +48,29 @@ const JoinLeague = () => {
     setError(null);
 
     try {
-      // Use secure function to validate join code without exposing codes
-      const { data: leagueId, error: validateError } = await supabase
-        .rpc("validate_join_code", { p_join_code: code });
-
-      if (validateError || !leagueId) {
-        setError("League not found. Check the join code and try again.");
-        setLoading(false);
-        return;
-      }
-
-      // Fetch league details by ID (join_code not included in response)
+      // Use secure function to get league details by join code (bypasses RLS for non-members)
       const { data: leagueData, error: leagueError } = await supabase
-        .from("leagues")
-        .select("id, name, max_members, season, season_type, icon_url")
-        .eq("id", leagueId)
-        .single();
+        .rpc("get_league_by_join_code", { p_join_code: code });
 
-      if (leagueError || !leagueData) {
+      if (leagueError || !leagueData || leagueData.length === 0) {
         setError("League not found. Check the join code and try again.");
         setLoading(false);
         return;
       }
+
+      const leagueRecord = leagueData[0];
 
       // Get member count
       const { count: memberCount } = await supabase
         .from("league_members")
         .select("*", { count: "exact", head: true })
-        .eq("league_id", leagueData.id);
+        .eq("league_id", leagueRecord.id);
 
       // Get commissioner name
       const { data: commissionerData } = await supabase
         .from("league_members")
         .select("user_id")
-        .eq("league_id", leagueData.id)
+        .eq("league_id", leagueRecord.id)
         .eq("role", "commissioner")
         .single();
 
@@ -100,7 +89,7 @@ const JoinLeague = () => {
         const { data: membership } = await supabase
           .from("league_members")
           .select("id")
-          .eq("league_id", leagueData.id)
+          .eq("league_id", leagueRecord.id)
           .eq("user_id", user.id)
           .single();
 
@@ -110,7 +99,7 @@ const JoinLeague = () => {
       }
 
       setLeague({
-        ...leagueData,
+        ...leagueRecord,
         commissioner_name: commissionerName,
         member_count: memberCount || 0,
       });
