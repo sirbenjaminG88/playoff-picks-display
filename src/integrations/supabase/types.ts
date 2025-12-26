@@ -854,6 +854,17 @@ export type Database = {
       }
       delete_user_account: { Args: never; Returns: undefined }
       generate_funny_join_code: { Args: never; Returns: string }
+      get_league_by_join_code: {
+        Args: { p_join_code: string }
+        Returns: {
+          icon_url: string
+          id: string
+          max_members: number
+          name: string
+          season: number
+          season_type: string
+        }[]
+      }
       get_league_join_code: { Args: { p_league_id: string }; Returns: string }
       get_my_display_name: { Args: never; Returns: string }
       get_user_league_ids: { Args: { _user_id: string }; Returns: string[] }
