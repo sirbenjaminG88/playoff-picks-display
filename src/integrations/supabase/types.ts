@@ -375,6 +375,12 @@ export type Database = {
       playoff_players: {
         Row: {
           created_at: string
+          depth_chart_formation: string | null
+          depth_chart_position: string | null
+          depth_chart_rank: number | null
+          depth_chart_slot: string | null
+          depth_chart_source: string
+          depth_chart_updated_at: string | null
           group: string | null
           has_headshot: boolean | null
           id: string
@@ -391,6 +397,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          depth_chart_formation?: string | null
+          depth_chart_position?: string | null
+          depth_chart_rank?: number | null
+          depth_chart_slot?: string | null
+          depth_chart_source?: string
+          depth_chart_updated_at?: string | null
           group?: string | null
           has_headshot?: boolean | null
           id?: string
@@ -407,6 +419,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          depth_chart_formation?: string | null
+          depth_chart_position?: string | null
+          depth_chart_rank?: number | null
+          depth_chart_slot?: string | null
+          depth_chart_source?: string
+          depth_chart_updated_at?: string | null
           group?: string | null
           has_headshot?: boolean | null
           id?: string
