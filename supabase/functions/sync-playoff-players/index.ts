@@ -274,6 +274,9 @@ Deno.serve(async (req) => {
     }
 
     const extractCharts = (depthData: any): any[] => {
+      // ESPN sometimes returns a top-level `depthchart` object (singular)
+      if (depthData?.depthchart) return [depthData.depthchart];
+
       if (Array.isArray(depthData?.items)) return depthData.items;
       if (Array.isArray(depthData?.items?.[0]?.items)) return depthData.items[0].items;
       if (Array.isArray(depthData?.depthcharts)) return depthData.depthcharts;
@@ -284,6 +287,8 @@ Deno.serve(async (req) => {
     const extractPositions = (chart: any): any[] => {
       if (Array.isArray(chart?.positions)) return chart.positions;
       if (Array.isArray(chart?.positions?.items)) return chart.positions.items;
+      // Some responses nest under `entries`
+      if (Array.isArray(chart?.entries)) return chart.entries;
       if (Array.isArray(chart?.items)) return chart.items;
       return [];
     };
