@@ -229,9 +229,9 @@ Deno.serve(async (req) => {
     const syncedCount = insertedPlayers?.length || dedupedPlayers.length;
     console.log(`Successfully synced ${syncedCount} playoff players`);
 
-    // Step 4: Sync ESPN depth charts to mark starters
+    // Step 4: Sync ESPN depth charts to mark starters + store depth chart metadata
     console.log('Starting ESPN depth chart sync...');
-    
+
     // ESPN team ID mapping for our playoff teams
     const espnTeamIdMap: Record<number, number> = {
       19: 29, // Panthers → ESPN 29
@@ -263,17 +263,67 @@ Deno.serve(async (req) => {
         .trim();
     };
 
-    // Build a map of normalized name to player_id for quick lookup
+    // Quick lookups
+    const playersById = new Map<number, any>();
+    for (const p of playersToUpsert) playersById.set(p.player_id, p);
+
     const nameToPlayerIdMap = new Map<string, number>();
     for (const player of dedupedPlayers) {
       const normalizedName = normalizeName(player.name);
       nameToPlayerIdMap.set(`${player.team_id}-${normalizedName}`, player.player_id);
     }
 
-    const starterPlayerIds = new Set<number>();
-    let teamsProcessedForDepth = 0;
+    const extractCharts = (depthData: any): any[] => {
+      if (Array.isArray(depthData?.items)) return depthData.items;
+      if (Array.isArray(depthData?.items?.[0]?.items)) return depthData.items[0].items;
+      if (Array.isArray(depthData?.depthcharts)) return depthData.depthcharts;
+      if (Array.isArray(depthData?.depthCharts)) return depthData.depthCharts;
+      return [];
+    };
 
-    // Fetch depth charts for each team
+    const extractPositions = (chart: any): any[] => {
+      if (Array.isArray(chart?.positions)) return chart.positions;
+      if (Array.isArray(chart?.positions?.items)) return chart.positions.items;
+      if (Array.isArray(chart?.items)) return chart.items;
+      return [];
+    };
+
+    const extractAthletes = (pos: any): any[] => {
+      if (Array.isArray(pos?.athletes)) return pos.athletes;
+      if (Array.isArray(pos?.items)) return pos.items;
+      if (Array.isArray(pos?.entries)) return pos.entries;
+      return [];
+    };
+
+    const getAthleteName = (a: any): string | null => {
+      return a?.athlete?.displayName ?? a?.displayName ?? a?.name ?? null;
+    };
+
+    const positionsToExtract = ['qb', 'rb', 'wr', 'te'];
+    const wrSlots = ['wr1', 'wr2', 'wr3', 'slotwr'];
+
+    let teamsProcessedForDepth = 0;
+    const depthChartUpdates: any[] = [];
+
+    // Reset existing markers/metadata for this season before applying fresh depth chart info
+    await supabase
+      .from('playoff_players')
+      .update({
+        is_starter: false,
+        depth_chart_position: null,
+        depth_chart_slot: null,
+        depth_chart_rank: null,
+        depth_chart_formation: null,
+        depth_chart_updated_at: null,
+      })
+      .eq('season', season);
+
+    const depthHeaders = {
+      'Accept': 'application/json',
+      // ESPN endpoints sometimes vary response based on UA; provide a browser-like UA
+      'User-Agent': 'Mozilla/5.0 (compatible; LovableSyncBot/1.0)',
+    };
+
     for (const team of playoffTeams) {
       const espnTeamId = espnTeamIdMap[team.team_id];
       if (!espnTeamId) {
@@ -284,83 +334,105 @@ Deno.serve(async (req) => {
       try {
         const depthChartUrl = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${espnTeamId}/depthcharts`;
         console.log(`Fetching depth chart for ${team.name} (ESPN ${espnTeamId})...`);
-        
-        const depthResponse = await fetch(depthChartUrl);
+
+        const depthResponse = await fetch(depthChartUrl, { headers: depthHeaders });
         if (!depthResponse.ok) {
           console.error(`Failed to fetch depth chart for ${team.name}: ${depthResponse.status}`);
           continue;
         }
 
         const depthData = await depthResponse.json();
-        
-        // Find the "3WR 1TE" formation chart
-        const charts = depthData.items || [];
-        const targetChart = charts.find((c: any) => c.name === '3WR 1TE') || charts[0];
-        
-        if (!targetChart || !targetChart.positions) {
-          console.log(`No valid depth chart found for ${team.name}`);
+        const charts = extractCharts(depthData);
+
+        // Prefer a chart that actually has positions; formation name varies by team/season.
+        const chartWithPositions = charts.find((c: any) => extractPositions(c).length > 0);
+        if (!chartWithPositions) {
+          console.log(`No valid depth chart found for ${team.name} (items=${charts.length}, keys=${Object.keys(depthData || {}).join(',')})`);
           continue;
         }
 
-        // Positions we care about: qb, rb, wr (wr1, wr2, wr3), te
-        const positionsToExtract = ['qb', 'rb', 'wr', 'te'];
-        const wrSlots = ['wr1', 'wr2', 'wr3', 'slotwr'];
-        
-        for (const pos of targetChart.positions) {
-          const posAbbr = pos.abbreviation?.toLowerCase() || '';
-          
-          // Check if this is a position we care about
+        const formationName = chartWithPositions?.name ?? chartWithPositions?.displayName ?? null;
+        const positions = extractPositions(chartWithPositions);
+
+        for (const pos of positions) {
+          const posAbbr = (pos?.abbreviation ?? pos?.position?.abbreviation ?? pos?.position?.abbr ?? '').toLowerCase();
           const isRelevant = positionsToExtract.includes(posAbbr) || wrSlots.includes(posAbbr);
           if (!isRelevant) continue;
 
-          const athletes = pos.athletes || [];
-          // Take top 2 (starter + backup)
-          const topAthletes = athletes.slice(0, 2);
-          
-          for (const athlete of topAthletes) {
-            const athleteName = athlete.athlete?.displayName;
+          const athletes = extractAthletes(pos);
+          const topAthletes = athletes.slice(0, 2); // starter + backup
+
+          for (let rank = 0; rank < topAthletes.length; rank++) {
+            const athlete = topAthletes[rank];
+            const athleteName = getAthleteName(athlete);
             if (!athleteName) continue;
-            
+
             const normalizedAthleteName = normalizeName(athleteName);
             const key = `${team.team_id}-${normalizedAthleteName}`;
             const playerId = nameToPlayerIdMap.get(key);
-            
-            if (playerId) {
-              starterPlayerIds.add(playerId);
-              console.log(`Marked as starter: ${athleteName} (${posAbbr})`);
-            }
+            if (!playerId) continue;
+
+            const base = playersById.get(playerId);
+            if (!base) continue;
+
+            depthChartUpdates.push({
+              ...base,
+              is_starter: rank === 0,
+              depth_chart_position: posAbbr.toUpperCase(),
+              depth_chart_slot: posAbbr,
+              depth_chart_rank: rank,
+              depth_chart_formation: formationName,
+              depth_chart_updated_at: new Date().toISOString(),
+            });
           }
         }
-        
+
         teamsProcessedForDepth++;
       } catch (error) {
         console.error(`Error fetching depth chart for ${team.name}:`, error);
       }
     }
 
-    console.log(`Marked ${starterPlayerIds.size} players as starters from ${teamsProcessedForDepth} teams`);
+    console.log(`Depth chart updates prepared: ${depthChartUpdates.length} rows from ${teamsProcessedForDepth} teams`);
 
-    // Update is_starter for all starter players
-    if (starterPlayerIds.size > 0) {
-      // First reset all to false
-      await supabase
+    // Apply updates (includes is_starter + depth chart metadata) using upsert on the same conflict key
+    if (depthChartUpdates.length > 0) {
+      const uniqueUpdates = new Map<string, any>();
+      for (const u of depthChartUpdates) {
+        const key = `${u.team_id}-${u.season}-${u.player_id}-${u.depth_chart_slot}`;
+        // If a player appears multiple times for the same slot, keep the best (rank 0 preferred)
+        const existing = uniqueUpdates.get(key);
+        if (!existing || (existing.depth_chart_rank ?? 99) > (u.depth_chart_rank ?? 99)) {
+          uniqueUpdates.set(key, u);
+        }
+      }
+
+      // Note: We store one row per player; if the same player appears in multiple slots,
+      // the last write wins. This keeps schema minimal while still surfacing useful data.
+      const collapsedByPlayer = new Map<string, any>();
+      for (const u of uniqueUpdates.values()) {
+        const pKey = `${u.team_id}-${u.season}-${u.player_id}`;
+        const existing = collapsedByPlayer.get(pKey);
+        // Prefer starter designation / rank 0 if multiple slots
+        if (!existing || (existing.depth_chart_rank ?? 99) > (u.depth_chart_rank ?? 99)) {
+          collapsedByPlayer.set(pKey, u);
+        }
+      }
+
+      const rows = Array.from(collapsedByPlayer.values());
+      const { error: depthUpsertError } = await supabase
         .from('playoff_players')
-        .update({ is_starter: false })
-        .eq('season', season);
+        .upsert(rows, { onConflict: 'team_id,season,player_id', ignoreDuplicates: false });
 
-      // Then mark starters
-      const { error: starterError } = await supabase
-        .from('playoff_players')
-        .update({ is_starter: true })
-        .eq('season', season)
-        .in('player_id', Array.from(starterPlayerIds));
-
-      if (starterError) {
-        console.error('Error updating starters:', starterError);
+      if (depthUpsertError) {
+        console.error('Error upserting depth chart data:', depthUpsertError);
       } else {
-        console.log(`Successfully marked ${starterPlayerIds.size} players as starters`);
+        console.log(`Successfully upserted depth chart data for ${rows.length} players`);
       }
     }
+
+    const startersMarked = depthChartUpdates.filter(u => u.is_starter).length;
+    console.log(`Marked ${startersMarked} starters via depth chart data`);
 
     return new Response(
       JSON.stringify({
@@ -376,7 +448,7 @@ Deno.serve(async (req) => {
         },
         depthChartSync: {
           teamsProcessed: teamsProcessedForDepth,
-          startersMarked: starterPlayerIds.size,
+          startersMarked,
         },
       }),
       {
