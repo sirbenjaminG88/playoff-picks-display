@@ -6,21 +6,24 @@ const corsHeaders = {
 };
 
 // Helper to verify admin role
-async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?: string }> {
+async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?: string; userId?: string }> {
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return { authorized: false, error: 'Missing authorization header' };
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } }
-  });
+  // Use service role client for admin verification
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  // Validate token using getUser with the JWT
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+  
   if (userError || !user) {
+    console.error('Token validation failed:', userError);
     return { authorized: false, error: 'Invalid user token' };
   }
 
@@ -35,7 +38,7 @@ async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?:
   }
 
   console.log(`Admin verified: ${user.id}`);
-  return { authorized: true };
+  return { authorized: true, userId: user.id };
 }
 
 Deno.serve(async (req) => {
