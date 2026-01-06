@@ -904,7 +904,7 @@ const Admin = () => {
                   <SelectTrigger id="week-select" className="w-24">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4}>
                     {[14, 15, 16, 17, 18].map((week) => (
                       <SelectItem key={week} value={week.toString()}>
                         Week {week}
