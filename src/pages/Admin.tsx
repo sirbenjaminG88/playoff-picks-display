@@ -39,6 +39,7 @@ const Admin = () => {
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [isLoadingTest, setIsLoadingTest] = useState(false);
   const [isLoadingGames, setIsLoadingGames] = useState(false);
+  const [isLoadingWildCard, setIsLoadingWildCard] = useState(false);
   const [isLoadingRegSeasonPlayers, setIsLoadingRegSeasonPlayers] = useState(false);
   const [isLoadingAudit, setIsLoadingAudit] = useState(false);
   const [regSeasonSyncStartTime, setRegSeasonSyncStartTime] = useState<number | null>(null);
@@ -47,6 +48,7 @@ const Admin = () => {
   const [playersResult, setPlayersResult] = useState<any>(null);
   const [testResult, setTestResult] = useState<any>(null);
   const [gamesResult, setGamesResult] = useState<any>(null);
+  const [wildCardResult, setWildCardResult] = useState<any>(null);
   const [regSeasonPlayersResult, setRegSeasonPlayersResult] = useState<any>(null);
   const [auditResult, setAuditResult] = useState<any>(null);
   
@@ -380,6 +382,42 @@ const Admin = () => {
       });
     } finally {
       setIsLoadingGames(false);
+    }
+  };
+
+  const insertWildCard = async () => {
+    setIsLoadingWildCard(true);
+    setWildCardResult(null);
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/insert-2025-wild-card`,
+        {
+          method: 'POST',
+          headers,
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: `Inserted ${data.teamsInserted} teams and ${data.gamesInserted} Wild Card games!`,
+        });
+        setWildCardResult(data);
+      } else {
+        throw new Error(data.error || 'Failed to insert Wild Card data');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to insert Wild Card data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingWildCard(false);
     }
   };
 
@@ -790,11 +828,26 @@ const Admin = () => {
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <Button 
+                onClick={insertWildCard} 
+                disabled={isLoadingWildCard}
+                size="lg"
+                variant="default"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isLoadingWildCard ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Inserting...
+                  </>
+                ) : "🚨 Insert Wild Card (Manual)"}
+              </Button>
+              <Button 
                 onClick={syncPlayoffGames} 
                 disabled={isLoadingGames}
                 size="lg"
+                variant="secondary"
               >
-                {isLoadingGames ? "Syncing..." : "Sync Playoff Schedule"}
+                {isLoadingGames ? "Syncing..." : "Sync Playoff Schedule (API)"}
               </Button>
               <Button 
                 onClick={syncPlayoffPlayers} 
@@ -811,9 +864,20 @@ const Admin = () => {
               </Button>
             </div>
 
+            {wildCardResult && (
+              <div className="mt-4 p-4 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-500">
+                <h3 className="font-semibold mb-2 text-green-700 dark:text-green-400">✅ Wild Card Insert Results:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Teams Inserted: {wildCardResult.teamsInserted}</li>
+                  <li>Games Inserted: {wildCardResult.gamesInserted}</li>
+                  <li>Games Updated with UUIDs: {wildCardResult.gamesUpdatedWithUUIDs}</li>
+                </ul>
+              </div>
+            )}
+
             {gamesResult && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
-                <h3 className="font-semibold mb-2">Sync Results:</h3>
+                <h3 className="font-semibold mb-2">API Sync Results:</h3>
                 <ul className="space-y-1 text-sm">
                   <li>Total Games from API: {gamesResult.totalGamesFromApi}</li>
                   <li>Games Inserted: {gamesResult.inserted}</li>

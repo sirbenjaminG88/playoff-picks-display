@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.notify-pick-submission]
 verify_jwt = false
+
+[functions.insert-2025-wild-card]
+verify_jwt = true
