@@ -182,9 +182,40 @@ Deno.serve(async (req) => {
 
     console.log(`Deduped to ${dedupedPlayers.length} unique players`);
 
+    // Step 3a: Fetch existing players to preserve ESPN headshots
+    const playerIds = dedupedPlayers.map(p => p.player_id);
+    const { data: existingPlayers, error: existingError } = await supabase
+      .from('playoff_players')
+      .select('player_id, image_url')
+      .eq('season', season)
+      .in('player_id', playerIds);
+
+    if (existingError) {
+      console.error('Error fetching existing players:', existingError);
+    }
+
+    // Build a map of existing ESPN headshots to preserve
+    const existingEspnMap = new Map<number, string>();
+    for (const ep of existingPlayers || []) {
+      if (ep.image_url && ep.image_url.includes('espncdn.com')) {
+        existingEspnMap.set(ep.player_id, ep.image_url);
+      }
+    }
+    console.log(`Found ${existingEspnMap.size} existing ESPN headshots to preserve`);
+
+    // Step 3b: For each player, preserve ESPN headshot if it exists
+    const playersToUpsert = dedupedPlayers.map(player => {
+      const existingEspn = existingEspnMap.get(player.player_id);
+      if (existingEspn) {
+        // Preserve the ESPN headshot
+        return { ...player, image_url: existingEspn, has_headshot: true };
+      }
+      return player;
+    });
+
     const { data: insertedPlayers, error: insertError } = await supabase
       .from('playoff_players')
-      .upsert(dedupedPlayers, {
+      .upsert(playersToUpsert, {
         onConflict: 'team_id,season,player_id',
         ignoreDuplicates: false,
       })

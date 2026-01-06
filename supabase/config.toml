@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.insert-2025-wild-card]
 verify_jwt = true
+
+[functions.copy-espn-headshots-to-playoffs]
+verify_jwt = true
