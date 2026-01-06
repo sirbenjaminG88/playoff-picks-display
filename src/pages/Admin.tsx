@@ -894,38 +894,35 @@ const Admin = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-end gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="week-select">Week</Label>
-                <Select
-                  value={regSeasonStatsWeek.toString()}
-                  onValueChange={(value) => setRegSeasonStatsWeek(parseInt(value))}
-                >
-                  <SelectTrigger id="week-select" className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4}>
-                    {[14, 15, 16, 17, 18].map((week) => (
-                      <SelectItem key={week} value={week.toString()}>
-                        Week {week}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <Label>Select Week to Sync</Label>
+              <div className="flex flex-wrap gap-2">
+                {[14, 15, 16, 17, 18].map((week) => (
+                  <Button
+                    key={week}
+                    variant={regSeasonStatsWeek === week ? "default" : "outline"}
+                    onClick={() => setRegSeasonStatsWeek(week)}
+                    disabled={isLoadingRegSeasonStats}
+                    size="sm"
+                  >
+                    Week {week}
+                  </Button>
+                ))}
               </div>
-              <Button 
-                onClick={syncRegularSeasonStats} 
-                disabled={isLoadingRegSeasonStats}
-                size="lg"
-              >
-                {isLoadingRegSeasonStats ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Syncing...
-                  </>
-                ) : "Force Sync Stats"}
-              </Button>
             </div>
+            <Button 
+              onClick={syncRegularSeasonStats} 
+              disabled={isLoadingRegSeasonStats}
+              size="lg"
+              className="w-full"
+            >
+              {isLoadingRegSeasonStats ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Syncing Week {regSeasonStatsWeek}...
+                </>
+              ) : `Force Sync Week ${regSeasonStatsWeek} Stats`}
+            </Button>
 
             {regSeasonStatsResult && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
