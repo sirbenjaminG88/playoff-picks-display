@@ -84,6 +84,10 @@ const Admin = () => {
   const [regSeasonStatsWeek, setRegSeasonStatsWeek] = useState(18);
   const [imageAuditOffset, setImageAuditOffset] = useState(0);
 
+  // Copy ESPN headshots to playoffs state
+  const [isLoadingCopyEspn, setIsLoadingCopyEspn] = useState(false);
+  const [copyEspnResult, setCopyEspnResult] = useState<any>(null);
+
   // Load consistency stats on mount
   useEffect(() => {
     loadConsistencyStats();
@@ -300,6 +304,42 @@ const Admin = () => {
       });
     } finally {
       setIsLoadingPlayers(false);
+    }
+  };
+
+  const copyEspnHeadshotsToPlayoffs = async () => {
+    setIsLoadingCopyEspn(true);
+    setCopyEspnResult(null);
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/copy-espn-headshots-to-playoffs`,
+        {
+          method: 'POST',
+          headers,
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: `Copied ${data.updated} ESPN headshots to playoff players.`,
+        });
+        setCopyEspnResult(data);
+      } else {
+        throw new Error(data.error || 'Failed to copy ESPN headshots');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to copy ESPN headshots",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingCopyEspn(false);
     }
   };
 
@@ -862,7 +902,34 @@ const Admin = () => {
                   </>
                 ) : "Sync Playoff Players"}
               </Button>
+              <Button 
+                onClick={copyEspnHeadshotsToPlayoffs} 
+                disabled={isLoadingCopyEspn}
+                size="lg"
+                variant="outline"
+                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+              >
+                {isLoadingCopyEspn ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Copying...
+                  </>
+                ) : "📷 Copy ESPN Headshots"}
+              </Button>
             </div>
+
+            {copyEspnResult && (
+              <div className="mt-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-500">
+                <h3 className="font-semibold mb-2 text-blue-700 dark:text-blue-400">📷 ESPN Headshot Copy Results:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Total Playoff Players: {copyEspnResult.totalPlayoffPlayers}</li>
+                  <li>ESPN Players Available: {copyEspnResult.espnPlayersAvailable}</li>
+                  <li className="font-bold text-green-600">Updated: {copyEspnResult.updated}</li>
+                  <li>Already Had ESPN: {copyEspnResult.alreadyHadEspn}</li>
+                  <li>No ESPN Match: {copyEspnResult.skipped}</li>
+                </ul>
+              </div>
+            )}
 
             {wildCardResult && (
               <div className="mt-4 p-4 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-500">
