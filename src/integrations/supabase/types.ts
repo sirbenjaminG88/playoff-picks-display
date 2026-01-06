@@ -379,6 +379,7 @@ export type Database = {
           has_headshot: boolean | null
           id: string
           image_url: string | null
+          is_starter: boolean | null
           name: string
           number: string | null
           player_id: number
@@ -394,6 +395,7 @@ export type Database = {
           has_headshot?: boolean | null
           id?: string
           image_url?: string | null
+          is_starter?: boolean | null
           name: string
           number?: string | null
           player_id: number
@@ -409,6 +411,7 @@ export type Database = {
           has_headshot?: boolean | null
           id?: string
           image_url?: string | null
+          is_starter?: boolean | null
           name?: string
           number?: string | null
           player_id?: number

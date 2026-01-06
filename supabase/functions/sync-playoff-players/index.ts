@@ -229,6 +229,139 @@ Deno.serve(async (req) => {
     const syncedCount = insertedPlayers?.length || dedupedPlayers.length;
     console.log(`Successfully synced ${syncedCount} playoff players`);
 
+    // Step 4: Sync ESPN depth charts to mark starters
+    console.log('Starting ESPN depth chart sync...');
+    
+    // ESPN team ID mapping for our playoff teams
+    const espnTeamIdMap: Record<number, number> = {
+      19: 29, // Panthers → ESPN 29
+      31: 14, // Rams → ESPN 14
+      16: 3,  // Bears → ESPN 3
+      15: 9,  // Packers → ESPN 9
+      2: 30,  // Jaguars → ESPN 30
+      20: 2,  // Bills → ESPN 2
+      12: 21, // Eagles → ESPN 21
+      14: 25, // 49ers → ESPN 25
+      3: 17,  // Patriots → ESPN 17
+      30: 24, // Chargers → ESPN 24
+      22: 23, // Steelers → ESPN 23
+      26: 34, // Texans → ESPN 34
+      // Add more mappings as needed for other playoff teams
+      6: 8,   // Ravens → ESPN 8
+      9: 16,  // Vikings → ESPN 16
+      23: 27, // Buccaneers → ESPN 27
+      11: 5,  // Broncos → ESPN 5
+      28: 7,  // Lions → ESPN 7
+      25: 13, // Commanders → ESPN 28
+    };
+
+    // Normalize name for matching
+    const normalizeName = (name: string): string => {
+      return name.toLowerCase()
+        .replace(/[^a-z\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    // Build a map of normalized name to player_id for quick lookup
+    const nameToPlayerIdMap = new Map<string, number>();
+    for (const player of dedupedPlayers) {
+      const normalizedName = normalizeName(player.name);
+      nameToPlayerIdMap.set(`${player.team_id}-${normalizedName}`, player.player_id);
+    }
+
+    const starterPlayerIds = new Set<number>();
+    let teamsProcessedForDepth = 0;
+
+    // Fetch depth charts for each team
+    for (const team of playoffTeams) {
+      const espnTeamId = espnTeamIdMap[team.team_id];
+      if (!espnTeamId) {
+        console.log(`No ESPN team ID mapping for team_id ${team.team_id} (${team.name})`);
+        continue;
+      }
+
+      try {
+        const depthChartUrl = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${espnTeamId}/depthcharts`;
+        console.log(`Fetching depth chart for ${team.name} (ESPN ${espnTeamId})...`);
+        
+        const depthResponse = await fetch(depthChartUrl);
+        if (!depthResponse.ok) {
+          console.error(`Failed to fetch depth chart for ${team.name}: ${depthResponse.status}`);
+          continue;
+        }
+
+        const depthData = await depthResponse.json();
+        
+        // Find the "3WR 1TE" formation chart
+        const charts = depthData.items || [];
+        const targetChart = charts.find((c: any) => c.name === '3WR 1TE') || charts[0];
+        
+        if (!targetChart || !targetChart.positions) {
+          console.log(`No valid depth chart found for ${team.name}`);
+          continue;
+        }
+
+        // Positions we care about: qb, rb, wr (wr1, wr2, wr3), te
+        const positionsToExtract = ['qb', 'rb', 'wr', 'te'];
+        const wrSlots = ['wr1', 'wr2', 'wr3', 'slotwr'];
+        
+        for (const pos of targetChart.positions) {
+          const posAbbr = pos.abbreviation?.toLowerCase() || '';
+          
+          // Check if this is a position we care about
+          const isRelevant = positionsToExtract.includes(posAbbr) || wrSlots.includes(posAbbr);
+          if (!isRelevant) continue;
+
+          const athletes = pos.athletes || [];
+          // Take top 2 (starter + backup)
+          const topAthletes = athletes.slice(0, 2);
+          
+          for (const athlete of topAthletes) {
+            const athleteName = athlete.athlete?.displayName;
+            if (!athleteName) continue;
+            
+            const normalizedAthleteName = normalizeName(athleteName);
+            const key = `${team.team_id}-${normalizedAthleteName}`;
+            const playerId = nameToPlayerIdMap.get(key);
+            
+            if (playerId) {
+              starterPlayerIds.add(playerId);
+              console.log(`Marked as starter: ${athleteName} (${posAbbr})`);
+            }
+          }
+        }
+        
+        teamsProcessedForDepth++;
+      } catch (error) {
+        console.error(`Error fetching depth chart for ${team.name}:`, error);
+      }
+    }
+
+    console.log(`Marked ${starterPlayerIds.size} players as starters from ${teamsProcessedForDepth} teams`);
+
+    // Update is_starter for all starter players
+    if (starterPlayerIds.size > 0) {
+      // First reset all to false
+      await supabase
+        .from('playoff_players')
+        .update({ is_starter: false })
+        .eq('season', season);
+
+      // Then mark starters
+      const { error: starterError } = await supabase
+        .from('playoff_players')
+        .update({ is_starter: true })
+        .eq('season', season)
+        .in('player_id', Array.from(starterPlayerIds));
+
+      if (starterError) {
+        console.error('Error updating starters:', starterError);
+      } else {
+        console.log(`Successfully marked ${starterPlayerIds.size} players as starters`);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -240,6 +373,10 @@ Deno.serve(async (req) => {
           RB: dedupedPlayers.filter(p => p.position === 'RB').length,
           WR: dedupedPlayers.filter(p => p.position === 'WR').length,
           TE: dedupedPlayers.filter(p => p.position === 'TE').length,
+        },
+        depthChartSync: {
+          teamsProcessed: teamsProcessedForDepth,
+          startersMarked: starterPlayerIds.size,
         },
       }),
       {
