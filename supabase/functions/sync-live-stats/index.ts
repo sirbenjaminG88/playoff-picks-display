@@ -190,19 +190,20 @@ async function getActiveScoringSettings(supabase: any): Promise<ScoringSettings>
   };
 }
 
-// Check if we're in a valid NFL game window (Thursday night, Sunday, Monday night)
-function isGameWindowActive(games: any[]): { active: boolean; reason: string; activeGames: number } {
+// Check if we're in a valid game window (within 4 hours of kickoff)
+function isGameWindowActive(games: any[], dateField: string): { active: boolean; reason: string; activeGames: number } {
   const now = new Date();
   let activeGames = 0;
   
   for (const game of games) {
-    if (!game.game_date) continue;
+    const gameDate = game[dateField];
+    if (!gameDate) continue;
     
-    const gameDate = new Date(game.game_date);
-    const gameEndEstimate = new Date(gameDate.getTime() + 4 * 60 * 60 * 1000); // 4 hours after kickoff
+    const kickoff = new Date(gameDate);
+    const gameEndEstimate = new Date(kickoff.getTime() + 4 * 60 * 60 * 1000); // 4 hours after kickoff
     
     // Check if game is in progress or recently started (within 4 hours of kickoff)
-    if (now >= gameDate && now <= gameEndEstimate) {
+    if (now >= kickoff && now <= gameEndEstimate) {
       activeGames++;
     }
   }
@@ -276,9 +277,12 @@ serve(async (req) => {
     const url = new URL(req.url);
     const forceSync = url.searchParams.get('force') === 'true';
     const weekParam = url.searchParams.get('week');
+    const mode = url.searchParams.get('mode') || 'regular'; // 'regular' or 'playoff'
     
-    // Default to 2025 regular season
     const SEASON = 2025;
+    const isPlayoff = mode === 'playoff';
+    
+    console.log(`Mode: ${mode}, Season: ${SEASON}, Force: ${forceSync}`);
     
     const apiKey = Deno.env.get('API_SPORTS_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -293,29 +297,107 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Determine current week from schedule
+    // Determine current week and get games based on mode
     let currentWeek: number;
+    let weekGames: any[] = [];
+    let teamGameMap = new Map<number, number>();
     
-    if (weekParam) {
-      currentWeek = parseInt(weekParam);
-      console.log(`Using provided week: ${currentWeek}`);
-    } else {
-      // Find the current week based on game dates
-      const { data: upcomingGames } = await supabase
-        .from('regular_season_games')
-        .select('week, game_date')
-        .eq('season', SEASON)
-        .gte('game_date', new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()) // Within last 4 hours
-        .order('game_date', { ascending: true })
-        .limit(1);
-      
-      if (upcomingGames && upcomingGames.length > 0) {
-        currentWeek = upcomingGames[0].week;
+    if (isPlayoff) {
+      // PLAYOFF MODE
+      if (weekParam) {
+        currentWeek = parseInt(weekParam);
+        console.log(`Using provided playoff week: ${currentWeek}`);
       } else {
-        // Default to week 14 if no games found
-        currentWeek = 14;
+        // Auto-detect current playoff week by checking games within last 4 hours
+        const { data: activePlayoffGames } = await supabase
+          .from('playoff_games')
+          .select('week_index, kickoff_at')
+          .eq('season', SEASON)
+          .gte('kickoff_at', new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString())
+          .lte('kickoff_at', new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString())
+          .order('kickoff_at', { ascending: true })
+          .limit(1);
+        
+        if (activePlayoffGames && activePlayoffGames.length > 0) {
+          currentWeek = activePlayoffGames[0].week_index;
+        } else {
+          // Default to week 1 (Wild Card) if no active games
+          currentWeek = 1;
+        }
+        console.log(`Auto-detected playoff week: ${currentWeek}`);
       }
-      console.log(`Auto-detected week: ${currentWeek}`);
+
+      // Fetch playoff games for this week
+      const { data: playoffGames, error: gamesError } = await supabase
+        .from('playoff_games')
+        .select('*')
+        .eq('season', SEASON)
+        .eq('week_index', currentWeek);
+
+      if (gamesError) {
+        console.error('Error fetching playoff games:', gamesError);
+        return new Response(
+          JSON.stringify({ error: gamesError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      weekGames = playoffGames || [];
+      
+      // Build team-to-game mapping using external team IDs
+      weekGames.forEach(game => {
+        teamGameMap.set(game.home_team_external_id, game.game_id);
+        teamGameMap.set(game.away_team_external_id, game.game_id);
+      });
+      
+      console.log(`Found ${weekGames.length} playoff games for week ${currentWeek}`);
+      
+    } else {
+      // REGULAR SEASON MODE
+      if (weekParam) {
+        currentWeek = parseInt(weekParam);
+        console.log(`Using provided week: ${currentWeek}`);
+      } else {
+        // Find the current week based on game dates
+        const { data: upcomingGames } = await supabase
+          .from('regular_season_games')
+          .select('week, game_date')
+          .eq('season', SEASON)
+          .gte('game_date', new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString())
+          .order('game_date', { ascending: true })
+          .limit(1);
+        
+        if (upcomingGames && upcomingGames.length > 0) {
+          currentWeek = upcomingGames[0].week;
+        } else {
+          // Default to week 14 if no games found
+          currentWeek = 14;
+        }
+        console.log(`Auto-detected week: ${currentWeek}`);
+      }
+
+      // Fetch regular season games for this week
+      const { data: regGames, error: gamesError } = await supabase
+        .from('regular_season_games')
+        .select('*')
+        .eq('season', SEASON)
+        .eq('week', currentWeek);
+
+      if (gamesError) {
+        console.error('Error fetching games:', gamesError);
+        return new Response(
+          JSON.stringify({ error: gamesError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      weekGames = regGames || [];
+      
+      // Build team-to-game mapping
+      weekGames.forEach(game => {
+        teamGameMap.set(game.home_team_api_id, game.api_game_id);
+        teamGameMap.set(game.away_team_api_id, game.api_game_id);
+      });
     }
 
     // Check rate limit (skip if force sync)
@@ -335,23 +417,9 @@ serve(async (req) => {
       }
     }
 
-    // Fetch games for this week to check if any are active
-    const { data: weekGames, error: gamesError } = await supabase
-      .from('regular_season_games')
-      .select('*')
-      .eq('season', SEASON)
-      .eq('week', currentWeek);
-
-    if (gamesError) {
-      console.error('Error fetching games:', gamesError);
-      return new Response(
-        JSON.stringify({ error: gamesError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Check if games are active (skip if force sync)
-    const gameWindow = isGameWindowActive(weekGames || []);
+    const dateField = isPlayoff ? 'kickoff_at' : 'game_date';
+    const gameWindow = isGameWindowActive(weekGames, dateField);
     if (!forceSync && !gameWindow.active) {
       console.log(`No active games: ${gameWindow.reason}`);
       return new Response(
@@ -359,8 +427,9 @@ serve(async (req) => {
           success: true,
           reason: 'no_active_games',
           message: gameWindow.reason,
+          mode,
           week: currentWeek,
-          gamesChecked: weekGames?.length || 0,
+          gamesChecked: weekGames.length,
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -371,7 +440,7 @@ serve(async (req) => {
     // Fetch scoring settings
     const scoringSettings = await getActiveScoringSettings(supabase);
 
-    // Get distinct player_ids from user_picks for this week (only selected players)
+    // Get distinct player_ids from user_picks for this week
     const { data: picks, error: picksError } = await supabase
       .from('user_picks')
       .select('player_id, player_name, team_id')
@@ -395,14 +464,15 @@ serve(async (req) => {
     });
 
     const uniquePlayerIds = Array.from(playerMap.keys());
-    console.log(`Found ${uniquePlayerIds.length} unique players to sync for week ${currentWeek}`);
+    console.log(`Found ${uniquePlayerIds.length} unique players to sync for ${mode} week ${currentWeek}`);
 
     if (uniquePlayerIds.length === 0) {
-      await logSync(supabase, SEASON, currentWeek, 0, true, 'No picks to sync');
+      await logSync(supabase, SEASON, currentWeek, 0, true, `No picks to sync (${mode})`);
       return new Response(
         JSON.stringify({
           success: true,
           message: 'No picks found for this week',
+          mode,
           week: currentWeek,
           playersProcessed: 0,
         }),
@@ -410,19 +480,28 @@ serve(async (req) => {
       );
     }
 
-    // Build a map of team_id -> game_id from the week's games
-    const teamGameMap = new Map<number, number>();
-    weekGames?.forEach(game => {
-      teamGameMap.set(game.home_team_api_id, game.api_game_id);
-      teamGameMap.set(game.away_team_api_id, game.api_game_id);
-    });
-
     let statsUpserted = 0;
     const results: any[] = [];
 
     for (const playerId of uniquePlayerIds) {
       const playerInfo = playerMap.get(playerId)!;
-      const gameId = teamGameMap.get(playerInfo.teamId);
+      let gameId = teamGameMap.get(playerInfo.teamId);
+
+      // For playoff mode, if team_id from user_picks doesn't match directly,
+      // try looking up from playoff_players table
+      if (!gameId && isPlayoff) {
+        const { data: playoffPlayer } = await supabase
+          .from('playoff_players')
+          .select('team_id')
+          .eq('player_id', playerId)
+          .eq('season', SEASON)
+          .maybeSingle();
+        
+        if (playoffPlayer) {
+          gameId = teamGameMap.get(playoffPlayer.team_id);
+          console.log(`Looked up playoff player ${playerInfo.name}: team_id=${playoffPlayer.team_id}, game_id=${gameId}`);
+        }
+      }
 
       if (!gameId) {
         console.warn(`No game found for player ${playerInfo.name} (team ${playerInfo.teamId})`);
@@ -449,7 +528,7 @@ serve(async (req) => {
 
         const apiResponse = await response.json();
         
-        // Log detailed API response for Dak Prescott specifically
+        // Log detailed API response for debugging
         if (playerId === 2076 || playerInfo.name.toLowerCase().includes('prescott')) {
           console.log('=== DAK PRESCOTT DEBUG ===');
           console.log('API URL:', apiUrl);
@@ -459,7 +538,6 @@ serve(async (req) => {
         const stats = extractStats(apiResponse);
         const fantasyPoints = calculateFantasyPoints(stats, scoringSettings);
         
-        // Log detailed stats for Dak
         if (playerId === 2076 || playerInfo.name.toLowerCase().includes('prescott')) {
           console.log('Extracted stats:', JSON.stringify(stats));
           console.log('Scoring settings:', JSON.stringify(scoringSettings));
@@ -536,11 +614,12 @@ serve(async (req) => {
       currentWeek, 
       statsUpserted, 
       true, 
-      `Synced ${statsUpserted}/${uniquePlayerIds.length} players in ${duration}ms. ${forceSync ? 'FORCED' : 'Auto-triggered'}`
+      `[${mode}] Synced ${statsUpserted}/${uniquePlayerIds.length} players in ${duration}ms. ${forceSync ? 'FORCED' : 'Auto-triggered'}`
     );
 
     const summary = {
       success: true,
+      mode,
       season: SEASON,
       week: currentWeek,
       playersProcessed: uniquePlayerIds.length,
@@ -550,7 +629,7 @@ serve(async (req) => {
       results,
     };
 
-    console.log(`Sync complete: ${statsUpserted}/${uniquePlayerIds.length} stats upserted in ${duration}ms`);
+    console.log(`[${mode}] Sync complete: ${statsUpserted}/${uniquePlayerIds.length} stats upserted in ${duration}ms`);
 
     return new Response(
       JSON.stringify(summary, null, 2),
