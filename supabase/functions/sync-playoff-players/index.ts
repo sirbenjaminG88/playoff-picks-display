@@ -273,39 +273,33 @@ Deno.serve(async (req) => {
       nameToPlayerIdMap.set(`${player.team_id}-${normalizedName}`, player.player_id);
     }
 
+    // ESPN depthchart response (current observed):
+    // - data.depthchart: array of charts
+    // - chart.name includes "3WR" for offense
+    // - chart.positions: object keyed by slot (qb, rb, wr1, wr2, wr3, te)
+    // - positions[slot].athletes[0] starter, [1] backup
     const extractCharts = (depthData: any): any[] => {
-      // ESPN sometimes returns a top-level `depthchart` object (singular)
+      if (Array.isArray(depthData?.depthchart)) return depthData.depthchart;
+      // fallback: sometimes wrapped as a single object
       if (depthData?.depthchart) return [depthData.depthchart];
-
-      if (Array.isArray(depthData?.items)) return depthData.items;
-      if (Array.isArray(depthData?.items?.[0]?.items)) return depthData.items[0].items;
-      if (Array.isArray(depthData?.depthcharts)) return depthData.depthcharts;
-      if (Array.isArray(depthData?.depthCharts)) return depthData.depthCharts;
-      return [];
-    };
-
-    const extractPositions = (chart: any): any[] => {
-      if (Array.isArray(chart?.positions)) return chart.positions;
-      if (Array.isArray(chart?.positions?.items)) return chart.positions.items;
-      // Some responses nest under `entries`
-      if (Array.isArray(chart?.entries)) return chart.entries;
-      if (Array.isArray(chart?.items)) return chart.items;
-      return [];
-    };
-
-    const extractAthletes = (pos: any): any[] => {
-      if (Array.isArray(pos?.athletes)) return pos.athletes;
-      if (Array.isArray(pos?.items)) return pos.items;
-      if (Array.isArray(pos?.entries)) return pos.entries;
       return [];
     };
 
     const getAthleteName = (a: any): string | null => {
-      return a?.athlete?.displayName ?? a?.displayName ?? a?.name ?? null;
+      return a?.displayName ?? a?.athlete?.displayName ?? a?.name ?? null;
     };
 
-    const positionsToExtract = ['qb', 'rb', 'wr', 'te'];
-    const wrSlots = ['wr1', 'wr2', 'wr3', 'slotwr'];
+    const slotToPosition: Record<string, string> = {
+      qb: 'QB',
+      rb: 'RB',
+      te: 'TE',
+      wr1: 'WR',
+      wr2: 'WR',
+      wr3: 'WR',
+      slotwr: 'WR',
+    };
+
+    const slotsToExtract = Object.keys(slotToPosition);
 
     let teamsProcessedForDepth = 0;
     const depthChartUpdates: any[] = [];
@@ -324,7 +318,7 @@ Deno.serve(async (req) => {
       .eq('season', season);
 
     const depthHeaders = {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       // ESPN endpoints sometimes vary response based on UA; provide a browser-like UA
       'User-Agent': 'Mozilla/5.0 (compatible; LovableSyncBot/1.0)',
     };
@@ -349,27 +343,26 @@ Deno.serve(async (req) => {
         const depthData = await depthResponse.json();
         const charts = extractCharts(depthData);
 
-        // Prefer a chart that actually has positions; formation name varies by team/season.
-        const chartWithPositions = charts.find((c: any) => extractPositions(c).length > 0);
-        if (!chartWithPositions) {
-          console.log(`No valid depth chart found for ${team.name} (items=${charts.length}, keys=${Object.keys(depthData || {}).join(',')})`);
+        const offenseChart = charts.find((c: any) => (c?.name ?? '').includes('3WR')) ?? charts[0];
+        const positions = offenseChart?.positions;
+
+        if (!offenseChart || !positions || typeof positions !== 'object' || Array.isArray(positions)) {
+          console.log(
+            `No valid offense depth chart found for ${team.name} (charts=${charts.length}, keys=${Object.keys(depthData || {}).join(',')})`
+          );
           continue;
         }
 
-        const formationName = chartWithPositions?.name ?? chartWithPositions?.displayName ?? null;
-        const positions = extractPositions(chartWithPositions);
+        const formationName = offenseChart?.name ?? offenseChart?.displayName ?? null;
 
-        for (const pos of positions) {
-          const posAbbr = (pos?.abbreviation ?? pos?.position?.abbreviation ?? pos?.position?.abbr ?? '').toLowerCase();
-          const isRelevant = positionsToExtract.includes(posAbbr) || wrSlots.includes(posAbbr);
-          if (!isRelevant) continue;
+        for (const slot of slotsToExtract) {
+          const posObj = positions?.[slot];
+          const athletes = Array.isArray(posObj?.athletes) ? posObj.athletes : [];
+          if (athletes.length === 0) continue;
 
-          const athletes = extractAthletes(pos);
           const topAthletes = athletes.slice(0, 2); // starter + backup
-
           for (let rank = 0; rank < topAthletes.length; rank++) {
-            const athlete = topAthletes[rank];
-            const athleteName = getAthleteName(athlete);
+            const athleteName = getAthleteName(topAthletes[rank]);
             if (!athleteName) continue;
 
             const normalizedAthleteName = normalizeName(athleteName);
@@ -383,8 +376,8 @@ Deno.serve(async (req) => {
             depthChartUpdates.push({
               ...base,
               is_starter: rank === 0,
-              depth_chart_position: posAbbr.toUpperCase(),
-              depth_chart_slot: posAbbr,
+              depth_chart_position: slotToPosition[slot],
+              depth_chart_slot: slot,
               depth_chart_rank: rank,
               depth_chart_formation: formationName,
               depth_chart_updated_at: new Date().toISOString(),
