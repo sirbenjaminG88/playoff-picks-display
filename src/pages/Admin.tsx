@@ -354,7 +354,7 @@ const Admin = () => {
     try {
       const headers = await getAuthHeaders();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playoff-games`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-2025-playoff-schedule`,
         {
           method: 'POST',
           headers,
@@ -781,20 +781,35 @@ const Admin = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
-              Sync 2024 NFL Playoff Schedule
+              Sync 2025 NFL Playoff Schedule
             </CardTitle>
             <CardDescription>
               Fetch all playoff games from API-Sports and store them for stats lookup
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button 
-              onClick={syncPlayoffGames} 
-              disabled={isLoadingGames}
-              size="lg"
-            >
-              {isLoadingGames ? "Syncing..." : "Sync Playoff Games"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                onClick={syncPlayoffGames} 
+                disabled={isLoadingGames}
+                size="lg"
+              >
+                {isLoadingGames ? "Syncing..." : "Sync Playoff Schedule"}
+              </Button>
+              <Button 
+                onClick={syncPlayoffPlayers} 
+                disabled={isLoadingPlayers}
+                size="lg"
+                variant="secondary"
+              >
+                {isLoadingPlayers ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Syncing...
+                  </>
+                ) : "Sync Playoff Players"}
+              </Button>
+            </div>
 
             {gamesResult && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
