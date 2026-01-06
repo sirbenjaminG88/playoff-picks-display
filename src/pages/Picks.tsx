@@ -204,6 +204,7 @@ const Picks = () => {
         .select("*")
         .eq("season", 2025)
         .eq("group", "Offense")
+        .eq("is_starter", true)
         .order("team_name")
         .order("name");
 
