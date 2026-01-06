@@ -75,6 +75,11 @@ const Admin = () => {
   const [isLoadingImageAudit, setIsLoadingImageAudit] = useState(false);
   const [imageAuditResult, setImageAuditResult] = useState<any>(null);
   const [imageAuditLimit, setImageAuditLimit] = useState(10);
+
+  // Sync Regular Season Stats state
+  const [isLoadingRegSeasonStats, setIsLoadingRegSeasonStats] = useState(false);
+  const [regSeasonStatsResult, setRegSeasonStatsResult] = useState<any>(null);
+  const [regSeasonStatsWeek, setRegSeasonStatsWeek] = useState(18);
   const [imageAuditOffset, setImageAuditOffset] = useState(0);
 
   // Load consistency stats on mount
@@ -581,6 +586,48 @@ const Admin = () => {
     }
   };
 
+  const syncRegularSeasonStats = async () => {
+    setIsLoadingRegSeasonStats(true);
+    setRegSeasonStatsResult(null);
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-live-stats?week=${regSeasonStatsWeek}&force=true`,
+        {
+          method: 'GET',
+          headers,
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Stats Synced!",
+          description: `Synced ${data.playersProcessed} players for week ${regSeasonStatsWeek}.`,
+        });
+        setRegSeasonStatsResult(data);
+      } else if (data.reason === 'no_active_games') {
+        toast({
+          title: "No Active Games",
+          description: data.message,
+        });
+        setRegSeasonStatsResult(data);
+      } else {
+        throw new Error(data.error || 'Failed to sync stats');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sync regular season stats",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingRegSeasonStats(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
@@ -831,6 +878,71 @@ const Admin = () => {
                     </ul>
                   </div>
                 )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Sync Regular Season Stats
+            </CardTitle>
+            <CardDescription>
+              Manually sync player stats for a specific week from API-Sports (force sync bypasses game window check)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-end gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="week-select">Week</Label>
+                <Select
+                  value={regSeasonStatsWeek.toString()}
+                  onValueChange={(value) => setRegSeasonStatsWeek(parseInt(value))}
+                >
+                  <SelectTrigger id="week-select" className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[14, 15, 16, 17, 18].map((week) => (
+                      <SelectItem key={week} value={week.toString()}>
+                        Week {week}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                onClick={syncRegularSeasonStats} 
+                disabled={isLoadingRegSeasonStats}
+                size="lg"
+              >
+                {isLoadingRegSeasonStats ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Syncing...
+                  </>
+                ) : "Force Sync Stats"}
+              </Button>
+            </div>
+
+            {regSeasonStatsResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Sync Results:</h3>
+                <ul className="space-y-1 text-sm">
+                  <li>Week: {regSeasonStatsResult.week}</li>
+                  <li>Players Processed: {regSeasonStatsResult.playersProcessed || 0}</li>
+                  {regSeasonStatsResult.playersUpdated !== undefined && (
+                    <li>Players Updated: {regSeasonStatsResult.playersUpdated}</li>
+                  )}
+                  {regSeasonStatsResult.reason && (
+                    <li className="text-muted-foreground">Reason: {regSeasonStatsResult.reason}</li>
+                  )}
+                  {regSeasonStatsResult.message && (
+                    <li className="text-muted-foreground">{regSeasonStatsResult.message}</li>
+                  )}
+                </ul>
               </div>
             )}
           </CardContent>
