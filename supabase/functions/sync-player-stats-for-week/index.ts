@@ -264,7 +264,7 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const week = parseInt(url.searchParams.get('week') || '0');
-    const season = 2024;
+    const season = 2025;
 
     if (!week || week < 1 || week > 4) {
       return new Response(

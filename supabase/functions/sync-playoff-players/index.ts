@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       throw new Error('API_SPORTS_KEY not configured');
     }
 
-    const season = 2024;
+    const season = 2025;
 
     console.log(`Fetching playoff teams for season ${season}...`);
 
