@@ -75,12 +75,15 @@ async function verifyAdminOrCron(req: Request): Promise<{ authorized: boolean; e
     return { authorized: false, error: 'Missing authorization header' };
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  // Use service role to verify the token
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
     global: { headers: { Authorization: authHeader } }
   });
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
   if (userError || !user) {
+    console.error('Token validation failed:', userError);
     return { authorized: false, error: 'Invalid user token' };
   }
 
