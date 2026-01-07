@@ -44,6 +44,8 @@ interface PlayoffPlayer {
   team_id: number;
   number: string | null;
   image_url: string | null;
+  depth_chart_slot: string | null;
+  depth_chart_rank: number | null;
 }
 
 // Unified player type for both modes
@@ -223,14 +225,29 @@ const Picks = () => {
           variant: "destructive",
         });
       } else {
-        console.log("[Picks] Playoff players fetched:", data?.length, "players");
+        const raw = data || [];
+        const filtered = raw.filter(
+          (p) => p.depth_chart_slot != null && p.depth_chart_rank != null
+        );
+
+        console.log("[Picks] Playoff players fetched:", raw.length, "players");
+        console.log(
+          "[Picks] After NULL guard:",
+          filtered.length,
+          "players (expected curated list)"
+        );
+
         // Debug: check for any unexpected data
-        const nullSlots = data?.filter(p => !p.depth_chart_slot) || [];
-        const nullRanks = data?.filter(p => p.depth_chart_rank === null) || [];
+        const nullSlots = raw.filter((p) => p.depth_chart_slot == null);
+        const nullRanks = raw.filter((p) => p.depth_chart_rank == null);
         if (nullSlots.length > 0 || nullRanks.length > 0) {
-          console.warn("[Picks] Players with NULL values still present:", { nullSlots: nullSlots.length, nullRanks: nullRanks.length });
+          console.warn("[Picks] NULL depth chart values present in response:", {
+            nullSlots: nullSlots.length,
+            nullRanks: nullRanks.length,
+          });
         }
-        setPlayoffPlayers(data || []);
+
+        setPlayoffPlayers(filtered);
       }
       setLoadingPlayoffs(false);
     };
