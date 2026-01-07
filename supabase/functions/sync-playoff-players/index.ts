@@ -255,10 +255,15 @@ Deno.serve(async (req) => {
       25: 13, // Commanders → ESPN 28
     };
 
-    // Normalize name for matching
+    // Normalize name for matching - removes suffixes and handles case insensitivity
     const normalizeName = (name: string): string => {
-      return name.toLowerCase()
+      return name
+        .toLowerCase()
+        // Remove common suffixes (Jr, Jr., III, II, IV, Sr, Sr.)
+        .replace(/\s+(jr\.?|sr\.?|iii|ii|iv|v)$/i, '')
+        // Remove any remaining punctuation
         .replace(/[^a-z\s]/g, '')
+        // Normalize whitespace
         .replace(/\s+/g, ' ')
         .trim();
     };
@@ -272,6 +277,9 @@ Deno.serve(async (req) => {
       const normalizedName = normalizeName(player.name);
       nameToPlayerIdMap.set(`${player.team_id}-${normalizedName}`, player.player_id);
     }
+
+    // Track unmatched ESPN players for logging
+    const unmatchedEspnPlayers: Array<{team: string, slot: string, espnName: string, normalizedName: string}> = [];
 
     // ESPN depthchart response (current observed):
     // - data.depthchart: array of charts
@@ -368,7 +376,17 @@ Deno.serve(async (req) => {
             const normalizedAthleteName = normalizeName(athleteName);
             const key = `${team.team_id}-${normalizedAthleteName}`;
             const playerId = nameToPlayerIdMap.get(key);
-            if (!playerId) continue;
+            
+            if (!playerId) {
+              // Log unmatched ESPN player for debugging
+              unmatchedEspnPlayers.push({
+                team: team.name,
+                slot,
+                espnName: athleteName,
+                normalizedName: normalizedAthleteName,
+              });
+              continue;
+            }
 
             const base = playersById.get(playerId);
             if (!base) continue;
@@ -388,6 +406,14 @@ Deno.serve(async (req) => {
         teamsProcessedForDepth++;
       } catch (error) {
         console.error(`Error fetching depth chart for ${team.name}:`, error);
+      }
+    }
+
+    // Log unmatched ESPN players for debugging
+    if (unmatchedEspnPlayers.length > 0) {
+      console.log(`⚠️ Unmatched ESPN players (${unmatchedEspnPlayers.length}):`);
+      for (const unmatched of unmatchedEspnPlayers) {
+        console.log(`  - ${unmatched.team} | ${unmatched.slot}: "${unmatched.espnName}" (normalized: "${unmatched.normalizedName}")`);
       }
     }
 
@@ -447,6 +473,7 @@ Deno.serve(async (req) => {
         depthChartSync: {
           teamsProcessed: teamsProcessedForDepth,
           startersMarked,
+          unmatchedPlayers: unmatchedEspnPlayers.length,
         },
       }),
       {
