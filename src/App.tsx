@@ -137,6 +137,14 @@ const AppContent = () => {
               } 
             />
             <Route 
+              path="/admin/selectable-players" 
+              element={
+                <AdminRoute>
+                  <AdminSelectablePlayers />
+                </AdminRoute>
+              } 
+            />
+            <Route 
               path="/admin/users" 
               element={
                 <AdminRoute>
