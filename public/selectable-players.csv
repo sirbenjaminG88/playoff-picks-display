@@ -6,11 +6,8 @@ Ty Johnson,RB,Buffalo Bills,rb,1,false
 Dalton Kincaid,TE,Buffalo Bills,te,0,true
 Dawson Knox,TE,Buffalo Bills,te,1,false
 Khalil Shakir,WR,Buffalo Bills,wr1,0,true
-Tyrell Shavers,WR,Buffalo Bills,wr1,1,false
 Brandin Cooks,WR,Buffalo Bills,wr2,0,true
-Gabe Davis,WR,Buffalo Bills,wr2,1,false
 Joshua Palmer,WR,Buffalo Bills,wr3,0,true
-Keon Coleman,WR,Buffalo Bills,wr3,1,false
 Bryce Young,QB,Carolina Panthers,qb,0,true
 Andy Dalton,QB,Carolina Panthers,qb,1,false
 Rico Dowdle,RB,Carolina Panthers,rb,0,true
@@ -18,23 +15,26 @@ Chuba Hubbard,RB,Carolina Panthers,rb,1,false
 Tommy Tremble,TE,Carolina Panthers,te,0,true
 Mitchell Evans,TE,Carolina Panthers,te,1,false
 Tetairoa McMillan,WR,Carolina Panthers,wr1,0,true
-Jimmy Horn Jr.,WR,Carolina Panthers,wr1,1,false
 Jalen Coker,WR,Carolina Panthers,wr2,0,true
-David Moore,WR,Carolina Panthers,wr2,1,false
 Xavier Legette,WR,Carolina Panthers,wr3,0,true
-Brycen Tremayne,WR,Carolina Panthers,wr3,1,false
 Caleb Williams,QB,Chicago Bears,qb,0,true
 Tyson Bagent,QB,Chicago Bears,qb,1,false
 D'Andre Swift,RB,Chicago Bears,rb,0,true
-Travis Homer,RB,Chicago Bears,rb,1,false
-Cole Kmet,TE,Chicago Bears,te,0,true
-Marcedes Lewis,TE,Chicago Bears,te,1,false
-DJ Moore,WR,Chicago Bears,wr1,0,true
-DeAndre Carter,WR,Chicago Bears,wr1,1,false
-Rome Odunze,WR,Chicago Bears,wr2,0,true
-Tyler Scott,WR,Chicago Bears,wr2,1,false
-Keenan Allen,WR,Chicago Bears,wr3,0,true
-Nsimba Webster,WR,Chicago Bears,wr3,1,false
+Kyle Monangai,RB,Chicago Bears,rb,1,false
+Colston Loveland,TE,Chicago Bears,te,0,true
+Cole Kmet,TE,Chicago Bears,te,1,false
+Rome Odunze,WR,Chicago Bears,wr1,0,true
+DJ Moore,WR,Chicago Bears,wr2,0,true
+Luther Burden III,WR,Chicago Bears,wr3,0,true
+Jordan Love,QB,Green Bay Packers,qb,0,true
+Malik Willis,QB,Green Bay Packers,qb,1,false
+Josh Jacobs,RB,Green Bay Packers,rb,0,true
+Emanuel Wilson,RB,Green Bay Packers,rb,1,false
+Luke Musgrave,TE,Green Bay Packers,te,0,true
+Josh Whyle,TE,Green Bay Packers,te,1,false
+Christian Watson,WR,Green Bay Packers,wr1,0,true
+Romeo Doubs,WR,Green Bay Packers,wr2,0,true
+Jayden Reed,WR,Green Bay Packers,wr3,0,true
 C.J. Stroud,QB,Houston Texans,qb,0,true
 Davis Mills,QB,Houston Texans,qb,1,false
 Woody Marks,RB,Houston Texans,rb,0,true
@@ -42,23 +42,17 @@ Jawhar Jordan,RB,Houston Texans,rb,1,false
 Dalton Schultz,TE,Houston Texans,te,0,true
 Cade Stover,TE,Houston Texans,te,1,false
 Nico Collins,WR,Houston Texans,wr1,0,true
-Robert Woods,WR,Houston Texans,wr1,1,false
 Tank Dell,WR,Houston Texans,wr2,0,true
-Noah Brown,WR,Houston Texans,wr2,1,false
 Stefon Diggs,WR,Houston Texans,wr3,0,true
-Xavier Hutchinson,WR,Houston Texans,wr3,1,false
-Patrick Mahomes,QB,Kansas City Chiefs,qb,0,true
-Carson Wentz,QB,Kansas City Chiefs,qb,1,false
-Isiah Pacheco,RB,Kansas City Chiefs,rb,0,true
-Samaje Perine,RB,Kansas City Chiefs,rb,1,false
-Travis Kelce,TE,Kansas City Chiefs,te,0,true
-Noah Gray,TE,Kansas City Chiefs,te,1,false
-DeAndre Hopkins,WR,Kansas City Chiefs,wr1,0,true
-Mecole Hardman Jr.,WR,Kansas City Chiefs,wr1,1,false
-Hollywood Brown,WR,Kansas City Chiefs,wr2,0,true
-JuJu Smith-Schuster,WR,Kansas City Chiefs,wr2,1,false
-Xavier Worthy,WR,Kansas City Chiefs,wr3,0,true
-Justin Watson,WR,Kansas City Chiefs,wr3,1,false
+Trevor Lawrence,QB,Jacksonville Jaguars,qb,0,true
+Mac Jones,QB,Jacksonville Jaguars,qb,1,false
+Travis Etienne Jr.,RB,Jacksonville Jaguars,rb,0,true
+D'Ernest Johnson,RB,Jacksonville Jaguars,rb,1,false
+Evan Engram,TE,Jacksonville Jaguars,te,0,true
+Brenton Strange,TE,Jacksonville Jaguars,te,1,false
+Brian Thomas Jr.,WR,Jacksonville Jaguars,wr1,0,true
+Christian Kirk,WR,Jacksonville Jaguars,wr2,0,true
+Gabe Davis,WR,Jacksonville Jaguars,wr3,0,true
 Justin Herbert,QB,Los Angeles Chargers,qb,0,true
 Taylor Heinicke,QB,Los Angeles Chargers,qb,1,false
 J.K. Dobbins,RB,Los Angeles Chargers,rb,0,true
@@ -66,11 +60,8 @@ Gus Edwards,RB,Los Angeles Chargers,rb,1,false
 Will Dissly,TE,Los Angeles Chargers,te,0,true
 Hayden Hurst,TE,Los Angeles Chargers,te,1,false
 Ladd McConkey,WR,Los Angeles Chargers,wr1,0,true
-D.J. Chark Jr.,WR,Los Angeles Chargers,wr1,1,false
 Joshua Palmer,WR,Los Angeles Chargers,wr2,0,true
-Brenden Rice,WR,Los Angeles Chargers,wr2,1,false
 Quentin Johnston,WR,Los Angeles Chargers,wr3,0,true
-Simi Fehoko,WR,Los Angeles Chargers,wr3,1,false
 Matthew Stafford,QB,Los Angeles Rams,qb,0,true
 Jimmy Garoppolo,QB,Los Angeles Rams,qb,1,false
 Kyren Williams,RB,Los Angeles Rams,rb,0,true
@@ -78,23 +69,17 @@ Ronnie Rivers,RB,Los Angeles Rams,rb,1,false
 Colby Parkinson,TE,Los Angeles Rams,te,0,true
 Davis Allen,TE,Los Angeles Rams,te,1,false
 Puka Nacua,WR,Los Angeles Rams,wr1,0,true
-Tutu Atwell,WR,Los Angeles Rams,wr1,1,false
 Cooper Kupp,WR,Los Angeles Rams,wr2,0,true
-Tyler Johnson,WR,Los Angeles Rams,wr2,1,false
 Demarcus Robinson,WR,Los Angeles Rams,wr3,0,true
-Jordan Whittington,WR,Los Angeles Rams,wr3,1,false
-Sam Darnold,QB,Minnesota Vikings,qb,0,true
-Nick Mullens,QB,Minnesota Vikings,qb,1,false
-Aaron Jones,RB,Minnesota Vikings,rb,0,true
-Cam Akers,RB,Minnesota Vikings,rb,1,false
-T.J. Hockenson,TE,Minnesota Vikings,te,0,true
-Josh Oliver,TE,Minnesota Vikings,te,1,false
-Justin Jefferson,WR,Minnesota Vikings,wr1,0,true
-Trent Sherfield Sr.,WR,Minnesota Vikings,wr1,1,false
-Jordan Addison,WR,Minnesota Vikings,wr2,0,true
-Jalen Nailor,WR,Minnesota Vikings,wr2,1,false
-Brandon Powell,WR,Minnesota Vikings,wr3,0,true
-Lucky Jackson,WR,Minnesota Vikings,wr3,1,false
+Drake Maye,QB,New England Patriots,qb,0,true
+Jacoby Brissett,QB,New England Patriots,qb,1,false
+Rhamondre Stevenson,RB,New England Patriots,rb,0,true
+Antonio Gibson,RB,New England Patriots,rb,1,false
+Hunter Henry,TE,New England Patriots,te,0,true
+Austin Hooper,TE,New England Patriots,te,1,false
+Ja'Lynn Polk,WR,New England Patriots,wr1,0,true
+DeMario Douglas,WR,New England Patriots,wr2,0,true
+K.J. Osborn,WR,New England Patriots,wr3,0,true
 Jalen Hurts,QB,Philadelphia Eagles,qb,0,true
 Kenny Pickett,QB,Philadelphia Eagles,qb,1,false
 Saquon Barkley,RB,Philadelphia Eagles,rb,0,true
@@ -102,11 +87,8 @@ Kenneth Gainwell,RB,Philadelphia Eagles,rb,1,false
 Dallas Goedert,TE,Philadelphia Eagles,te,0,true
 Grant Calcaterra,TE,Philadelphia Eagles,te,1,false
 A.J. Brown,WR,Philadelphia Eagles,wr1,0,true
-Johnny Wilson,WR,Philadelphia Eagles,wr1,1,false
 DeVonta Smith,WR,Philadelphia Eagles,wr2,0,true
-Ainias Smith,WR,Philadelphia Eagles,wr2,1,false
 Jahan Dotson,WR,Philadelphia Eagles,wr3,0,true
-Parris Campbell,WR,Philadelphia Eagles,wr3,1,false
 Russell Wilson,QB,Pittsburgh Steelers,qb,0,true
 Justin Fields,QB,Pittsburgh Steelers,qb,1,false
 Najee Harris,RB,Pittsburgh Steelers,rb,0,true
@@ -114,32 +96,14 @@ Jaylen Warren,RB,Pittsburgh Steelers,rb,1,false
 Pat Freiermuth,TE,Pittsburgh Steelers,te,0,true
 Darnell Washington,TE,Pittsburgh Steelers,te,1,false
 George Pickens,WR,Pittsburgh Steelers,wr1,0,true
-Scotty Miller,WR,Pittsburgh Steelers,wr1,1,false
 Mike Williams,WR,Pittsburgh Steelers,wr2,0,true
-Ben Skowronek,WR,Pittsburgh Steelers,wr2,1,false
 Calvin Austin III,WR,Pittsburgh Steelers,wr3,0,true
-Van Jefferson,WR,Pittsburgh Steelers,wr3,1,false
-Jayden Daniels,QB,Washington Commanders,qb,0,true
-Marcus Mariota,QB,Washington Commanders,qb,1,false
-Brian Robinson Jr.,RB,Washington Commanders,rb,0,true
-Austin Ekeler,RB,Washington Commanders,rb,1,false
-Zach Ertz,TE,Washington Commanders,te,0,true
-John Bates,TE,Washington Commanders,te,1,false
-Terry McLaurin,WR,Washington Commanders,wr1,0,true
-Olamide Zaccheaus,WR,Washington Commanders,wr1,1,false
-Dyami Brown,WR,Washington Commanders,wr2,0,true
-Jamison Crowder,WR,Washington Commanders,wr2,1,false
-Jahan Dotson,WR,Washington Commanders,wr3,0,true
-Luke McCaffrey,WR,Washington Commanders,wr3,1,false
-Lamar Jackson,QB,Baltimore Ravens,qb,0,true
-Josh Johnson,QB,Baltimore Ravens,qb,1,false
-Derrick Henry,RB,Baltimore Ravens,rb,0,true
-Justice Hill,RB,Baltimore Ravens,rb,1,false
-Mark Andrews,TE,Baltimore Ravens,te,0,true
-Isaiah Likely,TE,Baltimore Ravens,te,1,false
-Zay Flowers,WR,Baltimore Ravens,wr1,0,true
-Tylan Wallace,WR,Baltimore Ravens,wr1,1,false
-Rashod Bateman,WR,Baltimore Ravens,wr2,0,true
-Devaughn Vele,WR,Baltimore Ravens,wr2,1,false
-Nelson Agholor,WR,Baltimore Ravens,wr3,0,true
-Deonte Harty,WR,Baltimore Ravens,wr3,1,false
+Brock Purdy,QB,San Francisco 49ers,qb,0,true
+Joshua Dobbs,QB,San Francisco 49ers,qb,1,false
+Christian McCaffrey,RB,San Francisco 49ers,rb,0,true
+Isaac Guerendo,RB,San Francisco 49ers,rb,1,false
+George Kittle,TE,San Francisco 49ers,te,0,true
+Eric Saubert,TE,San Francisco 49ers,te,1,false
+Deebo Samuel Sr.,WR,San Francisco 49ers,wr1,0,true
+Jauan Jennings,WR,San Francisco 49ers,wr2,0,true
+Ricky Pearsall,WR,San Francisco 49ers,wr3,0,true
