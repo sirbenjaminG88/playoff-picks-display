@@ -881,6 +881,51 @@ export type Database = {
         }
         Relationships: []
       }
+      selectable_playoff_players: {
+        Row: {
+          depth_chart_rank: number | null
+          depth_chart_slot: string | null
+          group: string | null
+          id: string | null
+          image_url: string | null
+          is_starter: boolean | null
+          name: string | null
+          player_id: number | null
+          position: string | null
+          season: number | null
+          team_id: number | null
+          team_name: string | null
+        }
+        Insert: {
+          depth_chart_rank?: number | null
+          depth_chart_slot?: string | null
+          group?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_starter?: boolean | null
+          name?: string | null
+          player_id?: number | null
+          position?: string | null
+          season?: number | null
+          team_id?: number | null
+          team_name?: string | null
+        }
+        Update: {
+          depth_chart_rank?: number | null
+          depth_chart_slot?: string | null
+          group?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_starter?: boolean | null
+          name?: string | null
+          player_id?: number | null
+          position?: string | null
+          season?: number | null
+          team_id?: number | null
+          team_name?: string | null
+        }
+        Relationships: []
+      }
       v_league_memberships: {
         Row: {
           app_role: Database["public"]["Enums"]["app_role"] | null
