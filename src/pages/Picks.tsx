@@ -204,6 +204,8 @@ const Picks = () => {
         .select("*")
         .eq("season", 2025)
         .eq("group", "Offense")
+        .not("depth_chart_slot", "is", null)
+        .not("depth_chart_rank", "is", null)
         .or(
           "and(depth_chart_slot.eq.qb,depth_chart_rank.in.(0,1))," +
           "and(depth_chart_slot.eq.rb,depth_chart_rank.in.(0,1))," +
@@ -221,6 +223,13 @@ const Picks = () => {
           variant: "destructive",
         });
       } else {
+        console.log("[Picks] Playoff players fetched:", data?.length, "players");
+        // Debug: check for any unexpected data
+        const nullSlots = data?.filter(p => !p.depth_chart_slot) || [];
+        const nullRanks = data?.filter(p => p.depth_chart_rank === null) || [];
+        if (nullSlots.length > 0 || nullRanks.length > 0) {
+          console.warn("[Picks] Players with NULL values still present:", { nullSlots: nullSlots.length, nullRanks: nullRanks.length });
+        }
         setPlayoffPlayers(data || []);
       }
       setLoadingPlayoffs(false);
