@@ -362,6 +362,8 @@ Deno.serve(async (req) => {
         }
 
         const formationName = offenseChart?.name ?? offenseChart?.displayName ?? null;
+        const availableSlots = Object.keys(positions);
+        console.log(`${team.name} depth chart slots: ${availableSlots.join(', ')}`);
 
         for (const slot of slotsToExtract) {
           const posObj = positions?.[slot];
