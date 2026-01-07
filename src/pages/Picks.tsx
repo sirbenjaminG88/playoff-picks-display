@@ -201,19 +201,12 @@ const Picks = () => {
 
     const fetchPlayers = async () => {
       setLoadingPlayoffs(true);
+      // Use the pre-filtered view that only contains curated depth chart players
       const { data, error } = await supabase
-        .from("playoff_players")
+        .from("playoff_players_filtered" as any)
         .select("*")
         .eq("season", 2025)
         .eq("group", "Offense")
-        .not("depth_chart_slot", "is", null)
-        .not("depth_chart_rank", "is", null)
-        .or(
-          "and(depth_chart_slot.eq.qb,depth_chart_rank.in.(0,1))," +
-          "and(depth_chart_slot.eq.rb,depth_chart_rank.in.(0,1))," +
-          "and(depth_chart_slot.in.(wr1,wr2,wr3),depth_chart_rank.eq.0)," +
-          "and(depth_chart_slot.eq.te,depth_chart_rank.in.(0,1))"
-        )
         .order("team_name")
         .order("name");
 
@@ -225,29 +218,10 @@ const Picks = () => {
           variant: "destructive",
         });
       } else {
-        const raw = data || [];
-        const filtered = raw.filter(
-          (p) => p.depth_chart_slot != null && p.depth_chart_rank != null
-        );
-
-        console.log("[Picks] Playoff players fetched:", raw.length, "players");
-        console.log(
-          "[Picks] After NULL guard:",
-          filtered.length,
-          "players (expected curated list)"
-        );
-
-        // Debug: check for any unexpected data
-        const nullSlots = raw.filter((p) => p.depth_chart_slot == null);
-        const nullRanks = raw.filter((p) => p.depth_chart_rank == null);
-        if (nullSlots.length > 0 || nullRanks.length > 0) {
-          console.warn("[Picks] NULL depth chart values present in response:", {
-            nullSlots: nullSlots.length,
-            nullRanks: nullRanks.length,
-          });
-        }
-
-        setPlayoffPlayers(filtered);
+        // The view already filters, just cast and set
+        const players = (data || []) as unknown as PlayoffPlayer[];
+        console.log("[Picks] Playoff players fetched from view:", players.length, "players (expected ~108)");
+        setPlayoffPlayers(players);
       }
       setLoadingPlayoffs(false);
     };

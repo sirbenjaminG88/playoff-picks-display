@@ -791,6 +791,75 @@ export type Database = {
         }
         Relationships: []
       }
+      playoff_players_filtered: {
+        Row: {
+          created_at: string | null
+          depth_chart_formation: string | null
+          depth_chart_position: string | null
+          depth_chart_rank: number | null
+          depth_chart_slot: string | null
+          depth_chart_source: string | null
+          depth_chart_updated_at: string | null
+          group: string | null
+          has_headshot: boolean | null
+          id: string | null
+          image_url: string | null
+          is_starter: boolean | null
+          name: string | null
+          number: string | null
+          player_id: number | null
+          position: string | null
+          season: number | null
+          team_id: number | null
+          team_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          depth_chart_formation?: string | null
+          depth_chart_position?: string | null
+          depth_chart_rank?: number | null
+          depth_chart_slot?: string | null
+          depth_chart_source?: string | null
+          depth_chart_updated_at?: string | null
+          group?: string | null
+          has_headshot?: boolean | null
+          id?: string | null
+          image_url?: string | null
+          is_starter?: boolean | null
+          name?: string | null
+          number?: string | null
+          player_id?: number | null
+          position?: string | null
+          season?: number | null
+          team_id?: number | null
+          team_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          depth_chart_formation?: string | null
+          depth_chart_position?: string | null
+          depth_chart_rank?: number | null
+          depth_chart_slot?: string | null
+          depth_chart_source?: string | null
+          depth_chart_updated_at?: string | null
+          group?: string | null
+          has_headshot?: boolean | null
+          id?: string | null
+          image_url?: string | null
+          is_starter?: boolean | null
+          name?: string | null
+          number?: string | null
+          player_id?: number | null
+          position?: string | null
+          season?: number | null
+          team_id?: number | null
+          team_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       public_profiles: {
         Row: {
           avatar_url: string | null
