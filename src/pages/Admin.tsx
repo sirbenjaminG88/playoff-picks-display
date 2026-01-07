@@ -710,7 +710,7 @@ const Admin = () => {
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Admin Panel</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Link to="/admin/users">
             <Button variant="outline">
               <Users className="w-4 h-4 mr-2" />
@@ -721,6 +721,12 @@ const Admin = () => {
             <Button variant="outline">
               <UserCircle className="w-4 h-4 mr-2" />
               Browse Players
+            </Button>
+          </Link>
+          <Link to="/admin/selectable-players">
+            <Button variant="outline">
+              <Calendar className="w-4 h-4 mr-2" />
+              Selectable Players
             </Button>
           </Link>
         </div>

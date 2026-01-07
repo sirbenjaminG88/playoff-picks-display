@@ -20,6 +20,7 @@ import Results from "./pages/Results";
 import Picks from "./pages/Picks";
 import Admin from "./pages/Admin";
 import AdminPlayers from "./pages/AdminPlayers";
+import AdminSelectablePlayers from "./pages/AdminSelectablePlayers";
 import AdminUsers from "./pages/AdminUsers";
 import SignIn from "./pages/SignIn";
 import ProfileSetup from "./pages/ProfileSetup";
@@ -132,6 +133,14 @@ const AppContent = () => {
               element={
                 <AdminRoute>
                   <AdminPlayers />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/selectable-players" 
+              element={
+                <AdminRoute>
+                  <AdminSelectablePlayers />
                 </AdminRoute>
               } 
             />
