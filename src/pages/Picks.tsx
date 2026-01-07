@@ -204,7 +204,12 @@ const Picks = () => {
         .select("*")
         .eq("season", 2025)
         .eq("group", "Offense")
-        .eq("is_starter", true)
+        .or(
+          "and(depth_chart_slot.eq.qb,depth_chart_rank.in.(0,1))," +
+          "and(depth_chart_slot.eq.rb,depth_chart_rank.in.(0,1))," +
+          "and(depth_chart_slot.in.(wr1,wr2,wr3),depth_chart_rank.eq.0)," +
+          "and(depth_chart_slot.eq.te,depth_chart_rank.in.(0,1))"
+        )
         .order("team_name")
         .order("name");
 
