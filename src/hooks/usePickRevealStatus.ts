@@ -64,11 +64,11 @@ async function fetchPickRevealStatus(
   const submittedCount = submittedUserIds.length;
   const currentUserSubmitted = submittedUserIds.includes(currentUserId);
 
-  // 2b. Fetch user profiles for submitted users
+  // 2b. Fetch user profiles for submitted users (use public_profiles view to bypass RLS)
   let submittedUsers: SubmittedUser[] = [];
   if (submittedUserIds.length > 0) {
     const { data: profiles, error: profilesError } = await supabase
-      .from("users")
+      .from("public_profiles")
       .select("id, display_name, avatar_url")
       .in("id", submittedUserIds);
 
@@ -76,7 +76,7 @@ async function fetchPickRevealStatus(
       console.error("Error fetching user profiles:", profilesError);
     } else if (profiles) {
       submittedUsers = profiles.map(p => ({
-        userId: p.id,
+        userId: p.id!,
         displayName: p.display_name || "Unknown",
         avatarUrl: p.avatar_url,
       }));
