@@ -195,18 +195,35 @@ const Picks = () => {
     });
   }, [activeWeeks, isRegularSeason]);
 
-  // Fetch playoff players
+  // Fetch playoff players - filtered by week (bye teams only appear in week 2+)
   useEffect(() => {
     if (isRegularSeason) return;
 
     const fetchPlayers = async () => {
       setLoadingPlayoffs(true);
-      // Use the pre-filtered view that only contains curated depth chart players
+      
+      const currentWeekNum = parseInt(activeWeek, 10);
+      
+      // Get teams playing in this week (week 1 = 12 teams, week 2+ = all 14 playoff teams)
+      const { data: teamsPlaying, error: teamsError } = await supabase.rpc(
+        'get_teams_playing_in_week', 
+        { p_season: 2025, p_week: currentWeekNum }
+      );
+      
+      if (teamsError) {
+        console.error("Error fetching teams for week:", teamsError);
+      }
+      
+      const teamIds = teamsPlaying?.map((t: { team_id: number }) => t.team_id) || [];
+      console.log(`[Picks] Week ${currentWeekNum}: Teams playing:`, teamIds);
+      
+      // Use the pre-filtered view, but also filter by teams playing this week
       const { data, error } = await supabase
         .from("playoff_players_filtered" as any)
         .select("*")
         .eq("season", 2025)
         .eq("group", "Offense")
+        .in("team_id", teamIds)
         .order("team_name")
         .order("name");
 
@@ -218,16 +235,15 @@ const Picks = () => {
           variant: "destructive",
         });
       } else {
-        // The view already filters, just cast and set
         const players = (data || []) as unknown as PlayoffPlayer[];
-        console.log("[Picks] Playoff players fetched from view:", players.length, "players (expected ~108)");
+        console.log(`[Picks] Week ${currentWeekNum}: ${players.length} players from ${teamIds.length} teams`);
         setPlayoffPlayers(players);
       }
       setLoadingPlayoffs(false);
     };
 
     fetchPlayers();
-  }, [isRegularSeason]);
+  }, [isRegularSeason, activeWeek]);
 
   // DEBUG state for showing query results
   const [debugInfo, setDebugInfo] = useState<{

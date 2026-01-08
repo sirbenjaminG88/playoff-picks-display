@@ -1002,6 +1002,12 @@ export type Database = {
       }
       get_league_join_code: { Args: { p_league_id: string }; Returns: string }
       get_my_display_name: { Args: never; Returns: string }
+      get_teams_playing_in_week: {
+        Args: { p_season: number; p_week: number }
+        Returns: {
+          team_id: number
+        }[]
+      }
       get_user_league_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
