@@ -128,8 +128,9 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
 
     const fetchAllLeagues = async () => {
       console.log("[LeagueContext] Admin detected, fetching all leagues...");
+      // Admins can query the leagues table directly (RLS allows admin access)
       const { data, error } = await supabase
-        .from("leagues_safe")
+        .from("leagues")
         .select("id, name, season, season_type, created_at, icon_url")
         .order("created_at", { ascending: false });
 
