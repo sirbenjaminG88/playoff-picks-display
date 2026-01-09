@@ -1,4 +1,4 @@
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Eye } from "lucide-react";
 import { useLeague, LeagueMembership } from "@/contexts/LeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeagueIcon } from "@/components/leagues/LeagueIcon";
@@ -19,14 +19,16 @@ import {
 } from "@/components/ui/drawer";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface LeagueSwitcherProps {
   className?: string;
 }
 
 export function LeagueSwitcher({ className }: LeagueSwitcherProps) {
-  const { memberships, currentLeague, setCurrentLeagueId, loading } = useLeague();
-  const { user } = useAuth();
+  const { memberships, currentLeague, setCurrentLeagueId, loading, founderMode, setFounderMode, isFounderViewing } = useLeague();
+  const { isAdmin } = useAuth();
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -52,6 +54,23 @@ export function LeagueSwitcher({ className }: LeagueSwitcherProps) {
     return name.substring(0, maxLength - 1) + "…";
   };
 
+  // Founder mode toggle (admin only)
+  const FounderModeToggle = () => (
+    <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border bg-muted/30">
+      <div className="flex items-center gap-2">
+        <Eye className="w-4 h-4 text-primary" />
+        <Label htmlFor="founder-mode" className="text-sm font-medium cursor-pointer">
+          View All Leagues
+        </Label>
+      </div>
+      <Switch
+        id="founder-mode"
+        checked={founderMode}
+        onCheckedChange={setFounderMode}
+      />
+    </div>
+  );
+
   // Mobile: Bottom sheet drawer
   if (isMobile) {
     return (
@@ -62,9 +81,13 @@ export function LeagueSwitcher({ className }: LeagueSwitcherProps) {
               "flex items-center gap-2 px-3 py-2 rounded-lg",
               "bg-muted/50 hover:bg-muted transition-colors",
               "min-h-[44px]", // iOS touch target
+              isFounderViewing && "ring-2 ring-primary/50",
               className
             )}
           >
+            {isFounderViewing && (
+              <Eye className="w-4 h-4 text-primary flex-shrink-0" />
+            )}
             <LeagueIcon
               iconUrl={currentLeague?.icon_url}
               leagueName={currentLeague?.name || "League"}
@@ -81,7 +104,8 @@ export function LeagueSwitcher({ className }: LeagueSwitcherProps) {
           <DrawerHeader className="pb-2">
             <DrawerTitle>Select League</DrawerTitle>
           </DrawerHeader>
-          <div className="px-4 pb-8 space-y-2">
+          {isAdmin && <FounderModeToggle />}
+          <div className="px-4 pb-8 space-y-2 max-h-[60vh] overflow-y-auto">
             {filteredMemberships.map((membership) => (
               <LeagueOption
                 key={membership.league_id}
@@ -98,43 +122,68 @@ export function LeagueSwitcher({ className }: LeagueSwitcherProps) {
 
   // Desktop: Standard select dropdown
   return (
-    <Select
-      value={currentLeague?.id || ""}
-      onValueChange={handleLeagueSelect}
-    >
-      <SelectTrigger className={cn("w-[200px] bg-muted/50", className)}>
+    <div className="flex items-center gap-2">
+      {isAdmin && (
         <div className="flex items-center gap-2">
-          <LeagueIcon
-            iconUrl={currentLeague?.icon_url}
-            leagueName={currentLeague?.name || "League"}
-            size="sm"
-            className="w-5 h-5"
+          <Switch
+            id="founder-mode-desktop"
+            checked={founderMode}
+            onCheckedChange={setFounderMode}
+            className="scale-75"
           />
-          <SelectValue placeholder="Select league">
-            {currentLeague?.name ? truncateName(currentLeague.name, 18) : "Select League"}
-          </SelectValue>
+          <Label htmlFor="founder-mode-desktop" className="text-xs text-muted-foreground cursor-pointer">
+            All
+          </Label>
         </div>
-      </SelectTrigger>
-      <SelectContent className="bg-background border-border">
-        {filteredMemberships.map((membership) => (
-          <SelectItem
-            key={membership.league_id}
-            value={membership.league_id}
-            className="py-3"
-          >
-            <div className="flex items-center gap-2">
-              <LeagueIcon
-                iconUrl={membership.league.icon_url}
-                leagueName={membership.league.name}
-                size="sm"
-                className="w-5 h-5"
-              />
-              <span>{membership.league.name}</span>
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      )}
+      <Select
+        value={currentLeague?.id || ""}
+        onValueChange={handleLeagueSelect}
+      >
+        <SelectTrigger className={cn(
+          "w-[200px] bg-muted/50",
+          isFounderViewing && "ring-2 ring-primary/50",
+          className
+        )}>
+          <div className="flex items-center gap-2">
+            {isFounderViewing && (
+              <Eye className="w-4 h-4 text-primary flex-shrink-0" />
+            )}
+            <LeagueIcon
+              iconUrl={currentLeague?.icon_url}
+              leagueName={currentLeague?.name || "League"}
+              size="sm"
+              className="w-5 h-5"
+            />
+            <SelectValue placeholder="Select league">
+              {currentLeague?.name ? truncateName(currentLeague.name, 18) : "Select League"}
+            </SelectValue>
+          </div>
+        </SelectTrigger>
+        <SelectContent className="bg-background border-border max-h-[300px]">
+          {filteredMemberships.map((membership) => (
+            <SelectItem
+              key={membership.league_id}
+              value={membership.league_id}
+              className="py-3"
+            >
+              <div className="flex items-center gap-2">
+                {membership.isFounderView && (
+                  <Eye className="w-4 h-4 text-primary flex-shrink-0" />
+                )}
+                <LeagueIcon
+                  iconUrl={membership.league.icon_url}
+                  leagueName={membership.league.name}
+                  size="sm"
+                  className="w-5 h-5"
+                />
+                <span>{membership.league.name}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -157,6 +206,9 @@ function LeagueOption({ membership, isSelected, onSelect }: LeagueOptionProps) {
           : "bg-muted/30 border border-border hover:bg-muted/50"
       )}
     >
+      {membership.isFounderView && (
+        <Eye className="w-5 h-5 text-primary flex-shrink-0" />
+      )}
       <LeagueIcon
         iconUrl={membership.league.icon_url}
         leagueName={membership.league.name}
@@ -165,7 +217,11 @@ function LeagueOption({ membership, isSelected, onSelect }: LeagueOptionProps) {
       <div className="flex-1 text-left">
         <p className="font-medium text-foreground">{membership.league.name}</p>
         <p className="text-xs text-muted-foreground">
-          {membership.role === "commissioner" ? "Commissioner" : "Member"}
+          {membership.isFounderView 
+            ? "Viewing as Founder" 
+            : membership.role === "commissioner" 
+              ? "Commissioner" 
+              : "Member"}
         </p>
       </div>
       {isSelected && (

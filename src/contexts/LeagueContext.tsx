@@ -20,6 +20,7 @@ export interface LeagueMembership {
   role: LeagueRole;
   joined_at: string;
   league: League;
+  isFounderView?: boolean; // True when admin is viewing a league they're not a member of
 }
 
 interface LeagueContextType {
@@ -29,21 +30,30 @@ interface LeagueContextType {
   setCurrentLeagueId: (leagueId: string) => void;
   isCommissioner: boolean;
   loading: boolean;
+  // Founder mode (admin only)
+  founderMode: boolean;
+  setFounderMode: (enabled: boolean) => void;
+  isFounderViewing: boolean; // True when currently viewing a league as founder (not a member)
+  allLeagues: League[]; // All leagues (for founder mode)
 }
 
 const LeagueContext = createContext<LeagueContextType | undefined>(undefined);
 
 export function LeagueProvider({ children }: { children: ReactNode }) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [memberships, setMemberships] = useState<LeagueMembership[]>([]);
+  const [allLeagues, setAllLeagues] = useState<League[]>([]);
   const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [founderMode, setFounderMode] = useState(false);
 
+  // Fetch user's actual memberships
   useEffect(() => {
     if (authLoading) return;
 
     if (!user) {
       setMemberships([]);
+      setAllLeagues([]);
       setCurrentLeagueId(null);
       setLoading(false);
       return;
@@ -82,6 +92,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
             role: m.role as LeagueRole,
             joined_at: m.joined_at,
             league: m.league as League,
+            isFounderView: false,
           }));
           
           console.log("[LeagueContext] Transformed memberships:", transformedMemberships);
@@ -108,19 +119,70 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     fetchMemberships();
   }, [user, authLoading]);
 
-  const currentMembership = memberships.find(m => m.league_id === currentLeagueId);
+  // Fetch all leagues for founder mode (admin only)
+  useEffect(() => {
+    if (!isAdmin || !user) {
+      setAllLeagues([]);
+      return;
+    }
+
+    const fetchAllLeagues = async () => {
+      console.log("[LeagueContext] Admin detected, fetching all leagues...");
+      const { data, error } = await supabase
+        .from("leagues_safe")
+        .select("id, name, season, season_type, created_at, icon_url")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("[LeagueContext] Error fetching all leagues:", error);
+      } else if (data) {
+        console.log("[LeagueContext] Fetched all leagues:", data.length);
+        setAllLeagues(data as League[]);
+      }
+    };
+
+    fetchAllLeagues();
+  }, [isAdmin, user]);
+
+  // Combine real memberships with founder-view synthetic memberships
+  const effectiveMemberships: LeagueMembership[] = founderMode && isAdmin
+    ? allLeagues.map(league => {
+        // Check if user is actually a member
+        const realMembership = memberships.find(m => m.league_id === league.id);
+        if (realMembership) {
+          return realMembership;
+        }
+        // Create synthetic membership for founder viewing
+        return {
+          id: `founder-${league.id}`,
+          league_id: league.id,
+          user_id: user?.id || "",
+          role: "player" as LeagueRole,
+          joined_at: new Date().toISOString(),
+          league,
+          isFounderView: true,
+        };
+      })
+    : memberships;
+
+  const currentMembership = effectiveMemberships.find(m => m.league_id === currentLeagueId);
   const currentLeague = currentMembership?.league || null;
   const currentRole = currentMembership?.role || null;
   const isCommissioner = currentRole === "commissioner";
+  const isFounderViewing = currentMembership?.isFounderView === true;
 
   return (
     <LeagueContext.Provider value={{
-      memberships,
+      memberships: effectiveMemberships,
       currentLeague,
       currentRole,
       setCurrentLeagueId,
       isCommissioner,
       loading,
+      founderMode,
+      setFounderMode,
+      isFounderViewing,
+      allLeagues,
     }}>
       {children}
     </LeagueContext.Provider>
