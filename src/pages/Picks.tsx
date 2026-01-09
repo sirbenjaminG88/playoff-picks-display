@@ -859,7 +859,7 @@ const Picks = () => {
                     <div className="flex items-center justify-between">
                       <h2 className="text-2xl font-bold">{weekLabel} Picks</h2>
                       {/* Admin reset button */}
-                      {isCommissioner && (weekPicks.qb || weekPicks.rb || weekPicks.flex || weekPicks.submitted) && (
+                      {isAdmin && (weekPicks.qb || weekPicks.rb || weekPicks.flex || weekPicks.submitted) && (
                         <Button
                           variant="ghost"
                           size="sm"
