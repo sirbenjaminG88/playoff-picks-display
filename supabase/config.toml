@@ -83,3 +83,6 @@ verify_jwt = true
 
 [functions.sync-live-playoff-stats]
 verify_jwt = false
+
+[functions.debug-live-api]
+verify_jwt = false
