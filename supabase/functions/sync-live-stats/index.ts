@@ -284,6 +284,22 @@ serve(async (req) => {
     
     console.log(`Mode: ${mode}, Season: ${SEASON}, Force: ${forceSync}`);
     
+    // IMPORTANT: Skip playoff mode in this function - we use sync-live-playoff-stats (ESPN) instead
+    // The API-Sports API doesn't return live playoff data correctly
+    if (isPlayoff) {
+      console.log('Skipping playoff mode - use sync-live-playoff-stats (ESPN) instead');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          reason: 'skipped',
+          message: 'Playoff stats now handled by sync-live-playoff-stats using ESPN API',
+          mode: 'playoff',
+          season: SEASON,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const apiKey = Deno.env.get('API_SPORTS_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

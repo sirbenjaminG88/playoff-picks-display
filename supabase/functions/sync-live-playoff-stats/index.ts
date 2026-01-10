@@ -480,7 +480,8 @@ serve(async (req) => {
     }
 
     // ============ STEP 5: Build player ID mapping (our ID -> ESPN ID) ============
-    // First, get playoff_players with their image URLs to extract ESPN IDs
+    // Get playoff_players with their image URLs to extract ESPN IDs
+    // Filter to prefer ESPN headshot URLs for ID extraction
     const { data: playoffPlayers } = await supabase
       .from('playoff_players')
       .select('player_id, name, image_url, team_name, team_id')
@@ -505,13 +506,21 @@ serve(async (req) => {
       "Tennessee Titans": "TEN", "Washington Commanders": "WSH",
     };
     
+    // Process players - for duplicates, prefer ESPN headshot URLs over API-Sports URLs
     for (const player of playoffPlayers || []) {
+      const isEspnUrl = player.image_url?.includes('espncdn.com') || player.image_url?.includes('espn.com');
       const espnId = extractESPNPlayerId(player.image_url);
+      
+      // If we already have an ESPN ID for this player, only overwrite if current URL is ESPN
       if (espnId) {
-        ourIdToEspnId.set(player.player_id, espnId);
+        if (!ourIdToEspnId.has(player.player_id) || isEspnUrl) {
+          ourIdToEspnId.set(player.player_id, espnId);
+          console.log(`Mapped ${player.name} (${player.player_id}) -> ESPN ID ${espnId}`);
+        }
       }
+      
       const abbr = teamNameToAbbr[player.team_name];
-      if (abbr) {
+      if (abbr && !ourIdToTeamAbbr.has(player.player_id)) {
         ourIdToTeamAbbr.set(player.player_id, abbr);
       }
     }
