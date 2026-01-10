@@ -528,21 +528,28 @@ serve(async (req) => {
 
         const apiResponse = await response.json();
         
-        // Log detailed API response for debugging
-        if (playerId === 2076 || playerInfo.name.toLowerCase().includes('prescott')) {
-          console.log('=== DAK PRESCOTT DEBUG ===');
+        // Log when API returns empty results (no stats available yet)
+        const apiResults = apiResponse?.results || 0;
+        if (apiResults === 0) {
+          console.warn(`API returned empty results for ${playerInfo.name} (player_id=${playerId}, game_id=${gameId}). Game stats may not be available yet.`);
+        }
+        
+        // Log detailed API response for debugging specific players
+        if (playerId === 2076 || playerInfo.name.toLowerCase().includes('prescott') || playerId === 17559) {
+          console.log(`=== DEBUG ${playerInfo.name.toUpperCase()} ===`);
           console.log('API URL:', apiUrl);
+          console.log('API results count:', apiResults);
           console.log('Full API Response:', JSON.stringify(apiResponse, null, 2));
         }
         
         const stats = extractStats(apiResponse);
         const fantasyPoints = calculateFantasyPoints(stats, scoringSettings);
         
-        if (playerId === 2076 || playerInfo.name.toLowerCase().includes('prescott')) {
+        if (playerId === 2076 || playerInfo.name.toLowerCase().includes('prescott') || playerId === 17559) {
           console.log('Extracted stats:', JSON.stringify(stats));
           console.log('Scoring settings:', JSON.stringify(scoringSettings));
           console.log('Calculated fantasy points:', fantasyPoints);
-          console.log('=== END DAK DEBUG ===');
+          console.log(`=== END DEBUG ${playerInfo.name.toUpperCase()} ===`);
         }
 
         // Upsert to player_week_stats
