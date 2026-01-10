@@ -44,6 +44,14 @@ const DEFAULT_SCORING: ScoringSettings = {
   two_pt_conversion_pts: 2,
 };
 
+// ESPN team abbreviation to our team_id mapping
+const ESPN_TEAM_ABBR_TO_ID: Record<string, number> = {
+  'ARI': 1, 'ATL': 2, 'BAL': 3, 'BUF': 4, 'CAR': 5, 'CHI': 6, 'CIN': 7, 'CLE': 8,
+  'DAL': 9, 'DEN': 10, 'DET': 11, 'GB': 12, 'HOU': 13, 'IND': 14, 'JAX': 15, 'KC': 16,
+  'LV': 17, 'LAC': 18, 'LAR': 19, 'MIA': 20, 'MIN': 21, 'NE': 22, 'NO': 23, 'NYG': 24,
+  'NYJ': 25, 'PHI': 26, 'PIT': 27, 'SF': 28, 'SEA': 29, 'TB': 30, 'TEN': 31, 'WSH': 32,
+};
+
 // ============ AUTH HELPERS ============
 
 async function verifyAdminOrCron(req: Request): Promise<{ authorized: boolean; error?: string; isCron?: boolean }> {
@@ -85,9 +93,69 @@ async function verifyAdminOrCron(req: Request): Promise<{ authorized: boolean; e
   return { authorized: true, isCron: false };
 }
 
-// ============ STATS HELPERS ============
+// ============ ESPN API HELPERS ============
 
-function extractStats(response: any): PlayerStats {
+interface ESPNGame {
+  id: string;
+  status: {
+    type: {
+      id: string;
+      name: string;
+      state: string; // 'pre', 'in', 'post'
+      completed: boolean;
+    };
+    displayClock?: string;
+    period?: number;
+  };
+  competitions: Array<{
+    id: string;
+    competitors: Array<{
+      id: string;
+      team: {
+        id: string;
+        abbreviation: string;
+        displayName: string;
+      };
+      score?: string;
+    }>;
+  }>;
+}
+
+interface ESPNScoreboard {
+  events: ESPNGame[];
+}
+
+async function fetchESPNScoreboard(): Promise<ESPNScoreboard> {
+  const url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
+  console.log(`Fetching ESPN scoreboard: ${url}`);
+  
+  const response = await fetch(url, {
+    headers: { 'Accept': 'application/json' }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`ESPN scoreboard fetch failed: ${response.status}`);
+  }
+  
+  return await response.json();
+}
+
+async function fetchESPNGameSummary(espnGameId: string): Promise<any> {
+  const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${espnGameId}`;
+  console.log(`Fetching ESPN game summary: ${url}`);
+  
+  const response = await fetch(url, {
+    headers: { 'Accept': 'application/json' }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`ESPN game summary fetch failed: ${response.status}`);
+  }
+  
+  return await response.json();
+}
+
+function extractPlayerStatsFromESPN(boxscore: any, espnPlayerId: string): PlayerStats {
   const stats: PlayerStats = {
     pass_yds: 0,
     pass_tds: 0,
@@ -100,55 +168,54 @@ function extractStats(response: any): PlayerStats {
     two_pt_conversions: 0,
   };
 
-  if (!response?.response?.[0]?.groups) {
+  if (!boxscore?.players) {
     return stats;
   }
 
-  const groups = response.response[0].groups;
-  let passingTwoPt = 0;
-  let rushingTwoPt = 0;
-  let receivingTwoPt = 0;
-
-  for (const group of groups) {
-    const groupName = group.name?.toLowerCase() || '';
-    const players = group.players || [];
-    
-    if (players.length === 0) continue;
-    
-    const statistics = players[0].statistics || [];
-
-    for (const stat of statistics) {
-      const statName = stat.name?.toLowerCase() || '';
-      const value = parseFloat(stat.value) || 0;
-
-      if (groupName === 'rushing') {
-        if (statName === 'yards') stats.rush_yds = value;
-        if (statName === 'rushing touch downs') stats.rush_tds = value;
-        if (statName === 'two pt') rushingTwoPt = value;
-      }
-
-      if (groupName === 'passing') {
-        if (statName === 'yards') stats.pass_yds = value;
-        if (statName === 'passing touch downs') stats.pass_tds = value;
-        if (statName === 'interceptions') stats.interceptions = value;
-        if (statName === 'two pt') passingTwoPt = value;
-      }
-
-      if (groupName === 'receiving') {
-        if (statName === 'yards') stats.rec_yds = value;
-        if (statName === 'receiving touch downs') stats.rec_tds = value;
-        if (statName === 'two pt') receivingTwoPt = value;
-      }
-
-      if (groupName === 'fumbles') {
-        if (statName === 'lost' || statName === 'fumbles lost') stats.fumbles_lost = value;
+  // ESPN boxscore has players grouped by team
+  for (const teamBox of boxscore.players) {
+    for (const statCategory of teamBox.statistics || []) {
+      const categoryName = statCategory.name?.toLowerCase() || '';
+      
+      for (const athlete of statCategory.athletes || []) {
+        // Match by ESPN athlete ID
+        if (athlete.athlete?.id !== espnPlayerId) continue;
+        
+        const statLine = athlete.stats || [];
+        
+        // Parse stats based on category
+        if (categoryName === 'passing') {
+          // Typical passing order: C/ATT, YDS, AVG, TD, INT, SACKS, QBR, RTG
+          // We need YDS (index 1), TD (index 3), INT (index 4)
+          stats.pass_yds = parseFloat(statLine[1]) || 0;
+          stats.pass_tds = parseInt(statLine[3]) || 0;
+          stats.interceptions = parseInt(statLine[4]) || 0;
+        }
+        
+        if (categoryName === 'rushing') {
+          // Typical rushing order: CAR, YDS, AVG, TD, LONG
+          stats.rush_yds = parseFloat(statLine[1]) || 0;
+          stats.rush_tds = parseInt(statLine[3]) || 0;
+        }
+        
+        if (categoryName === 'receiving') {
+          // Typical receiving order: REC, YDS, AVG, TD, LONG, TGTS
+          stats.rec_yds = parseFloat(statLine[1]) || 0;
+          stats.rec_tds = parseInt(statLine[3]) || 0;
+        }
+        
+        if (categoryName === 'fumbles') {
+          // Fumbles: FUM, LOST, REC
+          stats.fumbles_lost = parseInt(statLine[1]) || 0;
+        }
       }
     }
   }
 
-  stats.two_pt_conversions = (passingTwoPt || 0) + (rushingTwoPt || 0) + (receivingTwoPt || 0);
   return stats;
 }
+
+// ============ STATS HELPERS ============
 
 function calculateFantasyPoints(stats: PlayerStats, settings: ScoringSettings): number {
   const passYdsMult = 1 / settings.pass_yds_per_point;
@@ -214,7 +281,7 @@ async function checkRateLimit(supabase: any, season: number, week: number): Prom
   const diffSeconds = (now.getTime() - lastSyncTime.getTime()) / 1000;
   
   return {
-    allowed: diffSeconds >= 60,
+    allowed: diffSeconds >= 30, // Allow more frequent syncs with ESPN (30 seconds)
     lastSync: data.synced_at,
   };
 }
@@ -231,10 +298,23 @@ async function logSync(supabase: any, season: number, week: number, playersUpdat
     });
 }
 
+// ============ PLAYER ID MAPPING ============
+
+// Extract ESPN player ID from headshot URL or image_url
+function extractESPNPlayerId(imageUrl: string | null): string | null {
+  if (!imageUrl) return null;
+  
+  // ESPN headshot URLs contain player IDs, e.g.:
+  // https://a.espncdn.com/i/headshots/nfl/players/full/3139477.png
+  // https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/3139477.png
+  const match = imageUrl.match(/players\/full\/(\d+)/);
+  return match ? match[1] : null;
+}
+
 // ============ MAIN HANDLER ============
 
 serve(async (req) => {
-  console.log('=== sync-live-playoff-stats invoked at', new Date().toISOString(), '===');
+  console.log('=== sync-live-playoff-stats (ESPN) invoked at', new Date().toISOString(), '===');
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -260,78 +340,84 @@ serve(async (req) => {
     
     const SEASON = 2025;
     
-    const apiKey = Deno.env.get('API_SPORTS_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'API_SPORTS_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // ============ STEP 1: Find current playoff week ============
-    // Look for games with status in progress OR kickoff within last 6 hours
+    // ============ STEP 1: Fetch ESPN Scoreboard ============
+    const scoreboard = await fetchESPNScoreboard();
     
-    let currentWeek: number = 1;
-    let weekGames: any[] = [];
+    // Find games that are in progress or recently completed
+    const liveGames = scoreboard.events.filter(game => {
+      const state = game.status?.type?.state;
+      return state === 'in' || state === 'post';
+    });
     
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-    const now = new Date().toISOString();
+    console.log(`ESPN scoreboard: ${scoreboard.events.length} total games, ${liveGames.length} live/completed`);
     
-    // Query for active or recent games
-    const { data: activeGames, error: gamesError } = await supabase
-      .from('playoff_games')
-      .select('*')
-      .eq('season', SEASON)
-      .or(`status_short.in.(NS,Q1,Q2,Q3,Q4,HT,OT),and(kickoff_at.gte.${sixHoursAgo},kickoff_at.lte.${now})`)
-      .order('kickoff_at', { ascending: true });
-
-    if (gamesError) {
-      console.error('Error fetching playoff games:', gamesError);
-      return new Response(
-        JSON.stringify({ error: gamesError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Get teams playing in live games
+    const teamsInLiveGames = new Set<string>();
+    const espnGameIdByTeam = new Map<string, string>();
+    
+    for (const game of liveGames) {
+      const espnGameId = game.id;
+      for (const comp of game.competitions || []) {
+        for (const competitor of comp.competitors || []) {
+          const abbr = competitor.team?.abbreviation;
+          if (abbr) {
+            teamsInLiveGames.add(abbr);
+            espnGameIdByTeam.set(abbr, espnGameId);
+          }
+        }
+      }
     }
+    
+    console.log(`Teams in live games: ${Array.from(teamsInLiveGames).join(', ')}`);
 
-    // Override with weekParam if provided
-    if (weekParam) {
-      currentWeek = parseInt(weekParam);
-      console.log(`Using provided week: ${currentWeek}`);
-      
-      const { data: paramGames } = await supabase
-        .from('playoff_games')
-        .select('*')
-        .eq('season', SEASON)
-        .eq('week_index', currentWeek);
-      
-      weekGames = paramGames || [];
-    } else if (activeGames && activeGames.length > 0) {
-      // Use the week from active games
-      currentWeek = activeGames[0].week_index;
-      weekGames = activeGames.filter(g => g.week_index === currentWeek);
-      console.log(`Auto-detected playoff week ${currentWeek} from ${weekGames.length} active games`);
-    } else {
-      // No active games found
-      console.log('No active playoff games found');
+    if (liveGames.length === 0) {
+      console.log('No live or completed games found on ESPN');
       return new Response(
         JSON.stringify({
           success: true,
           reason: 'no_active_games',
-          message: 'No playoff games currently in progress or recently started',
+          message: 'No NFL games currently in progress or recently completed',
+          source: 'ESPN',
           season: SEASON,
+          allGames: scoreboard.events.map(g => ({
+            id: g.id,
+            status: g.status?.type?.name,
+            state: g.status?.type?.state,
+          })),
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Processing playoff week ${currentWeek}, ${weekGames.length} games found`);
+    // ============ STEP 2: Determine playoff week from our DB ============
+    let currentWeek: number = 1;
+    
+    if (weekParam) {
+      currentWeek = parseInt(weekParam);
+      console.log(`Using provided week: ${currentWeek}`);
+    } else {
+      // Find current playoff week based on kickoff times
+      const now = new Date().toISOString();
+      const { data: activeGames } = await supabase
+        .from('playoff_games')
+        .select('week_index')
+        .eq('season', SEASON)
+        .lte('kickoff_at', now)
+        .order('kickoff_at', { ascending: false })
+        .limit(1);
+      
+      if (activeGames && activeGames.length > 0) {
+        currentWeek = activeGames[0].week_index;
+      }
+      console.log(`Auto-detected playoff week: ${currentWeek}`);
+    }
 
-    // ============ STEP 2: Check rate limit ============
+    // ============ STEP 3: Check rate limit ============
     if (!forceSync) {
       const rateCheck = await checkRateLimit(supabase, SEASON, currentWeek);
       if (!rateCheck.allowed) {
@@ -341,26 +427,17 @@ serve(async (req) => {
             success: false, 
             reason: 'rate_limited',
             lastSync: rateCheck.lastSync,
-            message: 'Sync attempted less than 60 seconds ago'
+            message: 'Sync attempted less than 30 seconds ago'
           }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    // ============ STEP 3: Build team-to-game mapping ============
-    const teamGameMap = new Map<number, number>();
-    weekGames.forEach(game => {
-      teamGameMap.set(game.home_team_external_id, game.game_id);
-      teamGameMap.set(game.away_team_external_id, game.game_id);
-    });
-
-    console.log(`Team-game mapping: ${Array.from(teamGameMap.entries()).map(([t, g]) => `${t}→${g}`).join(', ')}`);
-
     // ============ STEP 4: Get picked players for this week ============
     const { data: picks, error: picksError } = await supabase
       .from('user_picks')
-      .select('player_id, player_name, team_id')
+      .select('player_id, player_name, team_id, team_name')
       .eq('season', SEASON)
       .eq('week', currentWeek);
 
@@ -372,11 +449,15 @@ serve(async (req) => {
       );
     }
 
-    // Get unique players
-    const playerMap = new Map<number, { name: string; teamId: number }>();
+    // Get unique players with their team info
+    const playerMap = new Map<number, { name: string; teamId: number; teamName: string }>();
     picks?.forEach(p => {
       if (!playerMap.has(p.player_id)) {
-        playerMap.set(p.player_id, { name: p.player_name, teamId: p.team_id });
+        playerMap.set(p.player_id, { 
+          name: p.player_name, 
+          teamId: p.team_id,
+          teamName: p.team_name 
+        });
       }
     });
 
@@ -384,10 +465,11 @@ serve(async (req) => {
     console.log(`Found ${uniquePlayerIds.length} unique picked players for playoff week ${currentWeek}`);
 
     if (uniquePlayerIds.length === 0) {
-      await logSync(supabase, SEASON, currentWeek, 0, true, `[playoff] No picks to sync`);
+      await logSync(supabase, SEASON, currentWeek, 0, true, `[ESPN playoff] No picks to sync`);
       return new Response(
         JSON.stringify({
           success: true,
+          source: 'ESPN',
           message: 'No picks found for this playoff week',
           season: SEASON,
           week: currentWeek,
@@ -397,34 +479,85 @@ serve(async (req) => {
       );
     }
 
-    // ============ STEP 5: Get scoring settings ============
+    // ============ STEP 5: Build player ID mapping (our ID -> ESPN ID) ============
+    // First, get playoff_players with their image URLs to extract ESPN IDs
+    const { data: playoffPlayers } = await supabase
+      .from('playoff_players')
+      .select('player_id, name, image_url, team_name, team_id')
+      .eq('season', SEASON)
+      .in('player_id', uniquePlayerIds);
+
+    const ourIdToEspnId = new Map<number, string>();
+    const ourIdToTeamAbbr = new Map<number, string>();
+    
+    // Team name to abbreviation mapping
+    const teamNameToAbbr: Record<string, string> = {
+      "Arizona Cardinals": "ARI", "Atlanta Falcons": "ATL", "Baltimore Ravens": "BAL",
+      "Buffalo Bills": "BUF", "Carolina Panthers": "CAR", "Chicago Bears": "CHI",
+      "Cincinnati Bengals": "CIN", "Cleveland Browns": "CLE", "Dallas Cowboys": "DAL",
+      "Denver Broncos": "DEN", "Detroit Lions": "DET", "Green Bay Packers": "GB",
+      "Houston Texans": "HOU", "Indianapolis Colts": "IND", "Jacksonville Jaguars": "JAX",
+      "Kansas City Chiefs": "KC", "Las Vegas Raiders": "LV", "Los Angeles Chargers": "LAC",
+      "Los Angeles Rams": "LAR", "Miami Dolphins": "MIA", "Minnesota Vikings": "MIN",
+      "New England Patriots": "NE", "New Orleans Saints": "NO", "New York Giants": "NYG",
+      "New York Jets": "NYJ", "Philadelphia Eagles": "PHI", "Pittsburgh Steelers": "PIT",
+      "San Francisco 49ers": "SF", "Seattle Seahawks": "SEA", "Tampa Bay Buccaneers": "TB",
+      "Tennessee Titans": "TEN", "Washington Commanders": "WSH",
+    };
+    
+    for (const player of playoffPlayers || []) {
+      const espnId = extractESPNPlayerId(player.image_url);
+      if (espnId) {
+        ourIdToEspnId.set(player.player_id, espnId);
+      }
+      const abbr = teamNameToAbbr[player.team_name];
+      if (abbr) {
+        ourIdToTeamAbbr.set(player.player_id, abbr);
+      }
+    }
+
+    console.log(`Mapped ${ourIdToEspnId.size} players to ESPN IDs`);
+
+    // ============ STEP 6: Get scoring settings ============
     const scoringSettings = await getActiveScoringSettings(supabase);
 
-    // ============ STEP 6: Fetch and upsert stats for each player ============
+    // ============ STEP 7: Fetch game summaries and extract stats ============
+    // Cache game summaries to avoid duplicate fetches
+    const gameSummaryCache = new Map<string, any>();
+    
     let statsUpserted = 0;
     const results: any[] = [];
 
     for (const playerId of uniquePlayerIds) {
       const playerInfo = playerMap.get(playerId)!;
-      let gameId = teamGameMap.get(playerInfo.teamId);
-
-      // If team_id from user_picks doesn't match directly, try looking up from playoff_players
-      if (!gameId) {
-        const { data: playoffPlayer } = await supabase
-          .from('playoff_players')
-          .select('team_id')
-          .eq('player_id', playerId)
-          .eq('season', SEASON)
-          .maybeSingle();
-        
-        if (playoffPlayer) {
-          gameId = teamGameMap.get(playoffPlayer.team_id);
-          console.log(`Looked up playoff player ${playerInfo.name}: team_id=${playoffPlayer.team_id}, game_id=${gameId}`);
-        }
+      const espnPlayerId = ourIdToEspnId.get(playerId);
+      const teamAbbr = ourIdToTeamAbbr.get(playerId);
+      
+      if (!espnPlayerId) {
+        console.warn(`No ESPN ID found for ${playerInfo.name} (player_id=${playerId})`);
+        results.push({
+          player_id: playerId,
+          player_name: playerInfo.name,
+          status: 'no_espn_id',
+        });
+        continue;
       }
 
-      if (!gameId) {
-        console.warn(`No game found for player ${playerInfo.name} (player_id=${playerId}, team_id=${playerInfo.teamId})`);
+      // Check if this player's team is in a live game
+      if (!teamAbbr || !teamsInLiveGames.has(teamAbbr)) {
+        console.log(`${playerInfo.name}'s team (${teamAbbr}) not in a live game`);
+        results.push({
+          player_id: playerId,
+          player_name: playerInfo.name,
+          team: teamAbbr,
+          status: 'team_not_playing',
+        });
+        continue;
+      }
+
+      const espnGameId = espnGameIdByTeam.get(teamAbbr);
+      if (!espnGameId) {
+        console.warn(`No ESPN game ID for team ${teamAbbr}`);
         results.push({
           player_id: playerId,
           player_name: playerInfo.name,
@@ -434,29 +567,18 @@ serve(async (req) => {
       }
 
       try {
-        // Fetch stats from API-Sports
-        const apiUrl = `https://v1.american-football.api-sports.io/games/statistics/players?id=${gameId}&player=${playerId}`;
-        
-        console.log(`Fetching: ${playerInfo.name} (player_id=${playerId}) from game_id=${gameId}`);
-        
-        const response = await fetch(apiUrl, {
-          headers: {
-            'x-apisports-key': apiKey,
-            'accept': 'application/json',
-          },
-        });
-
-        const apiResponse = await response.json();
-        
-        const apiResults = apiResponse?.results || 0;
-        if (apiResults === 0) {
-          console.warn(`API returned empty results for ${playerInfo.name} (game_id=${gameId}). Game may not have started.`);
+        // Fetch or use cached game summary
+        let gameSummary = gameSummaryCache.get(espnGameId);
+        if (!gameSummary) {
+          gameSummary = await fetchESPNGameSummary(espnGameId);
+          gameSummaryCache.set(espnGameId, gameSummary);
         }
 
-        const stats = extractStats(apiResponse);
+        // Extract player stats from boxscore
+        const stats = extractPlayerStatsFromESPN(gameSummary.boxscore, espnPlayerId);
         const fantasyPoints = calculateFantasyPoints(stats, scoringSettings);
         
-        console.log(`${playerInfo.name}: ${fantasyPoints} pts (${stats.pass_yds} pass, ${stats.rush_yds} rush, ${stats.rec_yds} rec)`);
+        console.log(`${playerInfo.name} (ESPN ${espnPlayerId}): ${fantasyPoints.toFixed(1)} pts (${stats.pass_yds} pass, ${stats.rush_yds} rush, ${stats.rec_yds} rec)`);
 
         // Upsert to player_week_stats
         const { error: upsertError } = await supabase
@@ -475,7 +597,7 @@ serve(async (req) => {
             rec_tds: stats.rec_tds,
             fumbles_lost: stats.fumbles_lost,
             fantasy_points_standard: fantasyPoints,
-            raw_json: apiResponse,
+            raw_json: { source: 'espn', espn_player_id: espnPlayerId, espn_game_id: espnGameId },
             updated_at: new Date().toISOString(),
           }, {
             onConflict: 'season,week,player_id',
@@ -486,6 +608,7 @@ serve(async (req) => {
           results.push({
             player_id: playerId,
             player_name: playerInfo.name,
+            espn_player_id: espnPlayerId,
             status: 'upsert_failed',
             error: upsertError.message,
           });
@@ -494,8 +617,10 @@ serve(async (req) => {
           results.push({
             player_id: playerId,
             player_name: playerInfo.name,
+            espn_player_id: espnPlayerId,
             fantasy_points: fantasyPoints,
-            game_id: gameId,
+            espn_game_id: espnGameId,
+            stats,
             status: 'success',
           });
         }
@@ -510,7 +635,7 @@ serve(async (req) => {
       }
     }
 
-    // ============ STEP 7: Log the sync ============
+    // ============ STEP 8: Log the sync ============
     const duration = Date.now() - startTime;
     await logSync(
       supabase, 
@@ -518,16 +643,19 @@ serve(async (req) => {
       currentWeek, 
       statsUpserted, 
       true, 
-      `[playoff] Synced ${statsUpserted}/${uniquePlayerIds.length} players in ${duration}ms. ${forceSync ? 'FORCED' : 'Auto-triggered'}`
+      `[ESPN playoff] Synced ${statsUpserted}/${uniquePlayerIds.length} players in ${duration}ms. ${forceSync ? 'FORCED' : 'Auto-triggered'}`
     );
 
     const summary = {
       success: true,
+      source: 'ESPN',
       mode: 'playoff',
       season: SEASON,
       week: currentWeek,
-      gamesFound: weekGames.length,
+      liveGamesFound: liveGames.length,
+      teamsPlaying: Array.from(teamsInLiveGames),
       playersProcessed: uniquePlayerIds.length,
+      playersMapped: ourIdToEspnId.size,
       statsUpserted,
       durationMs: duration,
       forced: forceSync,
