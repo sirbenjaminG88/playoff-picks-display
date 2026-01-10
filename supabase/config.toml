@@ -80,3 +80,6 @@ verify_jwt = true
 
 [functions.copy-espn-headshots-to-playoffs]
 verify_jwt = true
+
+[functions.sync-live-playoff-stats]
+verify_jwt = false
