@@ -258,27 +258,52 @@ function isGameWindowActive(games: any[], dateField: string): { active: boolean;
 }
 
 // Rate limiting check - ensure we haven't synced in the last 60 seconds
-async function checkRateLimit(supabase: any, season: number, week: number): Promise<{ allowed: boolean; lastSync: string | null }> {
+// Now per-source: checks for '[playoff]' (API-Sports) vs '[ESPN playoff]' separately
+async function checkRateLimit(supabase: any, season: number, week: number, source: 'api-sports' | 'espn' = 'api-sports'): Promise<{ allowed: boolean; lastSync: string | null }> {
+  // For API-Sports playoff mode, look for notes containing '[playoff]' but NOT '[ESPN playoff]'
+  // For regular season, just check any sync for that week
   const { data, error } = await supabase
     .from('sync_logs')
-    .select('synced_at')
+    .select('synced_at, notes')
     .eq('season', season)
     .eq('week', week)
     .order('synced_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20); // Get recent logs to filter
   
-  if (error || !data) {
+  if (error || !data || data.length === 0) {
     return { allowed: true, lastSync: null };
   }
   
-  const lastSyncTime = new Date(data.synced_at);
+  // Filter to find the last sync from this source
+  let lastSyncFromSource: any = null;
+  for (const log of data) {
+    const notes = log.notes || '';
+    if (source === 'api-sports') {
+      // API-Sports logs contain '[playoff]' but NOT '[ESPN playoff]'
+      if (notes.includes('[playoff]') && !notes.includes('[ESPN playoff]')) {
+        lastSyncFromSource = log;
+        break;
+      }
+    } else {
+      // ESPN logs contain '[ESPN playoff]'
+      if (notes.includes('[ESPN playoff]')) {
+        lastSyncFromSource = log;
+        break;
+      }
+    }
+  }
+  
+  if (!lastSyncFromSource) {
+    return { allowed: true, lastSync: null };
+  }
+  
+  const lastSyncTime = new Date(lastSyncFromSource.synced_at);
   const now = new Date();
   const diffSeconds = (now.getTime() - lastSyncTime.getTime()) / 1000;
   
   return {
     allowed: diffSeconds >= 60,
-    lastSync: data.synced_at,
+    lastSync: lastSyncFromSource.synced_at,
   };
 }
 
@@ -446,8 +471,9 @@ serve(async (req) => {
     }
 
     // Check rate limit (skip if force sync)
+    // For playoff mode, check API-Sports-specific rate limit
     if (!forceSync) {
-      const rateCheck = await checkRateLimit(supabase, SEASON, currentWeek);
+      const rateCheck = await checkRateLimit(supabase, SEASON, currentWeek, 'api-sports');
       if (!rateCheck.allowed) {
         console.log(`Rate limited. Last sync: ${rateCheck.lastSync}`);
         return new Response(
