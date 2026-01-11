@@ -253,6 +253,48 @@ function calculateFantasyPoints(stats: PlayerStats, settings: ScoringSettings): 
   );
 }
 
+// Smart merge: prefer non-zero values from new stats, but keep existing non-zero if new is zero
+function smartMergeStats(newStats: PlayerStats, existingStats: PlayerStats | null): PlayerStats {
+  if (!existingStats) return newStats;
+  
+  return {
+    pass_yds: newStats.pass_yds !== 0 ? newStats.pass_yds : existingStats.pass_yds,
+    pass_tds: newStats.pass_tds !== 0 ? newStats.pass_tds : existingStats.pass_tds,
+    interceptions: newStats.interceptions !== 0 ? newStats.interceptions : existingStats.interceptions,
+    rush_yds: newStats.rush_yds !== 0 ? newStats.rush_yds : existingStats.rush_yds,
+    rush_tds: newStats.rush_tds !== 0 ? newStats.rush_tds : existingStats.rush_tds,
+    rec_yds: newStats.rec_yds !== 0 ? newStats.rec_yds : existingStats.rec_yds,
+    rec_tds: newStats.rec_tds !== 0 ? newStats.rec_tds : existingStats.rec_tds,
+    fumbles_lost: newStats.fumbles_lost !== 0 ? newStats.fumbles_lost : existingStats.fumbles_lost,
+    two_pt_conversions: newStats.two_pt_conversions !== 0 ? newStats.two_pt_conversions : existingStats.two_pt_conversions,
+  };
+}
+
+// Fetch existing stats for a player/week
+async function fetchExistingStats(supabase: any, season: number, week: number, playerId: number): Promise<PlayerStats | null> {
+  const { data, error } = await supabase
+    .from('player_week_stats')
+    .select('pass_yds, pass_tds, interceptions, rush_yds, rush_tds, rec_yds, rec_tds, fumbles_lost, two_pt_conversions')
+    .eq('season', season)
+    .eq('week', week)
+    .eq('player_id', playerId)
+    .maybeSingle();
+  
+  if (error || !data) return null;
+  
+  return {
+    pass_yds: data.pass_yds || 0,
+    pass_tds: data.pass_tds || 0,
+    interceptions: data.interceptions || 0,
+    rush_yds: data.rush_yds || 0,
+    rush_tds: data.rush_tds || 0,
+    rec_yds: data.rec_yds || 0,
+    rec_tds: data.rec_tds || 0,
+    fumbles_lost: data.fumbles_lost || 0,
+    two_pt_conversions: data.two_pt_conversions || 0,
+  };
+}
+
 async function getActiveScoringSettings(supabase: any): Promise<ScoringSettings> {
   const { data, error } = await supabase
     .from('scoring_settings')
@@ -606,12 +648,19 @@ serve(async (req) => {
         }
 
         // Extract player stats from boxscore
-        const stats = extractPlayerStatsFromESPN(gameSummary.boxscore, espnPlayerId);
+        const rawStats = extractPlayerStatsFromESPN(gameSummary.boxscore, espnPlayerId);
+        
+        // Smart merge: fetch existing stats and merge to prevent zero overwrites
+        const existingStats = await fetchExistingStats(supabase, SEASON, currentWeek, playerId);
+        const stats = smartMergeStats(rawStats, existingStats);
         const fantasyPoints = calculateFantasyPoints(stats, scoringSettings);
         
         console.log(`${playerInfo.name} (ESPN ${espnPlayerId}): ${fantasyPoints.toFixed(1)} pts (${stats.pass_yds} pass, ${stats.rush_yds} rush, ${stats.rec_yds} rec)`);
+        if (existingStats && JSON.stringify(rawStats) !== JSON.stringify(stats)) {
+          console.log(`  Smart merge applied: raw=${JSON.stringify(rawStats)} -> merged=${JSON.stringify(stats)}`);
+        }
 
-        // Upsert to player_week_stats
+        // Upsert to player_week_stats with merged stats
         const { error: upsertError } = await supabase
           .from('player_week_stats')
           .upsert({
