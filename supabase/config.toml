@@ -86,3 +86,8 @@ verify_jwt = false
 
 [functions.debug-live-api]
 verify_jwt = false
+
+# Cron: sync-live-stats for playoffs using API-Sports (runs parallel with ESPN sync)
+[functions.sync-live-stats.cron.sync-live-stats-playoff-api-sports]
+schedule = "* * * * *"
+path = "/sync-live-stats?mode=playoff"
