@@ -179,6 +179,7 @@ export type Database = {
           rush_tds: number | null
           rush_yds: number | null
           season: number
+          two_pt_conversions: number | null
           updated_at: string
           week: number
         }
@@ -198,6 +199,7 @@ export type Database = {
           rush_tds?: number | null
           rush_yds?: number | null
           season?: number
+          two_pt_conversions?: number | null
           updated_at?: string
           week: number
         }
@@ -217,6 +219,7 @@ export type Database = {
           rush_tds?: number | null
           rush_yds?: number | null
           season?: number
+          two_pt_conversions?: number | null
           updated_at?: string
           week?: number
         }
