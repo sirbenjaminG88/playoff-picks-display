@@ -11,6 +11,7 @@ export interface PlayerWeekStats {
   rec_yds: number;
   rec_tds: number;
   fumbles_lost: number;
+  two_pt_conversions: number;
   fantasy_points_standard: number;
 }
 
@@ -158,6 +159,7 @@ async function fetchWeekPicks(
       rec_yds: s.rec_yds || 0,
       rec_tds: s.rec_tds || 0,
       fumbles_lost: s.fumbles_lost || 0,
+      two_pt_conversions: (s as any).two_pt_conversions || 0,
       fantasy_points_standard: s.fantasy_points_standard || 0,
     });
   });

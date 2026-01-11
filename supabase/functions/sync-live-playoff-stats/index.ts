@@ -627,6 +627,7 @@ serve(async (req) => {
             rec_yds: stats.rec_yds,
             rec_tds: stats.rec_tds,
             fumbles_lost: stats.fumbles_lost,
+            two_pt_conversions: stats.two_pt_conversions,
             fantasy_points_standard: fantasyPoints,
             raw_json: { source: 'espn', espn_player_id: espnPlayerId, espn_game_id: espnGameId },
             updated_at: new Date().toISOString(),
