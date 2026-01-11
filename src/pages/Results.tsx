@@ -55,9 +55,7 @@ const StatsBreakdown = ({ stats }: { stats: PlayerWeekStats | null }) => {
       <StatTile label="Rec Yards" value={Math.round(stats.rec_yds)} />
       <StatTile label="Rec TDs" value={stats.rec_tds} />
       <StatTile label="Fumbles Lost" value={stats.fumbles_lost} />
-      {(stats.two_pt_conversions ?? 0) > 0 && (
-        <StatTile label="2pt Conv" value={stats.two_pt_conversions} />
-      )}
+      <StatTile label="2pt Conv" value={stats.two_pt_conversions ?? 0} />
     </div>
   );
 };
