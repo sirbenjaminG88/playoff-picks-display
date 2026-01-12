@@ -636,7 +636,7 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
           >
             {/* Rank - fixed width, no shrink */}
             {getMedalEmoji(index) ? (
-              <span className="text-[2.25rem] flex-shrink-0 w-9 flex items-center justify-center">{getMedalEmoji(index)}</span>
+              <span className="text-[1.75rem] flex-shrink-0 w-9 h-9 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
             ) : (
               <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                 <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
@@ -765,7 +765,7 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
           >
             {/* Rank - fixed width, no shrink */}
             {getMedalEmoji(index) ? (
-              <span className="text-[2.5rem] flex-shrink-0 w-10 flex items-center justify-center">{getMedalEmoji(index)}</span>
+              <span className="text-[2rem] flex-shrink-0 w-10 h-10 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
             ) : (
               <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                 <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
@@ -854,7 +854,7 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
           >
             {/* Rank - fixed width, no shrink */}
             {getMedalEmoji(index) ? (
-              <span className="text-[2.25rem] flex-shrink-0 w-9 flex items-center justify-center">{getMedalEmoji(index)}</span>
+              <span className="text-[1.75rem] flex-shrink-0 w-9 h-9 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
             ) : (
               <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                 <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
@@ -1169,7 +1169,7 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
           >
             {/* Rank - fixed width, no shrink */}
             {getMedalEmoji(index) ? (
-              <span className="text-[2.25rem] flex-shrink-0 w-9 flex items-center justify-center">{getMedalEmoji(index)}</span>
+              <span className="text-[1.75rem] flex-shrink-0 w-9 h-9 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
             ) : (
               <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                 <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
