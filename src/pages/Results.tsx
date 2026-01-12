@@ -635,13 +635,13 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width, no shrink */}
-            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-              {getMedalEmoji(index) ? (
-                <span className="text-xl">{getMedalEmoji(index)}</span>
-              ) : (
+            {getMedalEmoji(index) ? (
+              <span className="text-[2.25rem] flex-shrink-0 w-9 flex items-center justify-center">{getMedalEmoji(index)}</span>
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                 <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -764,13 +764,13 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width, no shrink */}
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-              {getMedalEmoji(index) ? (
-                <span className="text-2xl">{getMedalEmoji(index)}</span>
-              ) : (
+            {getMedalEmoji(index) ? (
+              <span className="text-[2.5rem] flex-shrink-0 w-10 flex items-center justify-center">{getMedalEmoji(index)}</span>
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                 <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -853,13 +853,13 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width, no shrink */}
-            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-              {getMedalEmoji(index) ? (
-                <span className="text-xl">{getMedalEmoji(index)}</span>
-              ) : (
+            {getMedalEmoji(index) ? (
+              <span className="text-[2.25rem] flex-shrink-0 w-9 flex items-center justify-center">{getMedalEmoji(index)}</span>
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                 <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -1168,13 +1168,13 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width, no shrink */}
-            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-              {getMedalEmoji(index) ? (
-                <span className="text-xl">{getMedalEmoji(index)}</span>
-              ) : (
+            {getMedalEmoji(index) ? (
+              <span className="text-[2.25rem] flex-shrink-0 w-9 flex items-center justify-center">{getMedalEmoji(index)}</span>
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                 <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
