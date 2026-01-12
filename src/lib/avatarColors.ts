@@ -1,18 +1,18 @@
 /**
  * Hash-based avatar fallback colors
- * Colors are designed to harmonize with the app's primary green (#22C55E / hsl(142, 71%, 45%))
+ * Earth-tones + green palette from Coolors, harmonizing with primary green (#22C55E)
  */
 
-// Green-compatible palette with similar saturation and lightness
+// 8 distinct colors - repeats only occur when >8 users lack avatars
 const AVATAR_COLORS = [
-  'hsl(142, 50%, 40%)',  // Emerald (primary family)
-  'hsl(175, 55%, 42%)',  // Teal
-  'hsl(195, 55%, 45%)',  // Cyan
-  'hsl(160, 50%, 38%)',  // Jade
-  'hsl(130, 40%, 42%)',  // Sage
-  'hsl(85, 45%, 40%)',   // Olive
-  'hsl(110, 45%, 38%)',  // Moss
-  'hsl(210, 35%, 45%)',  // Slate blue
+  '#F28123',  // Vivid Tangerine
+  '#D34E24',  // Spicy Orange
+  '#22C55E',  // Jade Green (primary)
+  '#563F1B',  // Deep Walnut
+  '#38726C',  // Pine Blue
+  '#C9A227',  // Goldenrod
+  '#2D8B70',  // Sea Green
+  '#8B4513',  // Saddle Brown
 ];
 
 /**
