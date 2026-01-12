@@ -173,8 +173,9 @@ const PlayerCard = ({ player, userProfiles, submittedCount }: PlayerCardProps) =
                 {/* Line 1: Name */}
                 <h3 className="font-bold text-lg leading-tight text-foreground text-left">{player.playerName}</h3>
 
-                {/* Line 2: Points Badge + Popular/Unique Tag */}
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                {/* Line 2: Points Badge */}
+                {/* Line 3: Popular/Unique/Unanimous Tag */}
+                <div className="flex flex-col items-start gap-1.5 mt-1.5">
                   <Badge className={`text-sm font-bold whitespace-nowrap ${player.hasStats ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                     {player.points.toFixed(1)} pts
                   </Badge>
