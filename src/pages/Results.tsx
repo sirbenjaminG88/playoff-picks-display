@@ -632,7 +632,7 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
         return (
           <div
             key={entry.userId}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+            className="flex items-center gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width container for alignment */}
             <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
@@ -763,7 +763,7 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
         return (
           <div
             key={standing.userId}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+            className="flex items-center gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width container for alignment */}
             <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
@@ -854,7 +854,7 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
         return (
           <div
             key={entry.userId}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+            className="flex items-center gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width container for alignment */}
             <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
@@ -1171,7 +1171,7 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
         return (
           <div
             key={standing.userId}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+            className="flex items-center gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width container for alignment */}
             <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
