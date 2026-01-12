@@ -133,11 +133,15 @@ const getTeamAbbreviation = (teamName: string): string => {
 interface PlayerCardProps {
   player: GroupedPlayer | RegularGroupedPlayer;
   userProfiles?: Map<string, UserProfile | RegularUserProfile>;
+  submittedCount?: number;
 }
 
-const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
+const PlayerCard = ({ player, userProfiles, submittedCount }: PlayerCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const isPopular = player.selectedBy.length > 1;
+  
+  // Determine tag type with priority: Unanimous > Popular > Unique
+  const isUnanimous = submittedCount && submittedCount > 1 && player.selectedBy.length === submittedCount;
+  const isPopular = !isUnanimous && player.selectedBy.length > 1;
   const isUnique = player.selectedBy.length === 1;
   const teamAbbrev = 'teamAbbr' in player ? player.teamAbbr : getTeamAbbreviation(player.teamName);
   const teamColors = teamColorMap[teamAbbrev] ?? teamColorMap.DEFAULT;
@@ -174,14 +178,19 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
                   <Badge className={`text-sm font-bold ${player.hasStats ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                     {player.points.toFixed(1)} pts
                   </Badge>
+                  {isUnanimous && (
+                    <Badge variant="popular" className="text-xs">
+                      🤝 Unanimous
+                    </Badge>
+                  )}
                   {isPopular && (
                     <Badge variant="popular" className="text-xs">
-                      Popular
+                      🔥 Popular
                     </Badge>
                   )}
                   {isUnique && (
                     <Badge variant="secondary" className="text-xs">
-                      Unique
+                      🦄 Unique
                     </Badge>
                   )}
                 </div>
@@ -242,11 +251,13 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
 const PositionSection = ({
   title,
   players,
-  userProfiles
+  userProfiles,
+  submittedCount
 }: {
   title: string;
   players: (GroupedPlayer | RegularGroupedPlayer)[];
   userProfiles?: Map<string, UserProfile | RegularUserProfile>;
+  submittedCount?: number;
 }) => {
   if (players.length === 0) return null;
 
@@ -266,7 +277,7 @@ const PositionSection = ({
       </h2>
       <div className="space-y-3">
         {players.map((player) => (
-          <PlayerCard key={player.playerId} player={player} userProfiles={userProfiles} />
+          <PlayerCard key={player.playerId} player={player} userProfiles={userProfiles} submittedCount={submittedCount} />
         ))}
       </div>
     </div>
@@ -419,9 +430,9 @@ const WeekResults = ({ week, leagueId, userId }: { week: number; leagueId: strin
           </AlertDescription>
         </Alert>
       )}
-      <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} />
-      <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} />
-      <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} />
+      <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} submittedCount={data.revealStatus?.submittedCount} />
+      <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} submittedCount={data.revealStatus?.submittedCount} />
+      <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} submittedCount={data.revealStatus?.submittedCount} />
     </div>
   );
 };
@@ -580,9 +591,9 @@ const RegularSeasonWeekResults = ({
           </AlertDescription>
         </Alert>
       )}
-      <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} />
-      <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} />
-      <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} />
+      <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} submittedCount={data.revealStatus?.submittedCount} />
+      <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} submittedCount={data.revealStatus?.submittedCount} />
+      <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} submittedCount={data.revealStatus?.submittedCount} />
     </div>
   );
 };
