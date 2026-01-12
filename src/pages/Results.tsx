@@ -794,10 +794,13 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
     );
   }
 
+  const leaderPoints = leaderboard[0]?.points || 0;
+
   return (
     <div className="space-y-3">
       {leaderboard.map((entry, index) => {
         const profile = data.userProfiles?.get(entry.userId);
+        const pointsBehind = index > 0 ? leaderPoints - entry.points : 0;
         return (
           <div
             key={entry.userId}
@@ -825,11 +828,16 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
               </span>
             </div>
 
-            {/* Points pill - right aligned, no shrink */}
-            <div className="ml-auto flex-shrink-0">
+            {/* Points + Back indicator - right aligned */}
+            <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-0.5">
               <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1">
                 {entry.points.toFixed(1)} pts
               </Badge>
+              {pointsBehind > 0 && (
+                <span className="text-xs text-muted-foreground font-medium">
+                  {pointsBehind.toFixed(1)} back
+                </span>
+              )}
             </div>
           </div>
         );
@@ -1093,41 +1101,49 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
 
   const leaderPoints = standings[0]?.totalPoints || 0;
 
+  // Collect user profiles from the first week that has data
+  const userProfiles = weekQueries.find(w => w?.data?.userProfiles)?.data?.userProfiles;
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {standings.map((standing, index) => {
         const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
+        const profile = userProfiles?.get(standing.userId);
         
         return (
           <div
             key={standing.userId}
-            className="flex items-start gap-6 px-6 py-6 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors min-h-[100px]"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            <div className="w-[44px] h-[44px] rounded-full bg-muted flex items-center justify-center shrink-0">
-              <span className="font-semibold text-base text-foreground">
+            {/* Rank - fixed width, no shrink */}
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              <span className="font-semibold text-sm text-foreground">
                 #{index + 1}
               </span>
             </div>
 
-            <div className="flex flex-col items-center gap-2 shrink-0">
-              <Avatar className="h-[44px] w-[44px]">
-                <AvatarFallback className="bg-foreground/80 text-background font-bold text-[17px]">
+            {/* Avatar + Name container */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Avatar className="h-9 w-9 flex-shrink-0">
+                {profile?.avatarUrl ? (
+                  <AvatarImage src={profile.avatarUrl} alt={standing.userId} />
+                ) : null}
+                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-xs">
                   {getInitials(standing.userId)}
                 </AvatarFallback>
               </Avatar>
-              <span className="font-semibold text-sm text-foreground">
+              <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
                 {standing.userId}
               </span>
             </div>
 
-            <div className="flex-1 min-w-0"></div>
-
-            <div className="flex flex-col items-center gap-1.5 shrink-0">
-              <Badge className="text-base font-bold bg-primary text-primary-foreground px-4 py-1.5 h-[44px] flex items-center">
+            {/* Points + Back indicator - right aligned */}
+            <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-0.5">
+              <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
               {pointsBehind > 0 && (
-                <span className="text-[13px] text-muted-foreground font-medium">
+                <span className="text-xs text-muted-foreground font-medium">
                   {pointsBehind.toFixed(1)} back
                 </span>
               )}
