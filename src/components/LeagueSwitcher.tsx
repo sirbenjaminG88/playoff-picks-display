@@ -218,7 +218,7 @@ function LeagueOption({ membership, isSelected, onSelect }: LeagueOptionProps) {
         <p className="font-medium text-foreground">{membership.league.name}</p>
         <p className="text-xs text-muted-foreground">
           {membership.isFounderView 
-            ? "Viewing as Founder" 
+            ? `${membership.league.member_count || 0} members · ${membership.league.pick_count || 0} picks`
             : membership.role === "commissioner" 
               ? "Commissioner" 
               : "Member"}
