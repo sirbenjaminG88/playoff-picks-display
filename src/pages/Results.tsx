@@ -634,14 +634,16 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
             key={entry.userId}
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            {/* Rank - fixed width, no shrink */}
-            {getMedalEmoji(index) ? (
-              <span className="text-[1.75rem] flex-shrink-0 w-9 h-9 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
-              </div>
-            )}
+            {/* Rank - fixed width container for alignment */}
+            <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+              {getMedalEmoji(index) ? (
+                <span className="text-[1.75rem] leading-none">{getMedalEmoji(index)}</span>
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                  <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
+                </div>
+              )}
+            </div>
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -763,14 +765,16 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
             key={standing.userId}
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            {/* Rank - fixed width, no shrink */}
-            {getMedalEmoji(index) ? (
-              <span className="text-[2rem] flex-shrink-0 w-10 h-10 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
-              </div>
-            )}
+            {/* Rank - fixed width container for alignment */}
+            <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+              {getMedalEmoji(index) ? (
+                <span className="text-[2rem] leading-none">{getMedalEmoji(index)}</span>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
+                </div>
+              )}
+            </div>
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -852,14 +856,16 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
             key={entry.userId}
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            {/* Rank - fixed width, no shrink */}
-            {getMedalEmoji(index) ? (
-              <span className="text-[1.75rem] flex-shrink-0 w-9 h-9 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
-              </div>
-            )}
+            {/* Rank - fixed width container for alignment */}
+            <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+              {getMedalEmoji(index) ? (
+                <span className="text-[1.75rem] leading-none">{getMedalEmoji(index)}</span>
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                  <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
+                </div>
+              )}
+            </div>
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -1167,14 +1173,16 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
             key={standing.userId}
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            {/* Rank - fixed width, no shrink */}
-            {getMedalEmoji(index) ? (
-              <span className="text-[1.75rem] flex-shrink-0 w-9 h-9 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
-              </div>
-            )}
+            {/* Rank - fixed width container for alignment */}
+            <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+              {getMedalEmoji(index) ? (
+                <span className="text-[1.75rem] leading-none">{getMedalEmoji(index)}</span>
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                  <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
+                </div>
+              )}
+            </div>
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
