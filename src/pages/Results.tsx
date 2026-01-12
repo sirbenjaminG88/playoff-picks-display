@@ -11,7 +11,7 @@ import { teamColorMap } from "@/lib/teamColors";
 import { useWeekPicks, GroupedPlayer, PlayerWeekStats, UserProfile } from "@/hooks/useWeekPicks";
 import { SubmittedUser } from "@/hooks/usePickRevealStatus";
 import { useRegularSeasonPicks, GroupedPlayer as RegularGroupedPlayer, UserProfile as RegularUserProfile } from "@/hooks/useRegularSeasonPicks";
-import { getWeekLabel, getWeekTabLabel } from "@/data/weekLabels";
+import { getWeekLabel, getWeekTabLabel, getWeekShortLabel } from "@/data/weekLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -1220,13 +1220,13 @@ export default function Results() {
                         value="weekly"
                         className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                       >
-                        {getWeekLabel(weekNum)} Leaderboard
+                        {getWeekShortLabel(weekNum)}
                       </TabsTrigger>
                       <TabsTrigger
                         value="overall"
                         className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                       >
-                        Overall Leaderboard
+                        Overall
                       </TabsTrigger>
                     </TabsList>
 
