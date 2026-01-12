@@ -27,15 +27,15 @@ const REGULAR_SEASON_WEEKS = [14, 15, 16, 17, 18];
 
 import { getInitials } from "@/lib/displayName";
 
-// Medal colors for top 3 positions
-const MEDAL_STYLES: Record<number, { backgroundColor: string; color: string }> = {
-  0: { backgroundColor: '#D4AF37', color: '#1a1a1a' }, // Gold
-  1: { backgroundColor: '#A8A8A8', color: '#1a1a1a' }, // Silver  
-  2: { backgroundColor: '#CD7F32', color: '#ffffff' }, // Bronze
+// Medal emojis for top 3 positions
+const MEDAL_EMOJI: Record<number, string> = {
+  0: '🥇',
+  1: '🥈',
+  2: '🥉',
 };
 
-function getRankStyle(index: number): { backgroundColor: string; color: string } | undefined {
-  return MEDAL_STYLES[index];
+function getMedalEmoji(index: number): string | undefined {
+  return MEDAL_EMOJI[index];
 }
 
 // Helper to compute sequential color indices for users without avatars
@@ -635,16 +635,12 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width, no shrink */}
-            <div 
-              className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0"
-              style={getRankStyle(index)}
-            >
-              <span 
-                className="font-semibold text-sm"
-                style={getRankStyle(index) ? { color: getRankStyle(index)!.color } : undefined}
-              >
-                #{index + 1}
-              </span>
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              {getMedalEmoji(index) ? (
+                <span className="text-xl">{getMedalEmoji(index)}</span>
+              ) : (
+                <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
+              )}
             </div>
 
             {/* Avatar + Name container */}
@@ -768,16 +764,12 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width, no shrink */}
-            <div 
-              className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0"
-              style={getRankStyle(index)}
-            >
-              <span 
-                className="font-semibold text-sm"
-                style={getRankStyle(index) ? { color: getRankStyle(index)!.color } : undefined}
-              >
-                #{index + 1}
-              </span>
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              {getMedalEmoji(index) ? (
+                <span className="text-2xl">{getMedalEmoji(index)}</span>
+              ) : (
+                <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
+              )}
             </div>
 
             {/* Avatar + Name container */}
@@ -861,16 +853,12 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width, no shrink */}
-            <div 
-              className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0"
-              style={getRankStyle(index)}
-            >
-              <span 
-                className="font-semibold text-sm"
-                style={getRankStyle(index) ? { color: getRankStyle(index)!.color } : undefined}
-              >
-                #{index + 1}
-              </span>
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              {getMedalEmoji(index) ? (
+                <span className="text-xl">{getMedalEmoji(index)}</span>
+              ) : (
+                <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
+              )}
             </div>
 
             {/* Avatar + Name container */}
@@ -1180,16 +1168,12 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width, no shrink */}
-            <div 
-              className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0"
-              style={getRankStyle(index)}
-            >
-              <span 
-                className="font-semibold text-sm"
-                style={getRankStyle(index) ? { color: getRankStyle(index)!.color } : undefined}
-              >
-                #{index + 1}
-              </span>
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              {getMedalEmoji(index) ? (
+                <span className="text-xl">{getMedalEmoji(index)}</span>
+              ) : (
+                <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
+              )}
             </div>
 
             {/* Avatar + Name container */}
