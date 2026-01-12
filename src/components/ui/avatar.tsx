@@ -2,7 +2,7 @@ import * as React from "react";
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 
 import { cn } from "@/lib/utils";
-import { getAvatarColor } from "@/lib/avatarColors";
+import { getAvatarColor, getAvatarColorByIndex } from "@/lib/avatarColors";
 
 const Avatar = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Root>,
@@ -25,16 +25,26 @@ const AvatarImage = React.forwardRef<
 AvatarImage.displayName = AvatarPrimitive.Image.displayName;
 
 interface AvatarFallbackProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback> {
-  /** Name used to generate a consistent hash-based background color */
+  /** Name used to generate a hash-based background color (fallback if colorIndex not provided) */
   name?: string;
+  /** Sequential color index for league-aware coloring (takes precedence over name) */
+  colorIndex?: number;
 }
 
 const AvatarFallback = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Fallback>,
   AvatarFallbackProps
->(({ className, name, style, ...props }, ref) => {
-  const colorStyle = name 
-    ? { backgroundColor: getAvatarColor(name), color: 'white', ...style }
+>(({ className, name, colorIndex, style, ...props }, ref) => {
+  // Prefer colorIndex (sequential) over name (hash-based)
+  const backgroundColor = 
+    colorIndex !== undefined 
+      ? getAvatarColorByIndex(colorIndex)
+      : name 
+        ? getAvatarColor(name) 
+        : undefined;
+  
+  const colorStyle = backgroundColor
+    ? { backgroundColor, color: 'white', ...style }
     : style;
 
   return (
@@ -42,7 +52,7 @@ const AvatarFallback = React.forwardRef<
       ref={ref}
       className={cn(
         "flex h-full w-full items-center justify-center rounded-full",
-        !name && "bg-muted",
+        !backgroundColor && "bg-muted",
         className
       )}
       style={colorStyle}

@@ -27,6 +27,25 @@ const REGULAR_SEASON_WEEKS = [14, 15, 16, 17, 18];
 
 import { getInitials } from "@/lib/displayName";
 
+// Helper to compute sequential color indices for users without avatars
+function computeColorIndices(
+  entries: Array<{ userId: string }>,
+  profileMap?: Map<string, { avatarUrl?: string | null }>
+): Map<string, number> {
+  const colorMap = new Map<string, number>();
+  let colorIndex = 0;
+  
+  for (const entry of entries) {
+    const profile = profileMap?.get(entry.userId);
+    if (!profile?.avatarUrl) {
+      colorMap.set(entry.userId, colorIndex);
+      colorIndex++;
+    }
+  }
+  
+  return colorMap;
+}
+
 // Stat tile component for the grid layout
 const StatTile = ({ label, value }: { label: string; value: number | string }) => (
   <div className="rounded-lg bg-muted/30 border border-border/50 p-3">
@@ -591,10 +610,14 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
     );
   }
 
+  // Compute sequential color indices for users without avatars
+  const colorIndices = computeColorIndices(leaderboard, data.userProfiles);
+
   return (
     <div className="space-y-3">
       {leaderboard.map((entry, index) => {
         const profile = data.userProfiles?.get(entry.userId);
+        const colorIndex = colorIndices.get(entry.userId);
         return (
           <div
             key={entry.userId}
@@ -613,7 +636,7 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
                 ) : null}
-                <AvatarFallback name={entry.userId} className="font-semibold text-xs">
+                <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
                   {getInitials(entry.userId)}
                 </AvatarFallback>
               </Avatar>
@@ -712,11 +735,15 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
     }
   });
 
+  // Compute sequential color indices for users without avatars
+  const colorIndices = computeColorIndices(standings, allUserProfiles);
+
   return (
     <div className="space-y-3">
       {standings.map((standing, index) => {
         const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
         const profile = allUserProfiles.get(standing.userId);
+        const colorIndex = colorIndices.get(standing.userId);
         
         return (
           <div
@@ -736,7 +763,7 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={standing.userId} />
                 ) : null}
-                <AvatarFallback name={standing.userId} className="font-bold text-sm">
+                <AvatarFallback colorIndex={colorIndex} className="font-bold text-sm">
                   {getInitials(standing.userId)}
                 </AvatarFallback>
               </Avatar>
@@ -796,11 +823,15 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
 
   const leaderPoints = leaderboard[0]?.points || 0;
 
+  // Compute sequential color indices for users without avatars
+  const colorIndices = computeColorIndices(leaderboard, data.userProfiles);
+
   return (
     <div className="space-y-3">
       {leaderboard.map((entry, index) => {
         const profile = data.userProfiles?.get(entry.userId);
         const pointsBehind = index > 0 ? leaderPoints - entry.points : 0;
+        const colorIndex = colorIndices.get(entry.userId);
         return (
           <div
             key={entry.userId}
@@ -819,7 +850,7 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
                 ) : null}
-                <AvatarFallback name={entry.userId} className="font-semibold text-xs">
+                <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
                   {getInitials(entry.userId)}
                 </AvatarFallback>
               </Avatar>
@@ -1104,11 +1135,15 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
   // Collect user profiles from the first week that has data
   const userProfiles = weekQueries.find(w => w?.data?.userProfiles)?.data?.userProfiles;
 
+  // Compute sequential color indices for users without avatars
+  const colorIndices = computeColorIndices(standings, userProfiles);
+
   return (
     <div className="space-y-3">
       {standings.map((standing, index) => {
         const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
         const profile = userProfiles?.get(standing.userId);
+        const colorIndex = colorIndices.get(standing.userId);
         
         return (
           <div
@@ -1128,7 +1163,7 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={standing.userId} />
                 ) : null}
-                <AvatarFallback name={standing.userId} className="font-semibold text-xs">
+                <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
                   {getInitials(standing.userId)}
                 </AvatarFallback>
               </Avatar>
