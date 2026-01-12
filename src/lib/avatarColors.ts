@@ -1,10 +1,10 @@
 /**
- * Hash-based avatar fallback colors
+ * Sequential avatar fallback colors
  * Earth-tones + green palette from Coolors, harmonizing with primary green (#22C55E)
  */
 
 // 8 distinct colors - repeats only occur when >8 users lack avatars
-const AVATAR_COLORS = [
+export const AVATAR_COLORS = [
   '#F28123',  // Vivid Tangerine
   '#D34E24',  // Spicy Orange
   '#22C55E',  // Jade Green (primary)
@@ -16,7 +16,15 @@ const AVATAR_COLORS = [
 ];
 
 /**
- * Simple string hash function
+ * Get a color by index (for sequential assignment)
+ * Colors repeat after 8 unique assignments
+ */
+export function getAvatarColorByIndex(index: number): string {
+  return AVATAR_COLORS[index % AVATAR_COLORS.length];
+}
+
+/**
+ * Simple string hash function (fallback for non-league contexts)
  * Converts a string to a consistent numeric hash
  */
 function hashString(str: string): number {
@@ -30,8 +38,8 @@ function hashString(str: string): number {
 }
 
 /**
- * Get a consistent color for a given name/identifier
- * The same name will always return the same color
+ * Get a consistent color for a given name/identifier (hash-based fallback)
+ * Used when sequential index is not available
  */
 export function getAvatarColor(name: string): string {
   if (!name) return AVATAR_COLORS[0];
@@ -39,4 +47,22 @@ export function getAvatarColor(name: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
-export { AVATAR_COLORS };
+/**
+ * Utility: Given a list of users, compute color indices for those without avatars
+ * Returns a Map of userId -> colorIndex
+ */
+export function computeAvatarColorIndices(
+  users: Array<{ id: string; avatarUrl?: string | null }>
+): Map<string, number> {
+  const colorMap = new Map<string, number>();
+  let colorIndex = 0;
+  
+  for (const user of users) {
+    if (!user.avatarUrl) {
+      colorMap.set(user.id, colorIndex);
+      colorIndex++;
+    }
+  }
+  
+  return colorMap;
+}
