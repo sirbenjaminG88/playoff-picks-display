@@ -136,19 +136,11 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
 
               {/* Player Info Stack */}
               <div className="flex-1 min-w-0">
-                {/* Line 1: Name + Team Badge */}
-                <div className="flex items-center gap-2 mb-1.5">
-                  <h3 className="font-bold text-lg leading-tight text-foreground text-left">{player.playerName}</h3>
-                  <span 
-                    className="px-2.5 py-1 rounded-full text-xs font-semibold ml-auto flex-shrink-0 opacity-90"
-                    style={{ backgroundColor: teamColors.bg, color: teamColors.text }}
-                  >
-                    {teamAbbrev}
-                  </span>
-                </div>
+                {/* Line 1: Name */}
+                <h3 className="font-bold text-lg leading-tight text-foreground text-left">{player.playerName}</h3>
 
                 {/* Line 2: Points Badge + Popular/Unique Tag */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mt-1.5">
                   <Badge className={`text-sm font-bold ${player.hasStats ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                     {player.points.toFixed(1)} pts
                   </Badge>
@@ -164,6 +156,14 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
                   )}
                 </div>
               </div>
+
+              {/* Team Badge - aligned to top */}
+              <span 
+                className="px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 opacity-90"
+                style={{ backgroundColor: teamColors.bg, color: teamColors.text }}
+              >
+                {teamAbbrev}
+              </span>
 
               {/* Chevron */}
               <ChevronDown
