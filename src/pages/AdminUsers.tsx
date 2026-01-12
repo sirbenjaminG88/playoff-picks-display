@@ -129,7 +129,7 @@ const AdminUsers = () => {
                         <div className="flex items-center gap-2">
                           <Avatar className="w-8 h-8">
                             {m.avatar_url && <AvatarImage src={m.avatar_url} />}
-                            <AvatarFallback className="text-xs">
+                            <AvatarFallback name={m.display_name || m.email} className="text-xs">
                               {getInitialsWithFallback(m.display_name, m.email)}
                             </AvatarFallback>
                           </Avatar>
