@@ -117,7 +117,7 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
       <Card className="overflow-hidden border-border">
         <CollapsibleTrigger className="w-full">
           <div className="p-4 hover:bg-muted/30 transition-colors cursor-pointer">
-            {/* Header: Avatar + Player Info + Team/Chevron */}
+            {/* Header: Avatar + Player Info + Chevron */}
             <div className="flex items-start gap-3 mb-3">
               {/* Player Avatar */}
               <Avatar className="h-12 w-12 flex-shrink-0">
@@ -136,8 +136,16 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
 
               {/* Player Info Stack */}
               <div className="flex-1 min-w-0">
-                {/* Line 1: Name */}
-                <h3 className="font-bold text-lg leading-tight text-foreground text-left mb-1.5">{player.playerName}</h3>
+                {/* Line 1: Name + Team Badge */}
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h3 className="font-bold text-lg leading-tight text-foreground text-left">{player.playerName}</h3>
+                  <span 
+                    className="px-2.5 py-1 rounded-full text-xs font-semibold ml-auto flex-shrink-0 opacity-90"
+                    style={{ backgroundColor: teamColors.bg, color: teamColors.text }}
+                  >
+                    {teamAbbrev}
+                  </span>
+                </div>
 
                 {/* Line 2: Points Badge + Popular/Unique Tag */}
                 <div className="flex items-center gap-2">
@@ -157,20 +165,12 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
                 </div>
               </div>
 
-              {/* Team Badge + Chevron - grouped together, vertically centered */}
-              <div className="flex items-center gap-2 flex-shrink-0 self-center">
-                <span 
-                  className="px-2.5 py-1 rounded-full text-xs font-semibold opacity-90"
-                  style={{ backgroundColor: teamColors.bg, color: teamColors.text }}
-                >
-                  {teamAbbrev}
-                </span>
-                <ChevronDown
-                  className={`h-5 w-5 text-muted-foreground transition-transform ${
-                    isOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </div>
+              {/* Chevron */}
+              <ChevronDown
+                className={`h-5 w-5 text-muted-foreground transition-transform flex-shrink-0 ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              />
             </div>
 
             {/* Picked By Row */}
