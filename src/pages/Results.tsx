@@ -174,22 +174,22 @@ const PlayerCard = ({ player, userProfiles, submittedCount }: PlayerCardProps) =
                 <h3 className="font-bold text-lg leading-tight text-foreground text-left">{player.playerName}</h3>
 
                 {/* Line 2: Points Badge + Popular/Unique Tag */}
-                <div className="flex items-center gap-2 mt-1.5">
-                  <Badge className={`text-sm font-bold ${player.hasStats ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <Badge className={`text-sm font-bold whitespace-nowrap ${player.hasStats ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                     {player.points.toFixed(1)} pts
                   </Badge>
                   {isUnanimous && (
-                    <Badge variant="popular" className="text-xs">
+                    <Badge variant="popular" className="text-xs whitespace-nowrap">
                       🤝 Unanimous
                     </Badge>
                   )}
                   {isPopular && (
-                    <Badge variant="popular" className="text-xs">
+                    <Badge variant="popular" className="text-xs whitespace-nowrap">
                       🔥 Popular
                     </Badge>
                   )}
                   {isUnique && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-xs whitespace-nowrap">
                       🦄 Unique
                     </Badge>
                   )}
