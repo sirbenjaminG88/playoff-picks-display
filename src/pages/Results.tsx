@@ -180,17 +180,17 @@ const PlayerCard = ({ player, userProfiles, submittedCount }: PlayerCardProps) =
                     {player.points.toFixed(1)} pts
                   </Badge>
                   {isUnanimous && (
-                    <Badge variant="popular" className="text-xs whitespace-nowrap">
+                    <Badge className="text-xs whitespace-nowrap bg-sky-500/20 text-sky-300 border-sky-500/30">
                       🤝 Unanimous
                     </Badge>
                   )}
                   {isPopular && (
-                    <Badge variant="popular" className="text-xs whitespace-nowrap">
+                    <Badge className="text-xs whitespace-nowrap bg-orange-500/20 text-orange-300 border-orange-500/30">
                       🔥 Popular
                     </Badge>
                   )}
                   {isUnique && (
-                    <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                    <Badge className="text-xs whitespace-nowrap bg-purple-500/20 text-purple-300 border-purple-500/30">
                       🦄 Unique
                     </Badge>
                   )}
