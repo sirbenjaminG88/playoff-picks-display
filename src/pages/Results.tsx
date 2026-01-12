@@ -638,8 +638,8 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
             {getMedalEmoji(index) ? (
               <span className="text-[1.75rem] flex-shrink-0 w-9 h-9 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
             ) : (
-              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
+              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
               </div>
             )}
 
@@ -767,8 +767,8 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
             {getMedalEmoji(index) ? (
               <span className="text-[2rem] flex-shrink-0 w-10 h-10 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
             ) : (
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
+              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
               </div>
             )}
 
@@ -856,8 +856,8 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
             {getMedalEmoji(index) ? (
               <span className="text-[1.75rem] flex-shrink-0 w-9 h-9 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
             ) : (
-              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
+              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
               </div>
             )}
 
@@ -1171,8 +1171,8 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
             {getMedalEmoji(index) ? (
               <span className="text-[1.75rem] flex-shrink-0 w-9 h-9 flex items-center justify-center leading-none">{getMedalEmoji(index)}</span>
             ) : (
-              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <span className="font-semibold text-sm text-foreground">#{index + 1}</span>
+              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
               </div>
             )}
 
