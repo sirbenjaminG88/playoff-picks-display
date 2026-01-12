@@ -128,7 +128,7 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <AvatarFallback className="bg-foreground/80 text-background font-semibold text-sm">
+                  <AvatarFallback name={player.playerName} className="font-semibold text-sm">
                     {getInitials(player.playerName)}
                   </AvatarFallback>
                 )}
@@ -183,7 +183,7 @@ const PlayerCard = ({ player, userProfiles }: PlayerCardProps) => {
                       {profile?.avatarUrl ? (
                         <AvatarImage src={profile.avatarUrl} alt={userId} />
                       ) : null}
-                      <AvatarFallback className="bg-foreground/80 text-background text-[10px] font-medium">
+                      <AvatarFallback name={userId} className="text-[10px] font-medium">
                         {getInitials(userId)}
                       </AvatarFallback>
                     </Avatar>
@@ -301,7 +301,7 @@ const WeekResults = ({ week, leagueId, userId }: { week: number; leagueId: strin
                       {user.avatarUrl ? (
                         <AvatarImage src={user.avatarUrl} alt={user.displayName} />
                       ) : null}
-                      <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
+                      <AvatarFallback name={user.displayName} className="text-xs font-medium">
                         {getInitials(user.displayName)}
                       </AvatarFallback>
                     </Avatar>
@@ -462,7 +462,7 @@ const RegularSeasonWeekResults = ({
                       {user.avatarUrl ? (
                         <AvatarImage src={user.avatarUrl} alt={user.displayName} />
                       ) : null}
-                      <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
+                      <AvatarFallback name={user.displayName} className="text-xs font-medium">
                         {getInitials(user.displayName)}
                       </AvatarFallback>
                     </Avatar>
@@ -613,7 +613,7 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
                 ) : null}
-                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-xs">
+                <AvatarFallback name={entry.userId} className="font-semibold text-xs">
                   {getInitials(entry.userId)}
                 </AvatarFallback>
               </Avatar>
@@ -736,7 +736,7 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={standing.userId} />
                 ) : null}
-                <AvatarFallback className="bg-foreground/80 text-background font-bold text-sm">
+                <AvatarFallback name={standing.userId} className="font-bold text-sm">
                   {getInitials(standing.userId)}
                 </AvatarFallback>
               </Avatar>
@@ -819,7 +819,7 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
                 ) : null}
-                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-xs">
+                <AvatarFallback name={entry.userId} className="font-semibold text-xs">
                   {getInitials(entry.userId)}
                 </AvatarFallback>
               </Avatar>
@@ -1128,7 +1128,7 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
                 {profile?.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={standing.userId} />
                 ) : null}
-                <AvatarFallback className="bg-foreground/80 text-background font-semibold text-xs">
+                <AvatarFallback name={standing.userId} className="font-semibold text-xs">
                   {getInitials(standing.userId)}
                 </AvatarFallback>
               </Avatar>
