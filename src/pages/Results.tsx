@@ -662,7 +662,7 @@ const RegularSeasonWeekLeaderboard = ({ week, leagueId, userId }: { week: number
 
             {/* Points pill - right aligned, no shrink */}
             <div className="ml-auto flex-shrink-0">
-              <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1">
+              <Badge className="text-sm font-bold bg-primary text-primary-foreground py-1 w-[90px] text-center justify-center">
                 {entry.points.toFixed(1)} pts
               </Badge>
             </div>
@@ -793,7 +793,7 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
 
             {/* Points pill - right aligned, no shrink */}
             <div className="ml-auto flex-shrink-0 flex flex-col items-center gap-1">
-              <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1.5">
+              <Badge className="text-sm font-bold bg-primary text-primary-foreground py-1.5 w-[90px] text-center justify-center">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
               {pointsBehind > 0 && (
@@ -884,7 +884,7 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
 
             {/* Points + Back indicator - right aligned */}
             <div className="ml-auto flex-shrink-0 flex flex-col items-center gap-0.5">
-              <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1">
+              <Badge className="text-sm font-bold bg-primary text-primary-foreground py-1 w-[90px] text-center justify-center">
                 {entry.points.toFixed(1)} pts
               </Badge>
               {pointsBehind > 0 && (
@@ -1201,7 +1201,7 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
 
             {/* Points + Back indicator - right aligned */}
             <div className="ml-auto flex-shrink-0 flex flex-col items-center gap-0.5">
-              <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1">
+              <Badge className="text-sm font-bold bg-primary text-primary-foreground py-1 w-[90px] text-center justify-center">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
               {pointsBehind > 0 && (
