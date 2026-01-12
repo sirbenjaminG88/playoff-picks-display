@@ -11,6 +11,8 @@ export interface League {
   season_type: string;
   created_at: string;
   icon_url: string | null;
+  member_count?: number;
+  pick_count?: number;
 }
 
 export interface LeagueMembership {
@@ -119,7 +121,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     fetchMemberships();
   }, [user, authLoading]);
 
-  // Fetch all leagues for founder mode (admin only)
+  // Fetch all leagues for founder mode (admin only) with activity counts
   useEffect(() => {
     if (!isAdmin || !user) {
       setAllLeagues([]);
@@ -127,19 +129,65 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     }
 
     const fetchAllLeagues = async () => {
-      console.log("[LeagueContext] Admin detected, fetching all leagues...");
-      // Admins can query the leagues table directly (RLS allows admin access)
-      const { data, error } = await supabase
+      console.log("[LeagueContext] Admin detected, fetching all leagues with activity...");
+      
+      // Fetch leagues with member counts
+      const { data: leaguesData, error: leaguesError } = await supabase
         .from("leagues")
         .select("id, name, season, season_type, created_at, icon_url")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("[LeagueContext] Error fetching all leagues:", error);
-      } else if (data) {
-        console.log("[LeagueContext] Fetched all leagues:", data.length);
-        setAllLeagues(data as League[]);
+      if (leaguesError) {
+        console.error("[LeagueContext] Error fetching all leagues:", leaguesError);
+        return;
       }
+
+      if (!leaguesData) {
+        setAllLeagues([]);
+        return;
+      }
+
+      // Fetch member counts per league
+      const { data: memberCounts } = await supabase
+        .from("league_members")
+        .select("league_id");
+
+      // Fetch pick counts per league (activity indicator)
+      const { data: pickCounts } = await supabase
+        .from("user_picks")
+        .select("league_id");
+
+      // Count members and picks per league
+      const memberCountMap = new Map<string, number>();
+      const pickCountMap = new Map<string, number>();
+
+      memberCounts?.forEach(m => {
+        const count = memberCountMap.get(m.league_id) || 0;
+        memberCountMap.set(m.league_id, count + 1);
+      });
+
+      pickCounts?.forEach(p => {
+        const count = pickCountMap.get(p.league_id) || 0;
+        pickCountMap.set(p.league_id, count + 1);
+      });
+
+      // Enrich leagues with counts and sort by activity (pick count + member count)
+      const enrichedLeagues: League[] = leaguesData.map(league => ({
+        ...league,
+        member_count: memberCountMap.get(league.id) || 0,
+        pick_count: pickCountMap.get(league.id) || 0,
+      }));
+
+      // Sort by activity: pick_count desc, then member_count desc, then created_at desc
+      enrichedLeagues.sort((a, b) => {
+        const activityA = (a.pick_count || 0) + (a.member_count || 0);
+        const activityB = (b.pick_count || 0) + (b.member_count || 0);
+        if (activityB !== activityA) return activityB - activityA;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+      console.log("[LeagueContext] Fetched all leagues with activity:", enrichedLeagues.length);
+      setAllLeagues(enrichedLeagues);
     };
 
     fetchAllLeagues();
