@@ -792,7 +792,7 @@ const RegularSeasonOverallLeaderboard = ({ throughWeek, leagueId, userId }: { th
             </div>
 
             {/* Points pill - right aligned, no shrink */}
-            <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-1">
+            <div className="ml-auto flex-shrink-0 flex flex-col items-center gap-1">
               <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1.5">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
@@ -883,7 +883,7 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
             </div>
 
             {/* Points + Back indicator - right aligned */}
-            <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-0.5">
+            <div className="ml-auto flex-shrink-0 flex flex-col items-center gap-0.5">
               <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1">
                 {entry.points.toFixed(1)} pts
               </Badge>
@@ -1200,7 +1200,7 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
             </div>
 
             {/* Points + Back indicator - right aligned */}
-            <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-0.5">
+            <div className="ml-auto flex-shrink-0 flex flex-col items-center gap-0.5">
               <Badge className="text-sm font-bold bg-primary text-primary-foreground px-3 py-1">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
