@@ -992,6 +992,15 @@ export type Database = {
       }
       delete_user_account: { Args: never; Returns: undefined }
       generate_funny_join_code: { Args: never; Returns: string }
+      get_global_playoff_standings: {
+        Args: { p_season: number; p_through_week: number }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          total_points: number
+          user_id: string
+        }[]
+      }
       get_league_by_join_code: {
         Args: { p_join_code: string }
         Returns: {
