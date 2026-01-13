@@ -142,13 +142,10 @@ const RankingPlayerCard = ({ player, rank, isOverall }: RankingPlayerCardProps) 
                 {/* Line 1: Name */}
                 <h3 className="font-bold text-lg leading-tight text-foreground text-left">{player.name}</h3>
 
-                {/* Line 2: Points Badge + Position */}
+                {/* Line 2: Points Badge */}
                 <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                   <Badge className="text-sm font-bold whitespace-nowrap bg-primary text-primary-foreground">
                     {player.fantasyPoints.toFixed(1)} pts
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {player.position}
                   </Badge>
                 </div>
               </div>
