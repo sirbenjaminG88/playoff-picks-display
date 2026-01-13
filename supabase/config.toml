@@ -84,6 +84,12 @@ verify_jwt = true
 [functions.sync-live-playoff-stats]
 verify_jwt = false
 
+# Cron: sync-live-playoff-stats runs every minute during playoff game windows
+# Uses ESPN boxscores API for accurate stats of all selectable players
+[functions.sync-live-playoff-stats.cron.sync-live-playoff-stats-espn]
+schedule = "* * * * *"
+path = "/sync-live-playoff-stats"
+
 [functions.debug-live-api]
 verify_jwt = false
 
