@@ -1229,9 +1229,127 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
   );
 }
 
+// Global leaderboard component for All Players tab
+function GlobalLeaderboard({ throughWeek }: { throughWeek: number }) {
+  const [expanded, setExpanded] = useState(false);
+  
+  const { data: standings, isLoading } = useQuery({
+    queryKey: ['global-playoff-standings', throughWeek],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_global_playoff_standings', {
+        p_season: 2025,
+        p_through_week: throughWeek
+      });
+      if (error) throw error;
+      return data as Array<{
+        user_id: string;
+        display_name: string | null;
+        avatar_url: string | null;
+        total_points: number;
+      }>;
+    }
+  });
+
+  if (isLoading) {
+    return (
+      <div className="py-8 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!standings || standings.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">
+          No stats yet. Global leaderboard will appear once games are played.
+        </p>
+      </div>
+    );
+  }
+
+  const leaderPoints = standings[0]?.total_points || 0;
+  const displayedStandings = expanded ? standings : standings.slice(0, 10);
+
+  // Compute sequential color indices for users without avatars
+  const colorIndices = new Map<string, number>();
+  let colorIndex = 0;
+  for (const entry of standings) {
+    if (!entry.avatar_url) {
+      colorIndices.set(entry.user_id, colorIndex);
+      colorIndex++;
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {displayedStandings.map((standing, index) => {
+        const pointsBehind = index > 0 ? leaderPoints - standing.total_points : 0;
+        const colorIdx = colorIndices.get(standing.user_id);
+        const displayName = standing.display_name || 'Unknown';
+        
+        return (
+          <div
+            key={standing.user_id}
+            className="flex items-center gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+          >
+            {/* Rank - fixed width container for alignment */}
+            <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+              {getMedalEmoji(index) ? (
+                <span className="text-[1.75rem] leading-none">{getMedalEmoji(index)}</span>
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                  <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Avatar + Name container */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Avatar className="h-9 w-9 flex-shrink-0">
+                {standing.avatar_url ? (
+                  <AvatarImage src={standing.avatar_url} alt={displayName} />
+                ) : null}
+                <AvatarFallback colorIndex={colorIdx} className="font-semibold text-xs">
+                  {getInitials(displayName)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
+                {displayName}
+              </span>
+            </div>
+
+            {/* Points + Back indicator - right aligned */}
+            <div className="ml-auto flex-shrink-0 flex flex-col items-center gap-0.5">
+              <Badge className="text-sm font-bold bg-primary text-primary-foreground py-1 w-[90px] text-center justify-center">
+                {standing.total_points.toFixed(1)} pts
+              </Badge>
+              {pointsBehind > 0 && (
+                <span className="text-xs text-muted-foreground font-medium">
+                  {pointsBehind.toFixed(1)} back
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {standings.length > 10 && (
+        <Button
+          variant="outline"
+          className="w-full mt-4"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? "Show less" : `Show more (${standings.length - 10} more)`}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export default function Results() {
   const [activeWeek, setActiveWeek] = useState(1);
-  const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "overall">("weekly");
+  const [leaderboardTab, setLeaderboardTab] = useState<"weekly" | "league" | "allplayers">("weekly");
   const { currentLeague } = useLeague();
   const { user } = useAuth();
 
@@ -1288,8 +1406,8 @@ export default function Results() {
 
                 {/* Leaderboards Section */}
                 <div className="mt-8">
-                  <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "overall")}>
-                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border border-border p-1">
+                  <Tabs value={leaderboardTab} onValueChange={(v) => setLeaderboardTab(v as "weekly" | "league" | "allplayers")}>
+                    <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 border border-border p-1">
                       <TabsTrigger
                         value="weekly"
                         className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -1297,10 +1415,16 @@ export default function Results() {
                         {getWeekShortLabel(weekNum)}
                       </TabsTrigger>
                       <TabsTrigger
-                        value="overall"
+                        value="league"
                         className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                       >
-                        Overall
+                        League
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="allplayers"
+                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        All Players
                       </TabsTrigger>
                     </TabsList>
 
@@ -1315,13 +1439,24 @@ export default function Results() {
                       </Card>
                     </TabsContent>
 
-                    <TabsContent value="overall" className="mt-0">
+                    <TabsContent value="league" className="mt-0">
                       <Card className="border-border bg-card">
                         <CardHeader className="pb-4 px-6 pt-6">
-                          <CardTitle className="text-foreground text-xl">Overall Standings (Through {getWeekLabel(weekNum)})</CardTitle>
+                          <CardTitle className="text-foreground text-xl">League Standings (Through {getWeekLabel(weekNum)})</CardTitle>
                         </CardHeader>
                         <CardContent className="px-6 pb-6">
                           <OverallLeaderboard throughWeek={weekNum} leagueId={currentLeague.id} userId={userId} />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="allplayers" className="mt-0">
+                      <Card className="border-border bg-card">
+                        <CardHeader className="pb-4 px-6 pt-6">
+                          <CardTitle className="text-foreground text-xl">Global Standings (Through {getWeekLabel(weekNum)})</CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-6 pb-6">
+                          <GlobalLeaderboard throughWeek={weekNum} />
                         </CardContent>
                       </Card>
                     </TabsContent>
