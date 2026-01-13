@@ -498,63 +498,7 @@ serve(async (req) => {
       }
     }
 
-    // ============ STEP 4: Get picked players for this week ============
-    const { data: picks, error: picksError } = await supabase
-      .from('user_picks')
-      .select('player_id, player_name, team_id, team_name')
-      .eq('season', SEASON)
-      .eq('week', currentWeek);
-
-    if (picksError) {
-      console.error('Error fetching picks:', picksError);
-      return new Response(
-        JSON.stringify({ error: picksError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get unique players with their team info
-    const playerMap = new Map<number, { name: string; teamId: number; teamName: string }>();
-    picks?.forEach(p => {
-      if (!playerMap.has(p.player_id)) {
-        playerMap.set(p.player_id, { 
-          name: p.player_name, 
-          teamId: p.team_id,
-          teamName: p.team_name 
-        });
-      }
-    });
-
-    const uniquePlayerIds = Array.from(playerMap.keys());
-    console.log(`Found ${uniquePlayerIds.length} unique picked players for playoff week ${currentWeek}`);
-
-    if (uniquePlayerIds.length === 0) {
-      await logSync(supabase, SEASON, currentWeek, 0, true, `[ESPN playoff] No picks to sync`);
-      return new Response(
-        JSON.stringify({
-          success: true,
-          source: 'ESPN',
-          message: 'No picks found for this playoff week',
-          season: SEASON,
-          week: currentWeek,
-          playersProcessed: 0,
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // ============ STEP 5: Build player ID mapping (our ID -> ESPN ID) ============
-    // Get playoff_players with their image URLs to extract ESPN IDs
-    // Filter to prefer ESPN headshot URLs for ID extraction
-    const { data: playoffPlayers } = await supabase
-      .from('playoff_players')
-      .select('player_id, name, image_url, team_name, team_id')
-      .eq('season', SEASON)
-      .in('player_id', uniquePlayerIds);
-
-    const ourIdToEspnId = new Map<number, string>();
-    const ourIdToTeamAbbr = new Map<number, string>();
-    
+    // ============ STEP 4: Get ALL selectable players for teams playing this week ============
     // Team name to abbreviation mapping
     const teamNameToAbbr: Record<string, string> = {
       "Arizona Cardinals": "ARI", "Atlanta Falcons": "ATL", "Baltimore Ravens": "BAL",
@@ -570,8 +514,80 @@ serve(async (req) => {
       "Tennessee Titans": "TEN", "Washington Commanders": "WSH",
     };
     
-    // Process players - for duplicates, prefer ESPN headshot URLs over API-Sports URLs
-    for (const player of playoffPlayers || []) {
+    // Reverse mapping: abbreviation to team IDs
+    const abbrToTeamIds = new Map<string, number[]>();
+    for (const [name, abbr] of Object.entries(teamNameToAbbr)) {
+      const teamId = ESPN_TEAM_ABBR_TO_ID[abbr];
+      if (teamId) {
+        const existing = abbrToTeamIds.get(abbr) || [];
+        existing.push(teamId);
+        abbrToTeamIds.set(abbr, existing);
+      }
+    }
+    
+    // Get team IDs for teams in live games
+    const teamIdsInLiveGames: number[] = [];
+    for (const abbr of teamsInLiveGames) {
+      const teamId = ESPN_TEAM_ABBR_TO_ID[abbr];
+      if (teamId) {
+        teamIdsInLiveGames.push(teamId);
+      }
+    }
+    
+    console.log(`Team IDs in live games: ${teamIdsInLiveGames.join(', ')}`);
+
+    // Fetch ALL selectable players from teams playing in live games
+    const { data: selectablePlayers, error: playersError } = await supabase
+      .from('selectable_playoff_players')
+      .select('player_id, name, image_url, team_name, team_id')
+      .eq('season', SEASON)
+      .in('team_id', teamIdsInLiveGames);
+
+    if (playersError) {
+      console.error('Error fetching selectable players:', playersError);
+      return new Response(
+        JSON.stringify({ error: playersError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Build player map with all selectable players
+    const playerMap = new Map<number, { name: string; teamId: number; teamName: string }>();
+    for (const p of selectablePlayers || []) {
+      if (!playerMap.has(p.player_id)) {
+        playerMap.set(p.player_id, { 
+          name: p.name, 
+          teamId: p.team_id,
+          teamName: p.team_name 
+        });
+      }
+    }
+
+    const uniquePlayerIds = Array.from(playerMap.keys());
+    console.log(`Found ${uniquePlayerIds.length} selectable players for teams in live games`);
+
+    if (uniquePlayerIds.length === 0) {
+      await logSync(supabase, SEASON, currentWeek, 0, true, `[ESPN playoff] No selectable players for live teams`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          source: 'ESPN',
+          message: 'No selectable players found for teams in live games',
+          season: SEASON,
+          week: currentWeek,
+          playersProcessed: 0,
+          teamsPlaying: Array.from(teamsInLiveGames),
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ============ STEP 5: Build player ID mapping (our ID -> ESPN ID) ============
+    const ourIdToEspnId = new Map<number, string>();
+    const ourIdToTeamAbbr = new Map<number, string>();
+    
+    // Process players - extract ESPN IDs from image URLs
+    for (const player of selectablePlayers || []) {
       const isEspnUrl = player.image_url?.includes('espncdn.com') || player.image_url?.includes('espn.com');
       const espnId = extractESPNPlayerId(player.image_url);
       
@@ -579,7 +595,6 @@ serve(async (req) => {
       if (espnId) {
         if (!ourIdToEspnId.has(player.player_id) || isEspnUrl) {
           ourIdToEspnId.set(player.player_id, espnId);
-          console.log(`Mapped ${player.name} (${player.player_id}) -> ESPN ID ${espnId}`);
         }
       }
       
@@ -588,6 +603,8 @@ serve(async (req) => {
         ourIdToTeamAbbr.set(player.player_id, abbr);
       }
     }
+    
+    console.log(`Mapped ${ourIdToEspnId.size} of ${uniquePlayerIds.length} players to ESPN IDs`);
 
     console.log(`Mapped ${ourIdToEspnId.size} players to ESPN IDs`);
 
