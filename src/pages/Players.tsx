@@ -299,6 +299,7 @@ export default function Players() {
           title="Players"
           subtitle="Top performers by week"
           icon={<Users className="w-7 h-7 text-primary" />}
+          showLeagueSwitcher={false}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
