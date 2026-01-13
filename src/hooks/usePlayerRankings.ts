@@ -69,7 +69,7 @@ const getTeamAbbreviation = (teamName: string): string => {
 async function fetchWeekRankings(week: number): Promise<PlayerRankingsData> {
   // Fetch players with their stats for the specific week
   const { data: players, error: playersError } = await supabase
-    .from("playoff_players_filtered")
+    .from("selectable_playoff_players")
     .select("player_id, name, position, team_name, image_url")
     .eq("season", 2025);
 
@@ -127,7 +127,7 @@ async function fetchWeekRankings(week: number): Promise<PlayerRankingsData> {
 async function fetchOverallRankings(): Promise<PlayerRankingsData> {
   // Fetch all playoff players
   const { data: players, error: playersError } = await supabase
-    .from("playoff_players_filtered")
+    .from("selectable_playoff_players")
     .select("player_id, name, position, team_name, image_url")
     .eq("season", 2025);
 
