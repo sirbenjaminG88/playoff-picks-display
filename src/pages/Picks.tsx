@@ -195,12 +195,30 @@ const Picks = () => {
     });
   }, [activeWeeks, isRegularSeason]);
 
+  // Cache buster to force fresh data fetch (increments on app focus)
+  const [cacheBuster, setCacheBuster] = useState(0);
+
+  // Invalidate cache when app regains focus (handles mobile app background/foreground)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[Picks] App became visible, invalidating cache');
+        setCacheBuster(prev => prev + 1);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   // Fetch playoff players - filtered by week (bye teams only appear in week 2+)
   useEffect(() => {
     if (isRegularSeason) return;
 
     const fetchPlayers = async () => {
       setLoadingPlayoffs(true);
+      // Clear existing players immediately to prevent showing stale data
+      setPlayoffPlayers([]);
       
       const currentWeekNum = parseInt(activeWeek, 10);
       
@@ -215,7 +233,7 @@ const Picks = () => {
       }
       
       const teamIds = teamsPlaying?.map((t: { team_id: number }) => t.team_id) || [];
-      console.log(`[Picks] Week ${currentWeekNum}: Teams playing:`, teamIds);
+      console.log(`[Picks] Week ${currentWeekNum}: Teams playing:`, teamIds, `(cache: ${cacheBuster})`);
       
       // Use the pre-filtered view, but also filter by teams playing this week
       const { data, error } = await supabase
@@ -243,7 +261,7 @@ const Picks = () => {
     };
 
     fetchPlayers();
-  }, [isRegularSeason, activeWeek]);
+  }, [isRegularSeason, activeWeek, cacheBuster]);
 
   // DEBUG state for showing query results
   const [debugInfo, setDebugInfo] = useState<{
