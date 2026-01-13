@@ -31,6 +31,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Support from "./pages/Support";
 import Privacy from "./pages/Privacy";
+import Players from "./pages/Players";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +118,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <Picks />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/players" 
+              element={
+                <ProtectedRoute>
+                  <Players />
                 </ProtectedRoute>
               } 
             />

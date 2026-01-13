@@ -1,4 +1,4 @@
-import { Home, ClipboardList, Trophy } from "lucide-react";
+import { Home, ClipboardList, Trophy, Users } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 
 // TODO: Once the temporary season selector is removed from Submissions/Results headers,
@@ -42,6 +42,15 @@ export function BottomNav() {
           >
             <Trophy className="h-[27px] w-[27px]" />
             <span className="text-[11px] leading-none font-medium">Results</span>
+          </NavLink>
+
+          <NavLink
+            to="/players"
+            className="flex flex-col items-center justify-center gap-1 flex-1 py-1.5 text-nav-inactive transition-colors"
+            activeClassName="text-primary"
+          >
+            <Users className="h-[27px] w-[27px]" />
+            <span className="text-[11px] leading-none font-medium">Players</span>
           </NavLink>
         </div>
       </div>
