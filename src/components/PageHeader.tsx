@@ -9,9 +9,10 @@ interface PageHeaderProps {
   title: string;
   subtitle: string;
   icon: ReactNode;
+  showLeagueSwitcher?: boolean;
 }
 
-export function PageHeader({ title, subtitle, icon }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, icon, showLeagueSwitcher = true }: PageHeaderProps) {
   const navigate = useNavigate();
   const { profile } = useAuth();
 
@@ -47,7 +48,7 @@ export function PageHeader({ title, subtitle, icon }: PageHeaderProps) {
         <p className="text-muted-foreground text-sm mb-4">{subtitle}</p>
         
         {/* League Switcher */}
-        <LeagueSwitcher />
+        {showLeagueSwitcher && <LeagueSwitcher />}
       </div>
     </header>
   );
