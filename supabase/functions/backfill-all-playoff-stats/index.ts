@@ -6,8 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ============ INTERFACES ============
-
 interface PlayerStats {
   pass_yds: number;
   pass_tds: number;
@@ -44,7 +42,6 @@ const DEFAULT_SCORING: ScoringSettings = {
   two_pt_conversion_pts: 2,
 };
 
-// Team name to abbreviation mapping
 const TEAM_NAME_TO_ABBR: Record<string, string> = {
   "Arizona Cardinals": "ARI", "Atlanta Falcons": "ATL", "Baltimore Ravens": "BAL",
   "Buffalo Bills": "BUF", "Carolina Panthers": "CAR", "Chicago Bears": "CHI",
@@ -58,45 +55,6 @@ const TEAM_NAME_TO_ABBR: Record<string, string> = {
   "San Francisco 49ers": "SF", "Seattle Seahawks": "SEA", "Tampa Bay Buccaneers": "TB",
   "Tennessee Titans": "TEN", "Washington Commanders": "WSH",
 };
-
-// ============ AUTH HELPERS ============
-
-async function verifyAdminOrCron(req: Request): Promise<{ authorized: boolean; error?: string; isCron?: boolean }> {
-  const authHeader = req.headers.get('Authorization');
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-
-  // Allow internal cron calls
-  if (authHeader === `Bearer ${supabaseAnonKey}`) {
-    return { authorized: true, isCron: true };
-  }
-
-  if (!authHeader) {
-    return { authorized: true, isCron: true };
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } }
-  });
-
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return { authorized: false, error: 'Invalid user token' };
-  }
-
-  const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
-    _user_id: user.id,
-    _role: 'admin'
-  });
-
-  if (roleError || !isAdmin) {
-    return { authorized: false, error: 'User is not an admin' };
-  }
-
-  return { authorized: true, isCron: false };
-}
-
-// ============ ESPN API HELPERS ============
 
 async function fetchESPNGameSummary(espnGameId: string): Promise<any> {
   const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${espnGameId}`;
@@ -164,8 +122,6 @@ function extractPlayerStatsFromESPN(boxscore: any, espnPlayerId: string): Player
 
   return stats;
 }
-
-// ============ STATS HELPERS ============
 
 function calculateFantasyPoints(stats: PlayerStats, settings: ScoringSettings): number {
   const passYdsMult = 1 / settings.pass_yds_per_point;
@@ -250,17 +206,14 @@ async function getActiveScoringSettings(supabase: any): Promise<ScoringSettings>
   };
 }
 
-// Extract ESPN player ID from headshot URL
 function extractESPNPlayerId(imageUrl: string | null): string | null {
   if (!imageUrl) return null;
   const match = imageUrl.match(/players\/full\/(\d+)/);
   return match ? match[1] : null;
 }
 
-// ============ MAIN HANDLER ============
-
 serve(async (req) => {
-  console.log('=== backfill-all-playoff-stats invoked at', new Date().toISOString(), '===');
+  console.log('=== backfill-all-playoff-stats invoked ===');
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -269,16 +222,6 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
-    // Verify admin role or internal cron call
-    const { authorized, error: authError } = await verifyAdminOrCron(req);
-    
-    if (!authorized) {
-      return new Response(
-        JSON.stringify({ success: false, error: authError }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const url = new URL(req.url);
     const weekParam = url.searchParams.get('week');
     
@@ -303,7 +246,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // ============ STEP 1: Get completed games for this week ============
+    // Get completed games for this week
     const { data: completedGames, error: gamesError } = await supabase
       .from('playoff_games')
       .select('game_id, home_team_external_id, away_team_external_id, status_short')
@@ -321,17 +264,11 @@ serve(async (req) => {
 
     if (!completedGames || completedGames.length === 0) {
       return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'No completed games found for this week',
-          week,
-          season: SEASON,
-        }),
+        JSON.stringify({ success: true, message: 'No completed games found', week, season: SEASON }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get team IDs from completed games
     const teamIdsInGames = new Set<number>();
     completedGames.forEach(game => {
       teamIdsInGames.add(game.home_team_external_id);
@@ -340,7 +277,7 @@ serve(async (req) => {
 
     console.log(`Found ${completedGames.length} completed games with teams: ${Array.from(teamIdsInGames).join(', ')}`);
 
-    // ============ STEP 2: Get ALL selectable players from these teams ============
+    // Get ALL selectable players from these teams
     const { data: allPlayers, error: playersError } = await supabase
       .from('selectable_playoff_players')
       .select('player_id, name, image_url, team_id, team_name, position')
@@ -355,36 +292,25 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found ${allPlayers?.length || 0} selectable players from completed games`);
+    console.log(`Found ${allPlayers?.length || 0} selectable players`);
 
     if (!allPlayers || allPlayers.length === 0) {
       return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'No selectable players found for teams in completed games',
-          week,
-          season: SEASON,
-        }),
+        JSON.stringify({ success: true, message: 'No selectable players found', week, season: SEASON }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // ============ STEP 3: Build ESPN game ID mapping by team ============
-    // Map team_id -> ESPN game_id
+    // Build ESPN game ID mapping by team
     const teamIdToEspnGameId = new Map<number, string>();
-    
     for (const game of completedGames) {
-      // ESPN game IDs are typically the api game_id
-      // We need to find the ESPN game ID - let's use our game_id for now
-      // In practice, you might need to map this differently
       const espnGameId = game.game_id.toString();
       teamIdToEspnGameId.set(game.home_team_external_id, espnGameId);
       teamIdToEspnGameId.set(game.away_team_external_id, espnGameId);
     }
 
-    // ============ STEP 4: Build player ID to ESPN ID mapping ============
+    // Build player ID to ESPN ID mapping
     const ourIdToEspnId = new Map<number, string>();
-    const ourIdToTeamAbbr = new Map<number, string>();
     const playerInfoMap = new Map<number, { name: string; teamId: number; teamName: string }>();
 
     for (const player of allPlayers) {
@@ -392,12 +318,6 @@ serve(async (req) => {
       if (espnId) {
         ourIdToEspnId.set(player.player_id, espnId);
       }
-      
-      const abbr = TEAM_NAME_TO_ABBR[player.team_name];
-      if (abbr) {
-        ourIdToTeamAbbr.set(player.player_id, abbr);
-      }
-      
       playerInfoMap.set(player.player_id, {
         name: player.name,
         teamId: player.team_id,
@@ -407,17 +327,13 @@ serve(async (req) => {
 
     console.log(`Mapped ${ourIdToEspnId.size}/${allPlayers.length} players to ESPN IDs`);
 
-    // ============ STEP 5: Get scoring settings ============
     const scoringSettings = await getActiveScoringSettings(supabase);
-
-    // ============ STEP 6: Fetch game summaries and extract stats for ALL players ============
     const gameSummaryCache = new Map<string, any>();
     
     let statsUpserted = 0;
     let statsSkipped = 0;
     const results: any[] = [];
 
-    // Process in batches to avoid overwhelming the API
     const BATCH_SIZE = 10;
     const playerIds = Array.from(playerInfoMap.keys());
     
@@ -431,56 +347,38 @@ serve(async (req) => {
 
         if (!espnPlayerId) {
           statsSkipped++;
-          results.push({
-            player_id: playerId,
-            player_name: playerInfo.name,
-            status: 'no_espn_id',
-          });
+          results.push({ player_id: playerId, player_name: playerInfo.name, status: 'no_espn_id' });
           continue;
         }
 
         if (!espnGameId) {
           statsSkipped++;
-          results.push({
-            player_id: playerId,
-            player_name: playerInfo.name,
-            status: 'no_game_found',
-          });
+          results.push({ player_id: playerId, player_name: playerInfo.name, status: 'no_game_found' });
           continue;
         }
 
         try {
-          // Fetch or use cached game summary
           let gameSummary = gameSummaryCache.get(espnGameId);
           if (!gameSummary) {
             gameSummary = await fetchESPNGameSummary(espnGameId);
             gameSummaryCache.set(espnGameId, gameSummary);
           }
 
-          // Extract player stats from boxscore
           const rawStats = extractPlayerStatsFromESPN(gameSummary.boxscore, espnPlayerId);
           
-          // Check if player had any stats
           const hasStats = rawStats.pass_yds > 0 || rawStats.rush_yds > 0 || rawStats.rec_yds > 0 || 
                           rawStats.pass_tds > 0 || rawStats.rush_tds > 0 || rawStats.rec_tds > 0;
           
           if (!hasStats) {
             statsSkipped++;
-            results.push({
-              player_id: playerId,
-              player_name: playerInfo.name,
-              espn_player_id: espnPlayerId,
-              status: 'no_stats_in_game',
-            });
+            results.push({ player_id: playerId, player_name: playerInfo.name, status: 'no_stats_in_game' });
             continue;
           }
           
-          // Smart merge with existing stats
           const existingStats = await fetchExistingStats(supabase, SEASON, week, playerId);
           const stats = smartMergeStats(rawStats, existingStats);
           const fantasyPoints = calculateFantasyPoints(stats, scoringSettings);
 
-          // Upsert to player_week_stats
           const { error: upsertError } = await supabase
             .from('player_week_stats')
             .upsert({
@@ -498,7 +396,7 @@ serve(async (req) => {
               fumbles_lost: stats.fumbles_lost,
               two_pt_conversions: stats.two_pt_conversions,
               fantasy_points_standard: fantasyPoints,
-              raw_json: { source: 'espn_backfill', espn_player_id: espnPlayerId, espn_game_id: espnGameId },
+              raw_json: { source: 'espn_backfill', espn_player_id: espnPlayerId },
               updated_at: new Date().toISOString(),
             }, {
               onConflict: 'season,week,player_id',
@@ -506,36 +404,18 @@ serve(async (req) => {
 
           if (upsertError) {
             console.error(`Upsert error for ${playerInfo.name}:`, upsertError.message);
-            results.push({
-              player_id: playerId,
-              player_name: playerInfo.name,
-              status: 'upsert_failed',
-              error: upsertError.message,
-            });
+            results.push({ player_id: playerId, player_name: playerInfo.name, status: 'upsert_failed', error: upsertError.message });
           } else {
             statsUpserted++;
             console.log(`${playerInfo.name}: ${fantasyPoints.toFixed(1)} pts`);
-            results.push({
-              player_id: playerId,
-              player_name: playerInfo.name,
-              espn_player_id: espnPlayerId,
-              fantasy_points: fantasyPoints,
-              stats,
-              status: 'success',
-            });
+            results.push({ player_id: playerId, player_name: playerInfo.name, fantasy_points: fantasyPoints, status: 'success' });
           }
         } catch (err) {
           console.error(`Error for ${playerInfo.name}:`, err);
-          results.push({
-            player_id: playerId,
-            player_name: playerInfo.name,
-            status: 'fetch_failed',
-            error: err instanceof Error ? err.message : 'Unknown error',
-          });
+          results.push({ player_id: playerId, player_name: playerInfo.name, status: 'fetch_failed', error: err instanceof Error ? err.message : 'Unknown' });
         }
       }
       
-      // Small delay between batches to avoid rate limiting
       if (i + BATCH_SIZE < playerIds.length) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -556,8 +436,7 @@ serve(async (req) => {
       statsUpserted,
       statsSkipped,
       durationMs: duration,
-      results: results.filter(r => r.status === 'success').slice(0, 20), // Show first 20 successes
-      errors: results.filter(r => r.status !== 'success' && r.status !== 'no_stats_in_game').slice(0, 10),
+      sampleResults: results.filter(r => r.status === 'success').slice(0, 10),
     };
 
     console.log(`Backfill complete: ${statsUpserted} stats upserted, ${statsSkipped} skipped in ${duration}ms`);
