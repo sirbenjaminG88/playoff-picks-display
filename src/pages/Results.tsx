@@ -1271,6 +1271,16 @@ function GlobalLeaderboard({ throughWeek }: { throughWeek: number }) {
   const leaderPoints = standings[0]?.total_points || 0;
   const displayedStandings = expanded ? standings : standings.slice(0, 10);
 
+  // Compute ranks with tie logic - users with same points get same rank
+  const ranksMap = new Map<string, number>();
+  let currentRank = 1;
+  for (let i = 0; i < standings.length; i++) {
+    if (i > 0 && standings[i].total_points < standings[i - 1].total_points) {
+      currentRank = i + 1; // Skip to position-based rank when points differ
+    }
+    ranksMap.set(standings[i].user_id, currentRank);
+  }
+
   // Compute sequential color indices for users without avatars
   const colorIndices = new Map<string, number>();
   let colorIndex = 0;
@@ -1284,7 +1294,8 @@ function GlobalLeaderboard({ throughWeek }: { throughWeek: number }) {
   return (
     <div className="space-y-3">
       {displayedStandings.map((standing, index) => {
-        const pointsBehind = index > 0 ? leaderPoints - standing.total_points : 0;
+        const rank = ranksMap.get(standing.user_id) || index + 1;
+        const pointsBehind = rank > 1 ? leaderPoints - standing.total_points : 0;
         const colorIdx = colorIndices.get(standing.user_id);
         const displayName = standing.display_name || 'Unknown';
         
@@ -1295,11 +1306,11 @@ function GlobalLeaderboard({ throughWeek }: { throughWeek: number }) {
           >
             {/* Rank - fixed width container for alignment */}
             <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
-              {getMedalEmoji(index) ? (
-                <span className="text-[1.75rem] leading-none">{getMedalEmoji(index)}</span>
+              {getMedalEmoji(rank - 1) ? (
+                <span className="text-[1.75rem] leading-none">{getMedalEmoji(rank - 1)}</span>
               ) : (
                 <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                  <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
+                  <span className="font-semibold text-xs text-foreground">#{rank}</span>
                 </div>
               )}
             </div>
