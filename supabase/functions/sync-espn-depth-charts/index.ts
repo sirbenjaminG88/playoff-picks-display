@@ -5,41 +5,32 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// ESPN team ID mapping for 2025 playoff teams
-// API-Sports team_id → ESPN team_id
-const espnTeamIdMap: Record<number, number> = {
-  // AFC
-  20: 2,   // Bills
-  6: 8,    // Ravens
-  26: 34,  // Texans
-  28: 7,   // Broncos (ESPN uses 7 for Denver)
-  22: 23,  // Steelers
-  30: 24,  // Chargers
-  // NFC
-  11: 8,   // Lions → ESPN 8? Let me check - actually Lions = 11 in ESPN
-  12: 21,  // Eagles
-  9: 16,   // Vikings
-  23: 26,  // Seahawks
-  31: 14,  // Rams
-  25: 28,  // Commanders
-  15: 9,   // Packers
-};
-
-// Correct ESPN team IDs (verified)
+// ESPN team ID mapping: API-Sports team_id → ESPN team_id
+// All 2025 playoff teams including Divisional Round
 const espnTeamIds: Record<number, number> = {
-  20: 2,   // Bills
-  6: 33,   // Ravens (ESPN uses 33)
-  26: 34,  // Texans
+  // AFC Divisional Round teams (still alive)
   28: 7,   // Broncos
+  20: 2,   // Bills
+  3: 17,   // Patriots
+  26: 34,  // Texans
+  
+  // NFC Divisional Round teams (still alive)
+  23: 26,  // Seahawks
+  14: 25,  // 49ers
+  16: 3,   // Bears
+  31: 14,  // Rams
+  
+  // Eliminated Wild Card teams (kept for completeness)
+  6: 33,   // Ravens
   22: 23,  // Steelers
   30: 24,  // Chargers
-  11: 8,   // Lions (ESPN uses 8)
+  11: 8,   // Lions
   12: 21,  // Eagles
   9: 16,   // Vikings
-  23: 26,  // Seahawks
-  31: 14,  // Rams
   25: 28,  // Commanders
   15: 9,   // Packers
+  19: 29,  // Panthers
+  2: 30,   // Jaguars
 };
 
 interface DepthChartAthlete {
