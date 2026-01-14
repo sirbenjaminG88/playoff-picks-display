@@ -232,27 +232,25 @@ Deno.serve(async (req) => {
     // Step 4: Sync ESPN depth charts to mark starters + store depth chart metadata
     console.log('Starting ESPN depth chart sync...');
 
-    // ESPN team ID mapping for our playoff teams
+    // ESPN team ID mapping for 2025 playoff teams
+    // API-Sports team_id → ESPN team_id
     const espnTeamIdMap: Record<number, number> = {
-      19: 29, // Panthers → ESPN 29
-      31: 14, // Rams → ESPN 14
-      16: 3,  // Bears → ESPN 3
-      15: 9,  // Packers → ESPN 9
-      2: 30,  // Jaguars → ESPN 30
-      20: 2,  // Bills → ESPN 2
-      12: 21, // Eagles → ESPN 21
-      14: 25, // 49ers → ESPN 25
-      3: 17,  // Patriots → ESPN 17
-      30: 24, // Chargers → ESPN 24
-      22: 23, // Steelers → ESPN 23
-      26: 34, // Texans → ESPN 34
-      // Add more mappings as needed for other playoff teams
-      6: 8,   // Ravens → ESPN 8
-      9: 16,  // Vikings → ESPN 16
-      23: 27, // Buccaneers → ESPN 27
-      11: 5,  // Broncos → ESPN 5
-      28: 7,  // Lions → ESPN 7
-      25: 13, // Commanders → ESPN 28
+      // 2025 AFC Playoff Teams
+      28: 5,   // Broncos → ESPN 5
+      3: 17,   // Patriots → ESPN 17
+      2: 30,   // Jaguars → ESPN 30
+      22: 23,  // Steelers → ESPN 23
+      26: 34,  // Texans → ESPN 34
+      20: 2,   // Bills → ESPN 2
+      30: 24,  // Chargers → ESPN 24
+      // 2025 NFC Playoff Teams
+      23: 26,  // Seahawks → ESPN 26
+      16: 3,   // Bears → ESPN 3
+      12: 21,  // Eagles → ESPN 21
+      19: 29,  // Panthers → ESPN 29
+      31: 14,  // Rams → ESPN 14
+      14: 25,  // 49ers → ESPN 25
+      15: 9,   // Packers → ESPN 9
     };
 
     // Normalize name for matching - removes suffixes and handles case insensitivity
