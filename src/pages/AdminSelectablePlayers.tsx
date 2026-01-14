@@ -370,14 +370,14 @@ const AdminSelectablePlayers = () => {
                                 )}
 
                                 {/* Player Info */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium truncate text-foreground">{player.name}</span>
-                                    <Badge variant="secondary" className="text-xs">
-                                      {player.position}
-                                    </Badge>
+                                <div className="flex-1 min-w-0 flex items-center gap-3">
+                                  <span className="font-medium truncate text-foreground min-w-[140px]">{player.name}</span>
+                                  <Badge variant="secondary" className="text-xs w-10 justify-center flex-shrink-0">
+                                    {player.position}
+                                  </Badge>
+                                  <div className="w-12 flex-shrink-0">
                                     {player.depth_chart_label && (
-                                      <Badge className="text-xs font-mono bg-green-600 text-white">
+                                      <Badge className="text-xs font-mono bg-green-600 text-white w-full justify-center">
                                         {player.depth_chart_label}
                                       </Badge>
                                     )}
