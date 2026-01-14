@@ -394,6 +394,7 @@ export type Database = {
           player_id: number
           position: string
           season: number
+          selection_override: string | null
           team_id: number
           team_name: string
           updated_at: string
@@ -416,6 +417,7 @@ export type Database = {
           player_id: number
           position: string
           season?: number
+          selection_override?: string | null
           team_id: number
           team_name: string
           updated_at?: string
@@ -438,6 +440,7 @@ export type Database = {
           player_id?: number
           position?: string
           season?: number
+          selection_override?: string | null
           team_id?: number
           team_name?: string
           updated_at?: string
@@ -896,6 +899,26 @@ export type Database = {
           player_id: number | null
           position: string | null
           season: number | null
+          team_id: number | null
+          team_name: string | null
+        }
+        Relationships: []
+      }
+      selectable_playoff_players_v2: {
+        Row: {
+          depth_chart_label: string | null
+          depth_chart_rank: number | null
+          depth_chart_slot: string | null
+          group: string | null
+          id: string | null
+          image_url: string | null
+          is_selectable: boolean | null
+          is_starter: boolean | null
+          name: string | null
+          player_id: number | null
+          position: string | null
+          season: number | null
+          selection_override: string | null
           team_id: number | null
           team_name: string | null
         }
