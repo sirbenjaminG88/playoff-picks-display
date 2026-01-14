@@ -17,7 +17,7 @@ export const WEEK_SHORT_LABELS: Record<number, string> = {
 // ESPN-style abbreviated labels for tabs
 export const WEEK_TAB_LABELS: Record<number, { abbrev: string; dates: string }> = {
   1: { abbrev: "WC", dates: "JAN 11–13" },
-  2: { abbrev: "DIV RD", dates: "JAN 18–19" },
+  2: { abbrev: "DIV RD", dates: "JAN 17–18" },
   3: { abbrev: "CONF CHAMP", dates: "JAN 26" },
   4: { abbrev: "SUPER BOWL", dates: "FEB 9" },
 };
