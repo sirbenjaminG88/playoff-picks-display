@@ -268,18 +268,103 @@ Deno.serve(async (req) => {
         .trim();
     };
 
+    // Extract last name for fuzzy matching
+    const getLastName = (name: string): string => {
+      const parts = normalizeName(name).split(' ');
+      return parts[parts.length - 1];
+    };
+
+    // Common nickname mappings
+    const nicknameMap: Record<string, string[]> = {
+      'joseph': ['joe'],
+      'joe': ['joseph'],
+      'william': ['will', 'billy', 'bill'],
+      'will': ['william'],
+      'robert': ['rob', 'bob', 'bobby'],
+      'rob': ['robert'],
+      'michael': ['mike'],
+      'mike': ['michael'],
+      'christopher': ['chris'],
+      'chris': ['christopher'],
+      'joshua': ['josh'],
+      'josh': ['joshua'],
+      'daniel': ['dan', 'danny'],
+      'dan': ['daniel'],
+      'matthew': ['matt'],
+      'matt': ['matthew'],
+      'anthony': ['tony'],
+      'tony': ['anthony'],
+      'nicholas': ['nick'],
+      'nick': ['nicholas'],
+      'kenneth': ['ken', 'kenny'],
+      'ken': ['kenneth', 'kenny'],
+      'kenny': ['kenneth', 'ken'],
+      'james': ['jim', 'jimmy'],
+      'jim': ['james'],
+      'timothy': ['tim'],
+      'tim': ['timothy'],
+      'edward': ['ed', 'eddie'],
+      'ed': ['edward'],
+      'richard': ['rich', 'rick', 'ricky', 'dick'],
+      'rick': ['richard'],
+      'david': ['dave'],
+      'dave': ['david'],
+      'benjamin': ['ben'],
+      'ben': ['benjamin'],
+      'samuel': ['sam'],
+      'sam': ['samuel'],
+      'stephen': ['steve'],
+      'steve': ['stephen', 'steven'],
+      'steven': ['steve'],
+      'jonathan': ['jon'],
+      'jon': ['jonathan'],
+      'cj': ['c j'],
+      'dj': ['d j'],
+      'aj': ['a j'],
+      'jj': ['j j'],
+      'tj': ['t j'],
+    };
+
     // Quick lookups
     const playersById = new Map<number, any>();
     for (const p of playersToUpsert) playersById.set(p.player_id, p);
 
+    // Build multiple lookup maps for flexible matching
     const nameToPlayerIdMap = new Map<string, number>();
+    const lastNameToPlayersMap = new Map<string, Array<{player_id: number, fullName: string, position: string}>>();
+    
     for (const player of dedupedPlayers) {
       const normalizedName = normalizeName(player.name);
+      const lastName = getLastName(player.name);
+      
+      // Primary: exact normalized match
       nameToPlayerIdMap.set(`${player.team_id}-${normalizedName}`, player.player_id);
+      
+      // Also create entries with nickname variants
+      const nameParts = normalizedName.split(' ');
+      if (nameParts.length >= 2) {
+        const firstName = nameParts[0];
+        const restOfName = nameParts.slice(1).join(' ');
+        const variants = nicknameMap[firstName] || [];
+        for (const variant of variants) {
+          nameToPlayerIdMap.set(`${player.team_id}-${variant} ${restOfName}`, player.player_id);
+        }
+      }
+      
+      // Secondary: last name lookup for position-based matching
+      const lastNameKey = `${player.team_id}-${lastName}`;
+      if (!lastNameToPlayersMap.has(lastNameKey)) {
+        lastNameToPlayersMap.set(lastNameKey, []);
+      }
+      lastNameToPlayersMap.get(lastNameKey)!.push({
+        player_id: player.player_id,
+        fullName: player.name,
+        position: player.position,
+      });
     }
 
     // Track unmatched ESPN players for logging
-    const unmatchedEspnPlayers: Array<{team: string, slot: string, espnName: string, normalizedName: string}> = [];
+    const unmatchedEspnPlayers: Array<{team: string, slot: string, espnName: string, normalizedName: string, possibleMatches?: string}> = [];
 
     // ESPN depthchart response (current observed):
     // - data.depthchart: array of charts
@@ -377,15 +462,54 @@ Deno.serve(async (req) => {
 
             const normalizedAthleteName = normalizeName(athleteName);
             const key = `${team.team_id}-${normalizedAthleteName}`;
-            const playerId = nameToPlayerIdMap.get(key);
+            let playerId = nameToPlayerIdMap.get(key);
+            let matchMethod = 'exact';
+            
+            // Fallback 1: Try nickname variants
+            if (!playerId) {
+              const nameParts = normalizedAthleteName.split(' ');
+              if (nameParts.length >= 2) {
+                const firstName = nameParts[0];
+                const restOfName = nameParts.slice(1).join(' ');
+                const variants = nicknameMap[firstName] || [];
+                for (const variant of variants) {
+                  const variantKey = `${team.team_id}-${variant} ${restOfName}`;
+                  playerId = nameToPlayerIdMap.get(variantKey);
+                  if (playerId) {
+                    matchMethod = 'nickname';
+                    console.log(`Matched ${athleteName} via nickname: ${variant} ${restOfName}`);
+                    break;
+                  }
+                }
+              }
+            }
+            
+            // Fallback 2: Try last name + position matching (only if unique)
+            if (!playerId) {
+              const lastName = getLastName(athleteName);
+              const lastNameKey = `${team.team_id}-${lastName}`;
+              const candidates = lastNameToPlayersMap.get(lastNameKey) || [];
+              const expectedPosition = slotToPosition[slot];
+              const positionMatches = candidates.filter(c => c.position === expectedPosition);
+              
+              if (positionMatches.length === 1) {
+                playerId = positionMatches[0].player_id;
+                matchMethod = 'lastname-position';
+                console.log(`Matched ${athleteName} via last name + position: ${positionMatches[0].fullName}`);
+              }
+            }
             
             if (!playerId) {
               // Log unmatched ESPN player for debugging
+              const lastName = getLastName(athleteName);
+              const lastNameKey = `${team.team_id}-${lastName}`;
+              const candidates = lastNameToPlayersMap.get(lastNameKey) || [];
               unmatchedEspnPlayers.push({
                 team: team.name,
                 slot,
                 espnName: athleteName,
                 normalizedName: normalizedAthleteName,
+                possibleMatches: candidates.map(c => `${c.fullName} (${c.position})`).join(', ') || 'none',
               });
               continue;
             }
@@ -475,7 +599,8 @@ Deno.serve(async (req) => {
         depthChartSync: {
           teamsProcessed: teamsProcessedForDepth,
           startersMarked,
-          unmatchedPlayers: unmatchedEspnPlayers.length,
+          unmatchedCount: unmatchedEspnPlayers.length,
+          unmatchedPlayers: unmatchedEspnPlayers,
         },
       }),
       {
