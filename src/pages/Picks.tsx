@@ -235,12 +235,12 @@ const Picks = () => {
       const teamIds = teamsPlaying?.map((t: { team_id: number }) => t.team_id) || [];
       console.log(`[Picks] Week ${currentWeekNum}: Teams playing:`, teamIds, `(cache: ${cacheBuster})`);
       
-      // Use the pre-filtered view, but also filter by teams playing this week
+      // Use the new v2 view with is_selectable filter, plus teams playing this week
       const { data, error } = await supabase
-        .from("playoff_players_filtered" as any)
+        .from("selectable_playoff_players_v2" as any)
         .select("*")
         .eq("season", 2025)
-        .eq("group", "Offense")
+        .eq("is_selectable", true)
         .in("team_id", teamIds)
         .order("team_name")
         .order("name");
