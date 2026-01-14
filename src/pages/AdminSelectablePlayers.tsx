@@ -352,7 +352,7 @@ const AdminSelectablePlayers = () => {
                                 className={cn(
                                   "flex items-center gap-4 p-3 rounded-lg border",
                                   player.is_selectable
-                                    ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900"
+                                    ? "bg-green-900/30 border-green-700"
                                     : "bg-muted/30 border-border"
                                 )}
                               >
@@ -372,12 +372,12 @@ const AdminSelectablePlayers = () => {
                                 {/* Player Info */}
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-medium truncate">{player.name}</span>
+                                    <span className="font-medium truncate text-foreground">{player.name}</span>
                                     <Badge variant="secondary" className="text-xs">
                                       {player.position}
                                     </Badge>
                                     {player.depth_chart_label && (
-                                      <Badge variant="outline" className="text-xs font-mono">
+                                      <Badge className="text-xs font-mono bg-green-600 text-white">
                                         {player.depth_chart_label}
                                       </Badge>
                                     )}
