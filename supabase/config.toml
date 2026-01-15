@@ -96,6 +96,9 @@ verify_jwt = false
 [functions.backfill-all-playoff-stats]
 verify_jwt = false
 
+[functions.create-resend-contacts]
+verify_jwt = false
+
 # Cron: sync-live-stats for playoffs using API-Sports (runs parallel with ESPN sync)
 [functions.sync-live-stats.cron.sync-live-stats-playoff-api-sports]
 schedule = "* * * * *"
