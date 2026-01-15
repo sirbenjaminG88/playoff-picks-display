@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock, Trash2 } from "lucide-react";
+import { ClipboardList, CheckCircle2, Info, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { teamColorMap } from "@/lib/teamColors";
@@ -876,21 +876,6 @@ const Picks = () => {
                     
                     <div className="flex items-center justify-between">
                       <h2 className="text-2xl font-bold">{weekLabel} Picks</h2>
-                      {/* Admin reset button */}
-                      {isAdmin && (weekPicks.qb || weekPicks.rb || weekPicks.flex || weekPicks.submitted) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs text-muted-foreground hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleResetClick(weekNum);
-                          }}
-                        >
-                          <Trash2 className="w-3 h-3 mr-1" />
-                          Reset {weekLabel}
-                        </Button>
-                      )}
                     </div>
                   </div>
 
