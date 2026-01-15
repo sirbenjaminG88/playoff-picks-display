@@ -45,14 +45,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const checkAdminRole = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
 
-    return data !== null;
+    // IMPORTANT: If the query is blocked by RLS (or any other error),
+    // treat the user as NOT admin (fail-closed).
+    if (error) {
+      console.warn("[AuthContext] Error checking admin role:", error);
+      return false;
+    }
+
+    return !!data;
   };
 
   const refreshProfile = async () => {
