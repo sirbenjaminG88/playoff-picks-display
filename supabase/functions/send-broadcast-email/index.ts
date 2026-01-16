@@ -73,7 +73,23 @@ const generateEmailHtml = ({ heading, body, signature, ctaText, ctaUrl }: Omit<B
 </html>
 `;
 
+const generatePlainText = ({ heading, body, signature, ctaText, ctaUrl }: Omit<BroadcastEmailRequest, 'to' | 'subject'>) => {
+  let text = `EMMA - Fantasy Playoff League\n\n${heading}\n\n`;
+  text += body.join('\n\n');
+  if (signature) {
+    text += `\n\n${signature}`;
+  }
+  if (ctaText && ctaUrl) {
+    text += `\n\n${ctaText}: ${ctaUrl}`;
+  }
+  text += '\n\n---\n© 2025 EMMA Fantasy League';
+  return text;
+};
+
 const handler = async (req: Request): Promise<Response> => {
+  const startTime = Date.now();
+  console.log(`=== send-broadcast-email invoked at ${new Date().toISOString()} ===`);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -81,7 +97,16 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { to, subject, heading, body, signature, ctaText, ctaUrl }: BroadcastEmailRequest = await req.json();
 
+    // Log request details (redacted for privacy)
+    const recipientPreview = to?.length > 2 
+      ? `[${to[0]}, ${to[1]}, ... +${to.length - 2} more]`
+      : to;
+    console.log(`Recipients: ${to?.length || 0} total, preview: ${JSON.stringify(recipientPreview)}`);
+    console.log(`Subject: "${subject}"`);
+    console.log(`From: Ben <ben@playoffpicks.app>`);
+
     if (!to || !to.length || !subject || !heading || !body || !body.length) {
+      console.error("Missing required fields");
       return new Response(
         JSON.stringify({ error: "Missing required fields: to, subject, heading, body" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -89,25 +114,75 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const html = generateEmailHtml({ heading, body, signature, ctaText, ctaUrl });
+    const text = generatePlainText({ heading, body, signature, ctaText, ctaUrl });
 
+    console.log("Calling Resend API...");
+    
     const emailResponse = await resend.emails.send({
       from: "Ben <ben@playoffpicks.app>",
       reply_to: "benjaminmgold@gmail.com",
       to,
       subject,
       html,
+      text, // Plain text fallback for better deliverability
     });
 
-    console.log("Broadcast email sent successfully:", emailResponse);
+    const duration = Date.now() - startTime;
+    console.log(`Resend API response (${duration}ms):`, JSON.stringify(emailResponse, null, 2));
 
-    return new Response(JSON.stringify(emailResponse), {
+    // Check if Resend returned an error structure
+    if ((emailResponse as any).error) {
+      const error = (emailResponse as any).error;
+      console.error("Resend returned error:", JSON.stringify(error, null, 2));
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: error,
+          debug: {
+            recipientCount: to.length,
+            duration,
+            timestamp: new Date().toISOString()
+          }
+        }),
+        { status: 422, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log(`Broadcast email sent successfully to ${to.length} recipients in ${duration}ms`);
+
+    return new Response(JSON.stringify({
+      success: true,
+      data: emailResponse,
+      debug: {
+        recipientCount: to.length,
+        duration,
+        timestamp: new Date().toISOString()
+      }
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
-    console.error("Error in send-broadcast-email function:", error);
+    const duration = Date.now() - startTime;
+    console.error(`Error in send-broadcast-email (${duration}ms):`, error);
+    console.error("Error details:", JSON.stringify({
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    }, null, 2));
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: {
+          name: error.name,
+          message: error.message,
+        },
+        debug: {
+          duration,
+          timestamp: new Date().toISOString()
+        }
+      }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
