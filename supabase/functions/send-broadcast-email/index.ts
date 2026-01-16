@@ -171,9 +171,9 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
       
-      // Small delay between sends to avoid rate limiting (100ms)
+      // Small delay between sends to avoid rate limiting (600ms to stay under 2/sec)
       if (i < to.length - 1) {
-        await delay(100);
+        await delay(600);
       }
     }
 
