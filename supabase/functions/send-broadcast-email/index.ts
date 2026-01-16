@@ -18,6 +18,13 @@ interface BroadcastEmailRequest {
   ctaUrl?: string;
 }
 
+interface SendResult {
+  email: string;
+  success: boolean;
+  id?: string;
+  error?: string;
+}
+
 const generateEmailHtml = ({ heading, body, signature, ctaText, ctaUrl }: Omit<BroadcastEmailRequest, 'to' | 'subject'>) => `
 <!DOCTYPE html>
 <html>
@@ -86,6 +93,9 @@ const generatePlainText = ({ heading, body, signature, ctaText, ctaUrl }: Omit<B
   return text;
 };
 
+// Small delay helper to avoid rate limiting
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 const handler = async (req: Request): Promise<Response> => {
   const startTime = Date.now();
   console.log(`=== send-broadcast-email invoked at ${new Date().toISOString()} ===`);
@@ -116,45 +126,73 @@ const handler = async (req: Request): Promise<Response> => {
     const html = generateEmailHtml({ heading, body, signature, ctaText, ctaUrl });
     const text = generatePlainText({ heading, body, signature, ctaText, ctaUrl });
 
-    console.log("Calling Resend API...");
+    console.log(`Sending individual emails to ${to.length} recipients...`);
     
-    const emailResponse = await resend.emails.send({
-      from: "Ben <ben@playoffpicks.app>",
-      reply_to: "benjaminmgold@gmail.com",
-      to,
-      subject,
-      html,
-      text, // Plain text fallback for better deliverability
-    });
-
-    const duration = Date.now() - startTime;
-    console.log(`Resend API response (${duration}ms):`, JSON.stringify(emailResponse, null, 2));
-
-    // Check if Resend returned an error structure
-    if ((emailResponse as any).error) {
-      const error = (emailResponse as any).error;
-      console.error("Resend returned error:", JSON.stringify(error, null, 2));
-      return new Response(
-        JSON.stringify({ 
+    const results: SendResult[] = [];
+    
+    // Send individual emails to each recipient
+    for (let i = 0; i < to.length; i++) {
+      const email = to[i];
+      console.log(`[${i + 1}/${to.length}] Sending to ${email}...`);
+      
+      try {
+        const emailResponse = await resend.emails.send({
+          from: "Ben <ben@playoffpicks.app>",
+          reply_to: "benjaminmgold@gmail.com",
+          to: [email], // Single recipient
+          subject,
+          html,
+          text,
+        });
+        
+        // Check if Resend returned an error structure
+        if ((emailResponse as any).error) {
+          const error = (emailResponse as any).error;
+          console.error(`[${i + 1}/${to.length}] Failed for ${email}:`, error.message);
+          results.push({
+            email,
+            success: false,
+            error: error.message || 'Unknown error',
+          });
+        } else {
+          console.log(`[${i + 1}/${to.length}] Success for ${email}: ${(emailResponse as any).id || emailResponse.data?.id}`);
+          results.push({
+            email,
+            success: true,
+            id: (emailResponse as any).id || emailResponse.data?.id,
+          });
+        }
+      } catch (sendError: any) {
+        console.error(`[${i + 1}/${to.length}] Exception for ${email}:`, sendError.message);
+        results.push({
+          email,
           success: false,
-          error: error,
-          debug: {
-            recipientCount: to.length,
-            duration,
-            timestamp: new Date().toISOString()
-          }
-        }),
-        { status: 422, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+          error: sendError.message,
+        });
+      }
+      
+      // Small delay between sends to avoid rate limiting (100ms)
+      if (i < to.length - 1) {
+        await delay(100);
+      }
     }
 
-    console.log(`Broadcast email sent successfully to ${to.length} recipients in ${duration}ms`);
+    const duration = Date.now() - startTime;
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+    
+    console.log(`=== Broadcast complete in ${duration}ms ===`);
+    console.log(`Success: ${successCount}, Failed: ${failureCount}`);
 
     return new Response(JSON.stringify({
-      success: true,
-      data: emailResponse,
+      success: failureCount === 0,
+      summary: {
+        total: to.length,
+        sent: successCount,
+        failed: failureCount,
+      },
+      results,
       debug: {
-        recipientCount: to.length,
         duration,
         timestamp: new Date().toISOString()
       }
