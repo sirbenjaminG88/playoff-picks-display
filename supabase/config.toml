@@ -1,5 +1,11 @@
 project_id = "zdaqwylzpkqojwvhlibd"
 
+[functions.sync-player-projections]
+verify_jwt = false
+
+[functions.calculate-league-odds]
+verify_jwt = false
+
 [functions.sync-playoff-teams]
 verify_jwt = true
 
