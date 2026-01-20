@@ -384,6 +384,7 @@ export type Database = {
           depth_chart_slot: string | null
           depth_chart_source: string
           depth_chart_updated_at: string | null
+          espn_player_id: string | null
           group: string | null
           has_headshot: boolean | null
           id: string
@@ -393,6 +394,11 @@ export type Database = {
           number: string | null
           player_id: number
           position: string
+          projected_pts: number | null
+          projection_source: string | null
+          projection_updated_at: string | null
+          regular_season_avg_pts: number | null
+          regular_season_games: number | null
           season: number
           selection_override: string | null
           team_id: number
@@ -407,6 +413,7 @@ export type Database = {
           depth_chart_slot?: string | null
           depth_chart_source?: string
           depth_chart_updated_at?: string | null
+          espn_player_id?: string | null
           group?: string | null
           has_headshot?: boolean | null
           id?: string
@@ -416,6 +423,11 @@ export type Database = {
           number?: string | null
           player_id: number
           position: string
+          projected_pts?: number | null
+          projection_source?: string | null
+          projection_updated_at?: string | null
+          regular_season_avg_pts?: number | null
+          regular_season_games?: number | null
           season?: number
           selection_override?: string | null
           team_id: number
@@ -430,6 +442,7 @@ export type Database = {
           depth_chart_slot?: string | null
           depth_chart_source?: string
           depth_chart_updated_at?: string | null
+          espn_player_id?: string | null
           group?: string | null
           has_headshot?: boolean | null
           id?: string
@@ -439,6 +452,11 @@ export type Database = {
           number?: string | null
           player_id?: number
           position?: string
+          projected_pts?: number | null
+          projection_source?: string | null
+          projection_updated_at?: string | null
+          regular_season_avg_pts?: number | null
+          regular_season_games?: number | null
           season?: number
           selection_override?: string | null
           team_id?: number
