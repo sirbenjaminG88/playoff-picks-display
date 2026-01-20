@@ -180,11 +180,24 @@ serve(async (req) => {
         const future = simulateRemainingWeeks(new Set(standing.usedPlayerIds), playerProjections, weeksRemaining);
         totals.set(oddsUserId, standing.currentPoints + future);
       }
-      let maxPts = -1, oddsWinnerId = '';
-      for (const [oddsUserId, total] of totals) { 
-        if (total > maxPts) { maxPts = total; oddsWinnerId = oddsUserId; } 
+      
+      // Find max points
+      let maxPts = -1;
+      for (const total of totals.values()) { 
+        if (total > maxPts) maxPts = total;
       }
-      if (oddsWinnerId) userWins.set(oddsWinnerId, (userWins.get(oddsWinnerId) || 0) + 1);
+      
+      // Collect all users tied at max (handles ties fairly)
+      const tiedWinners: string[] = [];
+      for (const [oddsUserId, total] of totals) {
+        if (total === maxPts) tiedWinners.push(oddsUserId);
+      }
+      
+      // Randomly select winner from tied users
+      if (tiedWinners.length > 0) {
+        const winner = tiedWinners[Math.floor(Math.random() * tiedWinners.length)];
+        userWins.set(winner, (userWins.get(winner) || 0) + 1);
+      }
     }
 
     // Build results
