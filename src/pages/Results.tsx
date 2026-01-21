@@ -1129,12 +1129,13 @@ function OverallLeaderboard({
     isCurrentWeek // Only fetch for current week
   );
 
-  // Create lookup map for odds by userId
+  // Create lookup map for odds by displayName (since standings use display names)
   const oddsMap = useMemo(() => {
     const map = new Map<string, { probability: number; display: string }>();
     if (oddsData?.odds) {
       for (const odd of oddsData.odds) {
-        map.set(odd.userId, {
+        // Map by displayName since that's what standings use
+        map.set(odd.displayName, {
           probability: odd.winProbability,
           display: odd.winProbabilityDisplay,
         });
@@ -1261,9 +1262,9 @@ function OverallLeaderboard({
                 />
               )}
               
-              {/* Points behind - show when NOT current week OR no odds */}
+              {/* Points behind - show when NOT current week OR no odds available */}
               {pointsBehind > 0 && (!isCurrentWeek || !odds) && (
-                <span className="text-xs text-muted-foreground font-medium">
+                <span className="text-xs text-muted-foreground font-medium text-right">
                   {pointsBehind.toFixed(1)} back
                 </span>
               )}
@@ -1423,21 +1424,39 @@ export default function Results() {
 
   const userId = user?.id;
 
-  // Determine current playoff week (latest week with any picks)
+  // Determine current playoff week based on which weeks have stats (same logic as edge function)
   const { data: currentPlayoffWeek } = useQuery({
     queryKey: ['current-playoff-week', currentLeague?.id],
     queryFn: async () => {
-      // Find the latest week with any picks for this league
-      const { data } = await supabase
+      // Find weeks that have picks with actual stats (completed weeks)
+      const { data: picks } = await supabase
         .from('user_picks')
-        .select('week')
+        .select('week, player_id')
         .eq('league_id', currentLeague!.id)
         .eq('season', 2025)
-        .in('week', [1, 2, 3, 4])
-        .order('week', { ascending: false })
-        .limit(1);
+        .in('week', [1, 2, 3, 4]);
       
-      return data?.[0]?.week || 1;
+      if (!picks || picks.length === 0) return 1;
+      
+      // Get unique player IDs and weeks
+      const playerIds = [...new Set(picks.map(p => p.player_id))];
+      const weeks = [...new Set(picks.map(p => p.week))];
+      
+      // Check which weeks have stats (meaning games are complete)
+      const { data: stats } = await supabase
+        .from('player_week_stats')
+        .select('week, fantasy_points_standard')
+        .eq('season', 2025)
+        .in('week', weeks)
+        .in('player_id', playerIds)
+        .gt('fantasy_points_standard', 0);
+      
+      const completedWeeks = [...new Set((stats || []).map(s => s.week))];
+      
+      // Current week is max completed week + 1, capped at 4
+      if (completedWeeks.length === 0) return 1;
+      const maxCompleted = Math.max(...completedWeeks);
+      return Math.min(maxCompleted + 1, 4);
     },
     enabled: !!currentLeague?.id && !isRegularSeason,
   });
