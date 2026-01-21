@@ -9,7 +9,6 @@ interface TappableAvatarProps {
   avatarUrl: string | null;
   leagueId: string;
   totalPoints?: number;
-  winProbability?: number;
   size?: "sm" | "md" | "lg";
   colorIndex?: number;
   className?: string;
@@ -33,7 +32,6 @@ export function TappableAvatar({
   avatarUrl,
   leagueId,
   totalPoints,
-  winProbability,
   size = "md",
   colorIndex,
   className = "",
@@ -78,7 +76,6 @@ export function TappableAvatar({
         avatarUrl={avatarUrl}
         leagueId={leagueId}
         totalPoints={totalPoints}
-        winProbability={winProbability}
         colorIndex={colorIndex}
       />
     </>

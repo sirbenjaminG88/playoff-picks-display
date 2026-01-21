@@ -1296,7 +1296,6 @@ function OverallLeaderboard({
                   avatarUrl={profile?.avatarUrl || null}
                   leagueId={leagueId}
                   totalPoints={standing.totalPoints}
-                  winProbability={isCurrentWeek && odds ? odds.probability : undefined}
                   colorIndex={colorIndex}
                   className="mt-0.5"
                 />
