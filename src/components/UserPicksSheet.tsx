@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +13,7 @@ import {
 import { getInitials } from "@/lib/displayName";
 import { teamColorMap } from "@/lib/teamColors";
 import { WEEK_LABELS } from "@/data/weekLabels";
+import { cn } from "@/lib/utils";
 
 interface UserPicksSheetProps {
   isOpen: boolean;
@@ -21,7 +23,6 @@ interface UserPicksSheetProps {
   avatarUrl: string | null;
   leagueId: string;
   totalPoints?: number;
-  winProbability?: number;
   colorIndex?: number;
 }
 
@@ -138,6 +139,13 @@ function useUserAllPicks(userId: string, leagueId: string, season: number = 2025
 // Position slot order for sorting
 const SLOT_ORDER: Record<string, number> = { QB: 0, RB: 1, FLEX: 2 };
 
+// Position labels for "By Position" view
+const POSITION_LABELS: Record<string, string> = {
+  QB: "Quarterbacks",
+  RB: "Running Backs",
+  FLEX: "Flex",
+};
+
 export function UserPicksSheet({
   isOpen,
   onClose,
@@ -146,9 +154,9 @@ export function UserPicksSheet({
   avatarUrl,
   leagueId,
   totalPoints,
-  winProbability,
   colorIndex,
 }: UserPicksSheetProps) {
+  const [viewMode, setViewMode] = useState<"round" | "position">("round");
   const { data, isLoading } = useUserAllPicks(userId, leagueId);
 
   // Group picks by week
@@ -163,6 +171,21 @@ export function UserPicksSheet({
   picksByWeek.forEach((picks, week) => {
     picks.sort((a, b) => (SLOT_ORDER[a.position_slot] ?? 99) - (SLOT_ORDER[b.position_slot] ?? 99));
     picksByWeek.set(week, picks);
+  });
+
+  // Group picks by position slot for "By Position" view
+  const picksByPosition = new Map<string, Array<PickData & { weekLabel: string }>>();
+  data?.picks.forEach((pick) => {
+    const slot = pick.position_slot;
+    const existing = picksByPosition.get(slot) || [];
+    existing.push({ ...pick, weekLabel: WEEK_LABELS[pick.week] });
+    picksByPosition.set(slot, existing);
+  });
+
+  // Sort picks within each position by week
+  picksByPosition.forEach((picks, slot) => {
+    picks.sort((a, b) => a.week - b.week);
+    picksByPosition.set(slot, picks);
   });
 
   return (
@@ -186,13 +209,34 @@ export function UserPicksSheet({
                     {totalPoints.toFixed(1)} pts
                   </Badge>
                 )}
-                {winProbability !== undefined && winProbability > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {winProbability}% to win
-                  </Badge>
-                )}
               </div>
             </div>
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex gap-1 bg-muted rounded-lg p-1 mt-3">
+            <button
+              onClick={() => setViewMode("round")}
+              className={cn(
+                "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                viewMode === "round"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              By Round
+            </button>
+            <button
+              onClick={() => setViewMode("position")}
+              className={cn(
+                "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                viewMode === "position"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              By Position
+            </button>
           </div>
         </DrawerHeader>
 
@@ -201,7 +245,7 @@ export function UserPicksSheet({
             <div className="py-12 flex items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : (
+          ) : viewMode === "round" ? (
             <div className="space-y-5">
               {[1, 2, 3, 4].map((week) => {
                 const weekPicks = picksByWeek.get(week);
@@ -223,7 +267,6 @@ export function UserPicksSheet({
                               key={`${pick.week}-${pick.position_slot}`}
                               className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/20 border border-border"
                             >
-                              {/* Player Headshot */}
                               <Avatar className="h-10 w-10 flex-shrink-0">
                                 {imageUrl ? (
                                   <AvatarImage src={imageUrl} alt={pick.player_name} />
@@ -232,8 +275,6 @@ export function UserPicksSheet({
                                   {getInitials(pick.player_name)}
                                 </AvatarFallback>
                               </Avatar>
-
-                              {/* Player Info */}
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm text-foreground truncate">
                                   {pick.player_name}
@@ -250,8 +291,6 @@ export function UserPicksSheet({
                                   </span>
                                 </div>
                               </div>
-
-                              {/* Points */}
                               <div className="flex-shrink-0">
                                 {points !== undefined && points !== null ? (
                                   <Badge className="bg-primary/80 text-primary-foreground text-xs font-semibold">
@@ -268,6 +307,74 @@ export function UserPicksSheet({
                     ) : (
                       <p className="text-sm text-muted-foreground italic py-2">
                         Not submitted yet
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {["QB", "RB", "FLEX"].map((slot) => {
+                const slotPicks = picksByPosition.get(slot);
+                return (
+                  <div key={slot} className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {POSITION_LABELS[slot]}
+                    </h3>
+                    {slotPicks && slotPicks.length > 0 ? (
+                      <div className="space-y-2">
+                        {slotPicks.map((pick) => {
+                          const imageUrl = data?.images.get(pick.player_id);
+                          const points = data?.stats.get(`${pick.player_id}-${pick.week}`);
+                          const teamAbbrev = getTeamAbbreviation(pick.team_name);
+                          const teamColors = teamColorMap[teamAbbrev] ?? teamColorMap.DEFAULT;
+
+                          return (
+                            <div
+                              key={`${pick.week}-${pick.position_slot}`}
+                              className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/20 border border-border"
+                            >
+                              <Avatar className="h-10 w-10 flex-shrink-0">
+                                {imageUrl ? (
+                                  <AvatarImage src={imageUrl} alt={pick.player_name} />
+                                ) : null}
+                                <AvatarFallback className="text-xs font-medium">
+                                  {getInitials(pick.player_name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm text-foreground truncate">
+                                  {pick.player_name}
+                                </p>
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                                    style={{ backgroundColor: teamColors.bg, color: teamColors.text }}
+                                  >
+                                    {teamAbbrev}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {pick.weekLabel}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0">
+                                {points !== undefined && points !== null ? (
+                                  <Badge className="bg-primary/80 text-primary-foreground text-xs font-semibold">
+                                    {points.toFixed(1)} pts
+                                  </Badge>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">—</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic py-2">
+                        No picks yet
                       </p>
                     )}
                   </div>
