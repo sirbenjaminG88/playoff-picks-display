@@ -1,4 +1,4 @@
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,28 +15,21 @@ function getColorClass(probability: number): string {
 
 export function WinProbabilityBadge({ probability, display }: WinProbabilityBadgeProps) {
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className={cn(
-            "flex items-center gap-1 text-xs font-semibold cursor-help",
-            getColorClass(probability)
-          )}>
-            <span>{display}</span>
-            <Info className="h-3 w-3 opacity-60" />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-[280px] p-3">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold">Win Probability</p>
-            <p className="text-xs text-muted-foreground">
-              Calculated using 10,000 Monte Carlo simulations of the remaining playoff weeks. 
-              Each simulation randomly assigns player performances based on projected points 
-              with variance, respecting the "no repeat player" rule, then determines a winner.
-            </p>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={cn(
+          "flex items-center gap-1 text-xs font-semibold cursor-pointer",
+          getColorClass(probability)
+        )}>
+          <span>{display}</span>
+          <Info className="h-3 w-3 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="start" className="w-auto max-w-[200px] p-2">
+        <p className="text-xs text-muted-foreground">
+          Chance to win based on simulated outcomes of remaining weeks.
+        </p>
+      </PopoverContent>
+    </Popover>
   );
 }
