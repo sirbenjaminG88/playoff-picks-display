@@ -24,6 +24,7 @@ import { QBIcon, RBIcon, FlexIcon } from "@/components/PositionIcons";
 import { useLeagueOdds } from "@/hooks/useLeagueOdds";
 import { WinProbabilityBadge } from "@/components/WinProbabilityBadge";
 import { useCurrentPlayoffWeek } from "@/hooks/useCurrentPlayoffWeek";
+import { TappableAvatar } from "@/components/TappableAvatar";
 
 // Beta weeks for 2025 regular season
 const REGULAR_SEASON_WEEKS = [14, 15, 16, 17, 18];
@@ -136,10 +137,12 @@ const getTeamAbbreviation = (teamName: string): string => {
 interface PlayerCardProps {
   player: GroupedPlayer | RegularGroupedPlayer;
   userProfiles?: Map<string, UserProfile | RegularUserProfile>;
+  authUserIdMap?: Map<string, string>;
+  leagueId?: string;
   submittedCount?: number;
 }
 
-const PlayerCard = ({ player, userProfiles, submittedCount }: PlayerCardProps) => {
+const PlayerCard = ({ player, userProfiles, authUserIdMap, leagueId, submittedCount }: PlayerCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
   
   // Determine tag type with priority: Unanimous > Popular > Unique
@@ -219,15 +222,32 @@ const PlayerCard = ({ player, userProfiles, submittedCount }: PlayerCardProps) =
             {/* Picked By Row */}
             <div className="flex items-center gap-2 ml-[60px] mt-3">
               <div className="flex -space-x-2">
-                {player.selectedBy.map((userId) => {
-                  const profile = userProfiles?.get(userId);
+                {player.selectedBy.map((displayName) => {
+                  const profile = userProfiles?.get(displayName);
+                  const authUserId = authUserIdMap?.get(displayName);
+                  
+                  // If we have auth ID and leagueId, use TappableAvatar
+                  if (authUserId && leagueId) {
+                    return (
+                      <TappableAvatar
+                        key={displayName}
+                        userId={authUserId}
+                        displayName={displayName}
+                        avatarUrl={profile?.avatarUrl || null}
+                        leagueId={leagueId}
+                        size="sm"
+                        className="border-2 border-card"
+                      />
+                    );
+                  }
+                  
                   return (
-                    <Avatar key={userId} className="h-6 w-6 border-2 border-card">
+                    <Avatar key={displayName} className="h-6 w-6 border-2 border-card">
                       {profile?.avatarUrl ? (
-                        <AvatarImage src={profile.avatarUrl} alt={userId} />
+                        <AvatarImage src={profile.avatarUrl} alt={displayName} />
                       ) : null}
-                      <AvatarFallback name={userId} className="text-[10px] font-medium">
-                        {getInitials(userId)}
+                      <AvatarFallback name={displayName} className="text-[10px] font-medium">
+                        {getInitials(displayName)}
                       </AvatarFallback>
                     </Avatar>
                   );
@@ -256,11 +276,15 @@ const PositionSection = ({
   title,
   players,
   userProfiles,
+  authUserIdMap,
+  leagueId,
   submittedCount
 }: {
   title: string;
   players: (GroupedPlayer | RegularGroupedPlayer)[];
   userProfiles?: Map<string, UserProfile | RegularUserProfile>;
+  authUserIdMap?: Map<string, string>;
+  leagueId?: string;
   submittedCount?: number;
 }) => {
   if (players.length === 0) return null;
@@ -281,7 +305,14 @@ const PositionSection = ({
       </h2>
       <div className="space-y-3">
         {players.map((player) => (
-          <PlayerCard key={player.playerId} player={player} userProfiles={userProfiles} submittedCount={submittedCount} />
+          <PlayerCard 
+            key={player.playerId} 
+            player={player} 
+            userProfiles={userProfiles} 
+            authUserIdMap={authUserIdMap}
+            leagueId={leagueId}
+            submittedCount={submittedCount} 
+          />
         ))}
       </div>
     </div>
@@ -434,9 +465,9 @@ const WeekResults = ({ week, leagueId, userId }: { week: number; leagueId: strin
           </AlertDescription>
         </Alert>
       )}
-      <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} submittedCount={data.revealStatus?.submittedCount} />
-      <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} submittedCount={data.revealStatus?.submittedCount} />
-      <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} submittedCount={data.revealStatus?.submittedCount} />
+      <PositionSection title="Quarterbacks" players={data.qbs} userProfiles={data.userProfiles} authUserIdMap={data.authUserIdMap} leagueId={leagueId} submittedCount={data.revealStatus?.submittedCount} />
+      <PositionSection title="Running Backs" players={data.rbs} userProfiles={data.userProfiles} authUserIdMap={data.authUserIdMap} leagueId={leagueId} submittedCount={data.revealStatus?.submittedCount} />
+      <PositionSection title="Flex (WR/TE)" players={data.flex} userProfiles={data.userProfiles} authUserIdMap={data.authUserIdMap} leagueId={leagueId} submittedCount={data.revealStatus?.submittedCount} />
     </div>
   );
 };
@@ -864,6 +895,7 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
     <div className="space-y-3">
       {leaderboard.map((entry, index) => {
         const profile = data.userProfiles?.get(entry.userId);
+        const authUserId = data.authUserIdMap?.get(entry.userId);
         const pointsBehind = index > 0 ? leaderPoints - entry.points : 0;
         const colorIndex = colorIndices.get(entry.userId);
         return (
@@ -884,14 +916,25 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Avatar className="h-9 w-9 flex-shrink-0">
-                {profile?.avatarUrl ? (
-                  <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
-                ) : null}
-                <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
-                  {getInitials(entry.userId)}
-                </AvatarFallback>
-              </Avatar>
+              {authUserId ? (
+                <TappableAvatar
+                  userId={authUserId}
+                  displayName={entry.userId}
+                  avatarUrl={profile?.avatarUrl || null}
+                  leagueId={leagueId}
+                  totalPoints={entry.points}
+                  colorIndex={colorIndex}
+                />
+              ) : (
+                <Avatar className="h-9 w-9 flex-shrink-0">
+                  {profile?.avatarUrl ? (
+                    <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
+                  ) : null}
+                  <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
+                    {getInitials(entry.userId)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
               <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
                 {entry.userId}
               </span>
@@ -1201,8 +1244,16 @@ function OverallLeaderboard({
 
   const leaderPoints = standings[0]?.totalPoints || 0;
 
-  // Collect user profiles from the first week that has data
+  // Collect user profiles and authUserIdMap from the first week that has data
   const userProfiles = weekQueries.find(w => w?.data?.userProfiles)?.data?.userProfiles;
+  
+  // Aggregate authUserIdMap from all weeks
+  const authUserIdMap = new Map<string, string>();
+  weekQueries.forEach((weekQuery) => {
+    weekQuery?.data?.authUserIdMap?.forEach((authId, displayName) => {
+      authUserIdMap.set(displayName, authId);
+    });
+  });
 
   // Compute sequential color indices for users without avatars
   const colorIndices = computeColorIndices(
@@ -1215,6 +1266,7 @@ function OverallLeaderboard({
       {standings.map((standing, index) => {
         const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
         const profile = userProfiles?.get(standing.oddsUserId);
+        const authUserId = authUserIdMap.get(standing.oddsUserId);
         const colorIndex = colorIndices.get(standing.oddsUserId);
         const odds = oddsMap.get(standing.oddsUserId);
         
@@ -1236,15 +1288,28 @@ function OverallLeaderboard({
                 )}
               </div>
 
-              {/* Avatar */}
-              <Avatar className="h-9 w-9 flex-shrink-0 mt-0.5">
-                {profile?.avatarUrl ? (
-                  <AvatarImage src={profile.avatarUrl} alt={standing.oddsUserId} />
-                ) : null}
-                <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
-                  {getInitials(standing.oddsUserId)}
-                </AvatarFallback>
-              </Avatar>
+              {/* Avatar - tappable if we have auth ID */}
+              {authUserId ? (
+                <TappableAvatar
+                  userId={authUserId}
+                  displayName={standing.oddsUserId}
+                  avatarUrl={profile?.avatarUrl || null}
+                  leagueId={leagueId}
+                  totalPoints={standing.totalPoints}
+                  winProbability={isCurrentWeek && odds ? odds.probability : undefined}
+                  colorIndex={colorIndex}
+                  className="mt-0.5"
+                />
+              ) : (
+                <Avatar className="h-9 w-9 flex-shrink-0 mt-0.5">
+                  {profile?.avatarUrl ? (
+                    <AvatarImage src={profile.avatarUrl} alt={standing.oddsUserId} />
+                  ) : null}
+                  <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
+                    {getInitials(standing.oddsUserId)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
 
               {/* Name + Win% stacked */}
               <div className="flex flex-col justify-center min-h-[44px]">

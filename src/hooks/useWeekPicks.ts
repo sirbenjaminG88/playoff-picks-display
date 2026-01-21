@@ -40,6 +40,7 @@ export interface WeekPicksData {
   flex: GroupedPlayer[];
   allUsers: string[];
   userProfiles: Map<string, UserProfile>;
+  authUserIdMap: Map<string, string>; // displayName -> auth_user_id mapping
   // Reveal status info
   revealStatus?: PickRevealStatus;
   canViewPicks: boolean;  // Whether current user can see picks
@@ -64,6 +65,7 @@ async function fetchWeekPicks(
       flex: [],
       allUsers: [],
       userProfiles: new Map(),
+      authUserIdMap: new Map(),
       revealStatus,
       canViewPicks: false,
     };
@@ -88,6 +90,7 @@ async function fetchWeekPicks(
       flex: [],
       allUsers: [],
       userProfiles: new Map(),
+      authUserIdMap: new Map(),
       revealStatus,
       canViewPicks: true,
     };
@@ -111,6 +114,7 @@ async function fetchWeekPicks(
       flex: [],
       allUsers: [],
       userProfiles: new Map(),
+      authUserIdMap: new Map(),
       revealStatus,
       canViewPicks: true,
     };
@@ -205,6 +209,14 @@ async function fetchWeekPicks(
   // Get all unique users from filtered picks
   const allUsers = [...new Set(filteredPicks.map((p) => p.user_id))];
 
+  // Build authUserIdMap: displayName -> auth_user_id
+  const authUserIdMap = new Map<string, string>();
+  filteredPicks.forEach((pick) => {
+    if (pick.user_id && pick.auth_user_id) {
+      authUserIdMap.set(pick.user_id, pick.auth_user_id);
+    }
+  });
+
   // Fetch user profiles to get avatar URLs from public_profiles view
   // (public_profiles bypasses RLS restrictions on users table)
   const { data: profiles } = await supabase
@@ -228,6 +240,7 @@ async function fetchWeekPicks(
     flex: groupByPositionAndPlayer(filteredPicks, "FLEX"),
     allUsers,
     userProfiles,
+    authUserIdMap,
     revealStatus,
     canViewPicks: true,
   };
