@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,8 @@ import { formatGameDateET } from "@/lib/timezone";
 import { PageHeader } from "@/components/PageHeader";
 import { Trophy } from "lucide-react";
 import { QBIcon, RBIcon, FlexIcon } from "@/components/PositionIcons";
+import { useLeagueOdds } from "@/hooks/useLeagueOdds";
+import { WinProbabilityBadge } from "@/components/WinProbabilityBadge";
 
 // Beta weeks for 2025 regular season
 const REGULAR_SEASON_WEEKS = [14, 15, 16, 17, 18];
@@ -1104,12 +1106,42 @@ function RegularSeasonResults() {
   );
 }
 
-function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: number; leagueId: string; userId: string }) {
+function OverallLeaderboard({ 
+  throughWeek, 
+  leagueId, 
+  userId,
+  isCurrentWeek = false 
+}: { 
+  throughWeek: number; 
+  leagueId: string; 
+  userId: string;
+  isCurrentWeek?: boolean;
+}) {
   // Fetch all weeks up to throughWeek
   const week1 = useWeekPicks(1, leagueId, userId);
   const week2 = useWeekPicks(2, leagueId, userId);
   const week3 = useWeekPicks(3, leagueId, userId);
   const week4 = useWeekPicks(4, leagueId, userId);
+
+  // Fetch league odds only for current week
+  const { data: oddsData, isLoading: oddsLoading } = useLeagueOdds(
+    leagueId,
+    isCurrentWeek // Only fetch for current week
+  );
+
+  // Create lookup map for odds by userId
+  const oddsMap = useMemo(() => {
+    const map = new Map<string, { probability: number; display: string }>();
+    if (oddsData?.odds) {
+      for (const odd of oddsData.odds) {
+        map.set(odd.userId, {
+          probability: odd.winProbability,
+          display: odd.winProbabilityDisplay,
+        });
+      }
+    }
+    return map;
+  }, [oddsData]);
 
   const weekQueriesMap: Record<number, typeof week1> = {
     1: week1,
@@ -1144,15 +1176,15 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
     ];
     
     allPlayers.forEach((player) => {
-      player.selectedBy.forEach((userId) => {
-        const current = userTotalPoints.get(userId) || 0;
-        userTotalPoints.set(userId, current + (player.points || 0));
+      player.selectedBy.forEach((oddsUserId) => {
+        const current = userTotalPoints.get(oddsUserId) || 0;
+        userTotalPoints.set(oddsUserId, current + (player.points || 0));
       });
     });
   });
 
   const standings = Array.from(userTotalPoints.entries())
-    .map(([userId, totalPoints]) => ({ userId, totalPoints }))
+    .map(([oddsUserId, totalPoints]) => ({ oddsUserId, totalPoints }))
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
   if (standings.length === 0) {
@@ -1171,18 +1203,22 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
   const userProfiles = weekQueries.find(w => w?.data?.userProfiles)?.data?.userProfiles;
 
   // Compute sequential color indices for users without avatars
-  const colorIndices = computeColorIndices(standings, userProfiles);
+  const colorIndices = computeColorIndices(
+    standings.map(s => ({ userId: s.oddsUserId })), 
+    userProfiles
+  );
 
   return (
     <div className="space-y-3">
       {standings.map((standing, index) => {
         const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
-        const profile = userProfiles?.get(standing.userId);
-        const colorIndex = colorIndices.get(standing.userId);
+        const profile = userProfiles?.get(standing.oddsUserId);
+        const colorIndex = colorIndices.get(standing.oddsUserId);
+        const odds = oddsMap.get(standing.oddsUserId);
         
         return (
           <div
-            key={standing.userId}
+            key={standing.oddsUserId}
             className="flex items-center gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width container for alignment */}
@@ -1200,23 +1236,33 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <Avatar className="h-9 w-9 flex-shrink-0">
                 {profile?.avatarUrl ? (
-                  <AvatarImage src={profile.avatarUrl} alt={standing.userId} />
+                  <AvatarImage src={profile.avatarUrl} alt={standing.oddsUserId} />
                 ) : null}
                 <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
-                  {getInitials(standing.userId)}
+                  {getInitials(standing.oddsUserId)}
                 </AvatarFallback>
               </Avatar>
               <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
-                {standing.userId}
+                {standing.oddsUserId}
               </span>
             </div>
 
-            {/* Points + Back indicator - right aligned */}
-            <div className="ml-auto flex-shrink-0 flex flex-col items-center gap-0.5">
+            {/* Points + Win % - right aligned */}
+            <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-0.5">
               <Badge className="text-sm font-bold bg-primary text-primary-foreground py-1 w-[90px] text-center justify-center">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
-              {pointsBehind > 0 && (
+              
+              {/* Win probability - only on current week */}
+              {isCurrentWeek && odds && (
+                <WinProbabilityBadge
+                  probability={odds.probability}
+                  display={odds.display}
+                />
+              )}
+              
+              {/* Points behind - show when NOT current week OR no odds */}
+              {pointsBehind > 0 && (!isCurrentWeek || !odds) && (
                 <span className="text-xs text-muted-foreground font-medium">
                   {pointsBehind.toFixed(1)} back
                 </span>
@@ -1225,6 +1271,14 @@ function OverallLeaderboard({ throughWeek, leagueId, userId }: { throughWeek: nu
           </div>
         );
       })}
+      
+      {/* Loading indicator for odds */}
+      {isCurrentWeek && oddsLoading && (
+        <div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Calculating win probabilities...</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1369,6 +1423,25 @@ export default function Results() {
 
   const userId = user?.id;
 
+  // Determine current playoff week (latest week with any picks)
+  const { data: currentPlayoffWeek } = useQuery({
+    queryKey: ['current-playoff-week', currentLeague?.id],
+    queryFn: async () => {
+      // Find the latest week with any picks for this league
+      const { data } = await supabase
+        .from('user_picks')
+        .select('week')
+        .eq('league_id', currentLeague!.id)
+        .eq('season', 2025)
+        .in('week', [1, 2, 3, 4])
+        .order('week', { ascending: false })
+        .limit(1);
+      
+      return data?.[0]?.week || 1;
+    },
+    enabled: !!currentLeague?.id && !isRegularSeason,
+  });
+
   return (
     <div className="bg-background pb-20">
       <PageHeader
@@ -1456,7 +1529,12 @@ export default function Results() {
                           <CardTitle className="text-foreground text-xl">League Standings (Through {getWeekLabel(weekNum)})</CardTitle>
                         </CardHeader>
                         <CardContent className="px-6 pb-6">
-                          <OverallLeaderboard throughWeek={weekNum} leagueId={currentLeague.id} userId={userId} />
+                          <OverallLeaderboard 
+                            throughWeek={weekNum} 
+                            leagueId={currentLeague.id} 
+                            userId={userId} 
+                            isCurrentWeek={weekNum === currentPlayoffWeek}
+                          />
                         </CardContent>
                       </Card>
                     </TabsContent>
