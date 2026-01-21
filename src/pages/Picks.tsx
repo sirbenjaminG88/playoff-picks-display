@@ -32,6 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRegularSeasonData, RegularSeasonPlayer } from "@/hooks/useRegularSeasonData";
 import { PageHeader } from "@/components/PageHeader";
 import { QBIcon, RBIcon, FlexIcon } from "@/components/PositionIcons";
+import { useCurrentPlayoffWeek } from "@/hooks/useCurrentPlayoffWeek";
 
 type PositionSlot = "QB" | "RB" | "FLEX";
 
@@ -132,10 +133,20 @@ const Picks = () => {
   const [playoffPlayers, setPlayoffPlayers] = useState<PlayoffPlayer[]>([]);
   const [loadingPlayoffs, setLoadingPlayoffs] = useState(true);
   const { weeks: playoffWeeks, loading: loadingPlayoffSchedule } = usePlayoffSchedule(2025);
+  const { data: currentPlayoffWeek } = useCurrentPlayoffWeek(2025);
 
   // Determine which weeks to use - ensure we always have a valid array
   const activeWeeks = isRegularSeason ? (regularDomainWeeks.length > 0 ? regularDomainWeeks : []) : playoffWeeks;
-  const defaultWeek = isRegularSeason ? "14" : (getCurrentOpenWeek(playoffWeeks, CURRENT_TIME)?.weekNumber?.toString() ?? "1");
+  
+  // For playoffs: prefer currently open submission window > current week from games > fallback to 1
+  const getDefaultPlayoffWeek = (): string => {
+    const openWeek = getCurrentOpenWeek(playoffWeeks, CURRENT_TIME);
+    if (openWeek) return openWeek.weekNumber.toString();
+    if (currentPlayoffWeek) return currentPlayoffWeek.toString();
+    return "1";
+  };
+  
+  const defaultWeek = isRegularSeason ? "14" : getDefaultPlayoffWeek();
 
   const [activeWeek, setActiveWeek] = useState<string>(defaultWeek);
   const [picksByWeek, setPicksByWeek] = useState<Record<number, WeekPicks>>({});
@@ -159,12 +170,21 @@ const Picks = () => {
   const [weekToReset, setWeekToReset] = useState<number | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
-  // Reset active week when season changes
+  // Reset active week when season changes or current playoff week loads
   useEffect(() => {
-    const newDefaultWeek = isRegularSeason ? "14" : "1";
-    setActiveWeek(newDefaultWeek);
+    if (isRegularSeason) {
+      setActiveWeek("14");
+    } else if (currentPlayoffWeek) {
+      // For playoffs, use the detected current week (unless a submission window is open)
+      const openWeek = getCurrentOpenWeek(playoffWeeks, CURRENT_TIME);
+      if (openWeek) {
+        setActiveWeek(openWeek.weekNumber.toString());
+      } else {
+        setActiveWeek(currentPlayoffWeek.toString());
+      }
+    }
     // Don't reset picksByWeek here - let the fetch effect handle it
-  }, [isRegularSeason]);
+  }, [isRegularSeason, currentPlayoffWeek, playoffWeeks]);
 
   // Initialize picksByWeek structure when weeks are available
   // This should only set up empty entries for weeks that don't exist yet

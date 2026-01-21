@@ -23,6 +23,7 @@ import { Trophy } from "lucide-react";
 import { QBIcon, RBIcon, FlexIcon } from "@/components/PositionIcons";
 import { useLeagueOdds } from "@/hooks/useLeagueOdds";
 import { WinProbabilityBadge } from "@/components/WinProbabilityBadge";
+import { useCurrentPlayoffWeek } from "@/hooks/useCurrentPlayoffWeek";
 
 // Beta weeks for 2025 regular season
 const REGULAR_SEASON_WEEKS = [14, 15, 16, 17, 18];
@@ -1425,42 +1426,15 @@ export default function Results() {
 
   const userId = user?.id;
 
-  // Determine current playoff week based on which weeks have stats (same logic as edge function)
-  const { data: currentPlayoffWeek } = useQuery({
-    queryKey: ['current-playoff-week', currentLeague?.id],
-    queryFn: async () => {
-      // Find weeks that have picks with actual stats (completed weeks)
-      const { data: picks } = await supabase
-        .from('user_picks')
-        .select('week, player_id')
-        .eq('league_id', currentLeague!.id)
-        .eq('season', 2025)
-        .in('week', [1, 2, 3, 4]);
-      
-      if (!picks || picks.length === 0) return 1;
-      
-      // Get unique player IDs and weeks
-      const playerIds = [...new Set(picks.map(p => p.player_id))];
-      const weeks = [...new Set(picks.map(p => p.week))];
-      
-      // Check which weeks have stats (meaning games are complete)
-      const { data: stats } = await supabase
-        .from('player_week_stats')
-        .select('week, fantasy_points_standard')
-        .eq('season', 2025)
-        .in('week', weeks)
-        .in('player_id', playerIds)
-        .gt('fantasy_points_standard', 0);
-      
-      const completedWeeks = [...new Set((stats || []).map(s => s.week))];
-      
-      // Current week is max completed week + 1, capped at 4
-      if (completedWeeks.length === 0) return 1;
-      const maxCompleted = Math.max(...completedWeeks);
-      return Math.min(maxCompleted + 1, 4);
-    },
-    enabled: !!currentLeague?.id && !isRegularSeason,
-  });
+  // Determine current playoff week based on game completion status
+  const { data: currentPlayoffWeek } = useCurrentPlayoffWeek(2025);
+  
+  // Set initial tab to current week when data loads (only on first load)
+  useEffect(() => {
+    if (currentPlayoffWeek && !isRegularSeason) {
+      setActiveWeek(currentPlayoffWeek);
+    }
+  }, [currentPlayoffWeek, isRegularSeason]);
 
   return (
     <div className="bg-background pb-20">
