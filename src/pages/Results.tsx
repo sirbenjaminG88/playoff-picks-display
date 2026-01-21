@@ -1233,38 +1233,42 @@ function OverallLeaderboard({
               )}
             </div>
 
-            {/* Avatar + Name container */}
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Avatar className="h-9 w-9 flex-shrink-0">
-                {profile?.avatarUrl ? (
-                  <AvatarImage src={profile.avatarUrl} alt={standing.oddsUserId} />
-                ) : null}
-                <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
-                  {getInitials(standing.oddsUserId)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
-                {standing.oddsUserId}
-              </span>
+            {/* Avatar + Name + Win% container */}
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-9 w-9 flex-shrink-0">
+                  {profile?.avatarUrl ? (
+                    <AvatarImage src={profile.avatarUrl} alt={standing.oddsUserId} />
+                  ) : null}
+                  <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
+                    {getInitials(standing.oddsUserId)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
+                  {standing.oddsUserId}
+                </span>
+              </div>
+              
+              {/* Win probability - underneath the name, only on current week */}
+              {isCurrentWeek && odds && (
+                <div className="ml-11">
+                  <WinProbabilityBadge
+                    probability={odds.probability}
+                    display={odds.display}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Points + Win % - right aligned */}
+            {/* Points + Points Behind - right aligned */}
             <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-0.5">
               <Badge className="text-sm font-bold bg-primary text-primary-foreground py-1 w-[90px] text-center justify-center">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
               
-              {/* Win probability - only on current week */}
-              {isCurrentWeek && odds && (
-                <WinProbabilityBadge
-                  probability={odds.probability}
-                  display={odds.display}
-                />
-              )}
-              
-              {/* Points behind - show when NOT current week OR no odds available */}
-              {pointsBehind > 0 && (!isCurrentWeek || !odds) && (
-                <span className="text-xs text-muted-foreground font-medium text-right">
+              {/* Points behind - always show when applicable */}
+              {pointsBehind > 0 && (
+                <span className="text-xs text-muted-foreground font-medium">
                   {pointsBehind.toFixed(1)} back
                 </span>
               )}
