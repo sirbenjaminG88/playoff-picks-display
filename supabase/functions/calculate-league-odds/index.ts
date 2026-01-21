@@ -197,6 +197,31 @@ serve(async (req) => {
       if (tiedWinners.length > 0) {
         const winner = tiedWinners[Math.floor(Math.random() * tiedWinners.length)];
         userWins.set(winner, (userWins.get(winner) || 0) + 1);
+    }
+    }
+
+    // Group users by game state to ensure identical situations get equal probability
+    const gameStateGroups = new Map<string, string[]>();
+
+    for (const [oddsUserId, standing] of userStandings) {
+      // Create a key from current points and sorted used player IDs
+      const sortedPlayerIds = [...standing.usedPlayerIds].sort((a: number, b: number) => a - b).join(',');
+      const stateKey = `${standing.currentPoints.toFixed(1)}_${sortedPlayerIds}`;
+
+      if (!gameStateGroups.has(stateKey)) {
+        gameStateGroups.set(stateKey, []);
+      }
+      gameStateGroups.get(stateKey)!.push(oddsUserId);
+    }
+
+    // Average win counts for users with identical game states
+    for (const [_stateKey, userIds] of gameStateGroups) {
+      if (userIds.length > 1) {
+        const totalWins = userIds.reduce((sum, id) => sum + (userWins.get(id) || 0), 0);
+        const avgWins = totalWins / userIds.length;
+        for (const id of userIds) {
+          userWins.set(id, avgWins);
+        }
       }
     }
 
