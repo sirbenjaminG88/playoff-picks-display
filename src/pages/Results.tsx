@@ -1260,12 +1260,12 @@ function OverallLeaderboard({
             </div>
 
             {/* Right: Points + Points Back stacked */}
-            <div className="flex flex-col items-end justify-center min-h-[44px]">
+            <div className="flex flex-col items-center justify-center min-h-[44px]">
               <Badge className="text-sm font-bold bg-primary text-primary-foreground py-1 w-[90px] text-center justify-center">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
               {index > 0 && pointsBehind > 0 && (
-                <span className="text-xs text-muted-foreground font-medium">
+                <span className="text-xs text-muted-foreground font-medium mt-1">
                   {pointsBehind.toFixed(1)} back
                 </span>
               )}
