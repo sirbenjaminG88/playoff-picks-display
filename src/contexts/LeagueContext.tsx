@@ -100,12 +100,12 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
           console.log("[LeagueContext] Transformed memberships:", transformedMemberships);
           setMemberships(transformedMemberships);
 
-          // Default to the beta league or first league
+          // Default to "The Original Emmas" league, then fallback to first league
           if (transformedMemberships.length > 0 && !currentLeagueId) {
-            const betaLeague = transformedMemberships.find(
-              m => m.league.name === "2025 Regular Season Beta Test"
+            const preferredLeague = transformedMemberships.find(
+              m => m.league.name === "The Original Emmas"
             );
-            const selectedId = betaLeague?.league_id || transformedMemberships[0].league_id;
+            const selectedId = preferredLeague?.league_id || transformedMemberships[0].league_id;
             console.log("[LeagueContext] Setting currentLeagueId to:", selectedId);
             setCurrentLeagueId(selectedId);
           }
