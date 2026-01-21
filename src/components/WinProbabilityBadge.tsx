@@ -26,10 +26,15 @@ export function WinProbabilityBadge({ probability, display }: WinProbabilityBadg
             <Info className="h-3 w-3 opacity-60" />
           </div>
         </TooltipTrigger>
-        <TooltipContent side="left" className="max-w-[200px]">
-          <p className="text-xs">
-            Projected chance of winning based on 10,000 simulations of remaining weeks
-          </p>
+        <TooltipContent side="bottom" className="max-w-[280px] p-3">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold">Win Probability</p>
+            <p className="text-xs text-muted-foreground">
+              Calculated using 10,000 Monte Carlo simulations of the remaining playoff weeks. 
+              Each simulation randomly assigns player performances based on projected points 
+              with variance, respecting the "no repeat player" rule, then determines a winner.
+            </p>
+          </div>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
