@@ -1220,54 +1220,51 @@ function OverallLeaderboard({
         return (
           <div
             key={standing.oddsUserId}
-            className="flex items-center gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
+            className="flex items-start justify-between gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
-            {/* Rank - fixed width container for alignment */}
-            <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
-              {getMedalEmoji(index) ? (
-                <span className="text-[1.75rem] leading-none">{getMedalEmoji(index)}</span>
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                  <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
-                </div>
-              )}
-            </div>
+            {/* Left: Medal + Avatar + Name/Win% Stack */}
+            <div className="flex items-start gap-3">
+              {/* Rank - fixed width container for alignment */}
+              <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+                {getMedalEmoji(index) ? (
+                  <span className="text-[1.75rem] leading-none">{getMedalEmoji(index)}</span>
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                    <span className="font-semibold text-xs text-foreground">#{index + 1}</span>
+                  </div>
+                )}
+              </div>
 
-            {/* Avatar + Name + Win% container */}
-            <div className="flex flex-col min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-9 w-9 flex-shrink-0">
-                  {profile?.avatarUrl ? (
-                    <AvatarImage src={profile.avatarUrl} alt={standing.oddsUserId} />
-                  ) : null}
-                  <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
-                    {getInitials(standing.oddsUserId)}
-                  </AvatarFallback>
-                </Avatar>
+              {/* Avatar */}
+              <Avatar className="h-9 w-9 flex-shrink-0 mt-0.5">
+                {profile?.avatarUrl ? (
+                  <AvatarImage src={profile.avatarUrl} alt={standing.oddsUserId} />
+                ) : null}
+                <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
+                  {getInitials(standing.oddsUserId)}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Name + Win% stacked */}
+              <div className="flex flex-col justify-center min-h-[44px]">
                 <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
                   {standing.oddsUserId}
                 </span>
-              </div>
-              
-              {/* Win probability - underneath the name, only on current week */}
-              {isCurrentWeek && odds && (
-                <div className="ml-11">
+                {isCurrentWeek && odds && (
                   <WinProbabilityBadge
                     probability={odds.probability}
                     display={odds.display}
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            {/* Points + Points Behind - right aligned */}
-            <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-0.5">
+            {/* Right: Points + Points Back stacked */}
+            <div className="flex flex-col items-end justify-center min-h-[44px]">
               <Badge className="text-sm font-bold bg-primary text-primary-foreground py-1 w-[90px] text-center justify-center">
                 {standing.totalPoints.toFixed(1)} pts
               </Badge>
-              
-              {/* Points behind - always show when applicable */}
-              {pointsBehind > 0 && (
+              {index > 0 && pointsBehind > 0 && (
                 <span className="text-xs text-muted-foreground font-medium">
                   {pointsBehind.toFixed(1)} back
                 </span>
