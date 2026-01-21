@@ -100,10 +100,10 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
           console.log("[LeagueContext] Transformed memberships:", transformedMemberships);
           setMemberships(transformedMemberships);
 
-          // Default to "The Original Emmas" league, then fallback to first league
+          // Default to "The Original Emma's" league, then fallback to first league
           if (transformedMemberships.length > 0 && !currentLeagueId) {
             const preferredLeague = transformedMemberships.find(
-              m => m.league.name === "The Original Emmas"
+              m => m.league.name === "The Original Emma's"
             );
             const selectedId = preferredLeague?.league_id || transformedMemberships[0].league_id;
             console.log("[LeagueContext] Setting currentLeagueId to:", selectedId);
