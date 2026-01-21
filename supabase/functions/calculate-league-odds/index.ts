@@ -68,6 +68,22 @@ function simulateRemainingWeeks(usedPlayerIds: Set<number>, availablePlayers: an
   return totalPoints;
 }
 
+// Calculate projected points for submitted-but-not-played picks (with variance for fairness)
+function getProjectedPointsForSubmittedPicks(
+  submittedPicks: { week: number; playerId: number }[],
+  playerProjections: any[]
+): number {
+  let total = 0;
+  for (const pick of submittedPicks) {
+    const player = playerProjections.find(p => p.playerId === pick.playerId);
+    if (player) {
+      // Apply same variance as simulation for fairness
+      total += Math.max(0, randomNormal(player.projectedPts, player.projectedPts * VARIANCE_FACTOR));
+    }
+  }
+  return total;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -122,7 +138,7 @@ serve(async (req) => {
       }
     }
 
-    // Build standings
+    // Build standings with new fields for submitted-but-not-played picks
     const userStandings = new Map();
     const completedWeeks = new Set<number>();
 
@@ -134,19 +150,32 @@ serve(async (req) => {
         avatarUrl: user?.avatar_url || null,
         currentPoints: 0,
         usedPlayerIds: [],
+        submittedFuturePicks: [] as { week: number; playerId: number }[],  // picks for unplayed weeks
+        submittedFutureWeeks: new Set<number>(),  // which weeks are pre-submitted
       });
     }
 
     for (const pick of picks || []) {
       const standing = userStandings.get(pick.auth_user_id);
       if (!standing) continue;
+      
+      // Always mark player as used
       standing.usedPlayerIds.push(pick.player_id);
       
       // Look up stats using the composite key
       const points = statsMap.get(`${pick.player_id}_${pick.week}`) || 0;
+      
       if (points > 0) {
+        // Game played - use actual points
         standing.currentPoints += points;
         completedWeeks.add(pick.week);
+      } else {
+        // Game NOT played - track for projected points
+        standing.submittedFuturePicks.push({
+          week: pick.week,
+          playerId: pick.player_id
+        });
+        standing.submittedFutureWeeks.add(pick.week);
       }
     }
 
@@ -176,9 +205,31 @@ serve(async (req) => {
 
     for (let sim = 0; sim < SIMULATIONS; sim++) {
       const totals = new Map<string, number>();
+      
       for (const [oddsUserId, standing] of userStandings) {
-        const future = simulateRemainingWeeks(new Set(standing.usedPlayerIds), playerProjections, weeksRemaining);
-        totals.set(oddsUserId, standing.currentPoints + future);
+        // Start with actual played points
+        let total = standing.currentPoints;
+        
+        // Add projected points for submitted-but-not-played picks (with variance)
+        total += getProjectedPointsForSubmittedPicks(
+          standing.submittedFuturePicks, 
+          playerProjections
+        );
+        
+        // Calculate how many weeks this user still needs to simulate
+        // (weeks remaining minus weeks they've already submitted picks for)
+        const userWeeksRemaining = Math.max(0, weeksRemaining - standing.submittedFutureWeeks.size);
+        
+        // Simulate only weeks not yet submitted
+        if (userWeeksRemaining > 0) {
+          total += simulateRemainingWeeks(
+            new Set(standing.usedPlayerIds), 
+            playerProjections, 
+            userWeeksRemaining
+          );
+        }
+        
+        totals.set(oddsUserId, total);
       }
       
       // Find max points
@@ -201,12 +252,17 @@ serve(async (req) => {
     }
 
     // Group users by game state to ensure identical situations get equal probability
+    // Include submitted future picks in the state key since they affect outcomes
     const gameStateGroups = new Map<string, string[]>();
 
     for (const [oddsUserId, standing] of userStandings) {
-      // Create a key from current points and sorted used player IDs
+      // Create a key from current points, sorted used player IDs, AND sorted future picks
       const sortedPlayerIds = [...standing.usedPlayerIds].sort((a: number, b: number) => a - b).join(',');
-      const stateKey = `${standing.currentPoints.toFixed(1)}_${sortedPlayerIds}`;
+      const sortedFuturePicks = [...standing.submittedFuturePicks]
+        .sort((a: { playerId: number }, b: { playerId: number }) => a.playerId - b.playerId)
+        .map((p: { playerId: number }) => p.playerId)
+        .join(',');
+      const stateKey = `${standing.currentPoints.toFixed(1)}_${sortedPlayerIds}_${sortedFuturePicks}`;
 
       if (!gameStateGroups.has(stateKey)) {
         gameStateGroups.set(stateKey, []);
@@ -238,6 +294,9 @@ serve(async (req) => {
         currentPoints: Math.round(standing.currentPoints * 10) / 10,
         winProbability: prob,
         winProbabilityDisplay: prob < 0.001 ? '<0.1%' : `${pct}%`,
+        // Debug info
+        submittedFutureWeeks: Array.from(standing.submittedFutureWeeks),
+        weeksToSimulate: Math.max(0, weeksRemaining - standing.submittedFutureWeeks.size),
       });
     }
 
