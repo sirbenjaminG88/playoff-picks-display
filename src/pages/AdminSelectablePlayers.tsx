@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Loader2, ChevronDown, ChevronRight, RotateCcw, Check, X, Minus } from "lucide-react";
+import { ArrowLeft, Loader2, ChevronDown, ChevronRight, RotateCcw, Check, X, Minus, AlertTriangle, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type SelectionOverride = "auto" | "include" | "exclude";
+type InjuryStatus = "active" | "out" | "ir" | "questionable" | "doubtful" | "probable";
 
 interface SelectablePlayerV2 {
   id: string;
@@ -27,6 +28,7 @@ interface SelectablePlayerV2 {
   selection_override: SelectionOverride;
   is_selectable: boolean;
   depth_chart_label: string | null;
+  injury_status: InjuryStatus | null;
 }
 
 const AdminSelectablePlayers = () => {
@@ -36,6 +38,7 @@ const AdminSelectablePlayers = () => {
   const [positionFilter, setPositionFilter] = useState<string>("all");
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [updatingPlayers, setUpdatingPlayers] = useState<Set<string>>(new Set());
+  const [syncingInjuries, setSyncingInjuries] = useState(false);
 
   useEffect(() => {
     loadPlayers();
@@ -197,9 +200,94 @@ const AdminSelectablePlayers = () => {
     setLoading(false);
   };
 
+  const syncInjuryStatus = async () => {
+    setSyncingInjuries(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Not authenticated", variant: "destructive" });
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-espn-injury-status`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || "Sync failed");
+      }
+
+      toast({
+        title: "Injury sync complete",
+        description: `${result.playersUpdated} players updated`,
+      });
+
+      if (result.playersUpdated > 0) {
+        await loadPlayers();
+      }
+    } catch (error) {
+      console.error("Error syncing injuries:", error);
+      toast({
+        title: "Error syncing injuries",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+    setSyncingInjuries(false);
+  };
+
+  const markPlayerOut = async (playerId: string, isOut: boolean) => {
+    setUpdatingPlayers((prev) => new Set(prev).add(playerId));
+    
+    const newStatus = isOut ? 'out' : 'active';
+    const newOverride = isOut ? 'exclude' : 'auto';
+    
+    const { error } = await supabase
+      .from("playoff_players")
+      .update({ 
+        injury_status: newStatus,
+        selection_override: newOverride,
+      })
+      .eq("id", playerId);
+
+    if (error) {
+      toast({
+        title: "Error updating player",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.id === playerId
+            ? { ...p, injury_status: newStatus as InjuryStatus, selection_override: newOverride, is_selectable: !isOut }
+            : p
+        )
+      );
+      toast({
+        title: isOut ? "Player marked OUT" : "Player marked active",
+      });
+    }
+
+    setUpdatingPlayers((prev) => {
+      const next = new Set(prev);
+      next.delete(playerId);
+      return next;
+    });
+  };
+
   const getStatusBadge = (player: SelectablePlayerV2) => {
     if (player.selection_override === "include") {
-      return <Badge variant="default" className="bg-green-600 text-xs">Included</Badge>;
+      return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-xs">Included</Badge>;
     }
     if (player.selection_override === "exclude") {
       return <Badge variant="destructive" className="text-xs">Excluded</Badge>;
@@ -209,6 +297,27 @@ const AdminSelectablePlayers = () => {
       return <Badge variant="secondary" className="text-xs">Auto ✓</Badge>;
     }
     return <Badge variant="outline" className="text-xs text-muted-foreground">Auto ✗</Badge>;
+  };
+
+  const getInjuryBadge = (status: InjuryStatus | null) => {
+    if (!status || status === 'active') return null;
+    
+    const badges: Record<string, { label: string; className: string }> = {
+      out: { label: "OUT", className: "bg-red-600 hover:bg-red-700 text-white" },
+      ir: { label: "IR", className: "bg-red-800 hover:bg-red-900 text-white" },
+      doubtful: { label: "D", className: "bg-orange-600 hover:bg-orange-700 text-white" },
+      questionable: { label: "Q", className: "bg-amber-500 hover:bg-amber-600 text-black" },
+      probable: { label: "P", className: "bg-emerald-600 hover:bg-emerald-700 text-white" },
+    };
+    
+    const badge = badges[status];
+    if (!badge) return null;
+    
+    return (
+      <Badge className={cn("text-xs font-bold", badge.className)}>
+        {badge.label}
+      </Badge>
+    );
   };
 
   return (
@@ -305,6 +414,19 @@ const AdminSelectablePlayers = () => {
               <RotateCcw className="w-4 h-4 mr-2" />
               Reset All to Auto
             </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={syncInjuryStatus}
+              disabled={syncingInjuries}
+            >
+              {syncingInjuries ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Sync Injuries
+            </Button>
 
             <span className="text-sm text-muted-foreground self-center ml-auto">
               Showing {filteredPlayers.length} players
@@ -377,15 +499,32 @@ const AdminSelectablePlayers = () => {
                                   </Badge>
                                   <div className="w-12 flex-shrink-0">
                                     {player.depth_chart_label && (
-                                      <Badge className="text-xs font-mono bg-green-600 text-white w-full justify-center">
+                                      <Badge className="text-xs font-mono bg-emerald-600 hover:bg-emerald-700 text-white w-full justify-center">
                                         {player.depth_chart_label}
                                       </Badge>
                                     )}
+                                  </div>
+                                  {/* Injury Badge */}
+                                  <div className="w-10 flex-shrink-0">
+                                    {getInjuryBadge(player.injury_status)}
                                   </div>
                                 </div>
 
                                 {/* Status Badge */}
                                 <div className="flex-shrink-0">{getStatusBadge(player)}</div>
+
+                                {/* Quick OUT toggle */}
+                                <Button
+                                  variant={player.injury_status === 'out' || player.injury_status === 'ir' ? "destructive" : "outline"}
+                                  size="sm"
+                                  className="h-8 px-2 flex-shrink-0"
+                                  onClick={() => markPlayerOut(player.id, player.injury_status !== 'out' && player.injury_status !== 'ir')}
+                                  disabled={updatingPlayers.has(player.id)}
+                                  title={player.injury_status === 'out' || player.injury_status === 'ir' ? "Mark Active" : "Mark OUT"}
+                                >
+                                  <AlertTriangle className="w-4 h-4 mr-1" />
+                                  {player.injury_status === 'out' || player.injury_status === 'ir' ? "Active" : "OUT"}
+                                </Button>
 
                                 {/* Override Toggle */}
                                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -394,7 +533,7 @@ const AdminSelectablePlayers = () => {
                                     size="sm"
                                     className={cn(
                                       "h-8 w-8 p-0",
-                                      player.selection_override === "include" && "bg-green-600 hover:bg-green-700"
+                                      player.selection_override === "include" && "bg-emerald-600 hover:bg-emerald-700"
                                     )}
                                     onClick={() => updatePlayerOverride(player.id, "include")}
                                     disabled={updatingPlayers.has(player.id)}

@@ -389,6 +389,7 @@ export type Database = {
           has_headshot: boolean | null
           id: string
           image_url: string | null
+          injury_status: string | null
           is_starter: boolean | null
           name: string
           number: string | null
@@ -418,6 +419,7 @@ export type Database = {
           has_headshot?: boolean | null
           id?: string
           image_url?: string | null
+          injury_status?: string | null
           is_starter?: boolean | null
           name: string
           number?: string | null
@@ -447,6 +449,7 @@ export type Database = {
           has_headshot?: boolean | null
           id?: string
           image_url?: string | null
+          injury_status?: string | null
           is_starter?: boolean | null
           name?: string
           number?: string | null
@@ -930,6 +933,7 @@ export type Database = {
           group: string | null
           id: string | null
           image_url: string | null
+          injury_status: string | null
           is_selectable: boolean | null
           is_starter: boolean | null
           name: string | null
