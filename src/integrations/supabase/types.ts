@@ -384,6 +384,8 @@ export type Database = {
           depth_chart_slot: string | null
           depth_chart_source: string
           depth_chart_updated_at: string | null
+          dk_salary: number | null
+          dk_salary_week: number | null
           espn_player_id: string | null
           group: string | null
           has_headshot: boolean | null
@@ -414,6 +416,8 @@ export type Database = {
           depth_chart_slot?: string | null
           depth_chart_source?: string
           depth_chart_updated_at?: string | null
+          dk_salary?: number | null
+          dk_salary_week?: number | null
           espn_player_id?: string | null
           group?: string | null
           has_headshot?: boolean | null
@@ -444,6 +448,8 @@ export type Database = {
           depth_chart_slot?: string | null
           depth_chart_source?: string
           depth_chart_updated_at?: string | null
+          dk_salary?: number | null
+          dk_salary_week?: number | null
           espn_player_id?: string | null
           group?: string | null
           has_headshot?: boolean | null
@@ -930,6 +936,8 @@ export type Database = {
           depth_chart_label: string | null
           depth_chart_rank: number | null
           depth_chart_slot: string | null
+          dk_salary: number | null
+          dk_salary_week: number | null
           group: string | null
           id: string | null
           image_url: string | null
@@ -943,6 +951,46 @@ export type Database = {
           selection_override: string | null
           team_id: number | null
           team_name: string | null
+        }
+        Insert: {
+          depth_chart_label?: never
+          depth_chart_rank?: number | null
+          depth_chart_slot?: string | null
+          dk_salary?: number | null
+          dk_salary_week?: number | null
+          group?: string | null
+          id?: string | null
+          image_url?: string | null
+          injury_status?: string | null
+          is_selectable?: never
+          is_starter?: boolean | null
+          name?: string | null
+          player_id?: number | null
+          position?: string | null
+          season?: number | null
+          selection_override?: string | null
+          team_id?: number | null
+          team_name?: string | null
+        }
+        Update: {
+          depth_chart_label?: never
+          depth_chart_rank?: number | null
+          depth_chart_slot?: string | null
+          dk_salary?: number | null
+          dk_salary_week?: number | null
+          group?: string | null
+          id?: string | null
+          image_url?: string | null
+          injury_status?: string | null
+          is_selectable?: never
+          is_starter?: boolean | null
+          name?: string | null
+          player_id?: number | null
+          position?: string | null
+          season?: number | null
+          selection_override?: string | null
+          team_id?: number | null
+          team_name?: string | null
         }
         Relationships: []
       }

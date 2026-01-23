@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Loader2, ChevronDown, ChevronRight, RotateCcw, Check, X, Minus, AlertTriangle, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, ChevronDown, ChevronRight, RotateCcw, Check, X, Minus, AlertTriangle, RefreshCw, DollarSign } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DKSalaryImportModal } from "@/components/admin/DKSalaryImportModal";
+import { PLAYOFF_WEEK_LABELS } from "@/lib/teamAbbreviations";
 
 type SelectionOverride = "auto" | "include" | "exclude";
 type InjuryStatus = "active" | "out" | "ir" | "questionable" | "doubtful" | "probable";
@@ -31,6 +33,8 @@ interface SelectablePlayerV2 {
   is_selectable: boolean;
   depth_chart_label: string | null;
   injury_status: InjuryStatus | null;
+  dk_salary: number | null;
+  dk_salary_week: number | null;
 }
 
 const AdminSelectablePlayers = () => {
@@ -41,6 +45,8 @@ const AdminSelectablePlayers = () => {
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [updatingPlayers, setUpdatingPlayers] = useState<Set<string>>(new Set());
   const [syncingInjuries, setSyncingInjuries] = useState(false);
+  const [showDKImportModal, setShowDKImportModal] = useState(false);
+  const [sortBy, setSortBy] = useState<"team" | "salary-high" | "salary-low">("team");
 
   useEffect(() => {
     loadPlayers();
@@ -87,8 +93,18 @@ const AdminSelectablePlayers = () => {
 
   const clearTeamFilter = () => setTeamFilter([]);
 
-  // Group players by team
+  // Group players by team (or flat list when sorting by salary)
   const playersByTeam = useMemo(() => {
+    if (sortBy !== "team") {
+      // For salary sorting, return a flat list under a single "key"
+      const sorted = [...filteredPlayers].sort((a, b) => {
+        const aSalary = a.dk_salary || 0;
+        const bSalary = b.dk_salary || 0;
+        return sortBy === "salary-high" ? bSalary - aSalary : aSalary - bSalary;
+      });
+      return { __all__: sorted };
+    }
+    
     const grouped: Record<string, SelectablePlayerV2[]> = {};
     for (const player of filteredPlayers) {
       if (!grouped[player.team_name]) {
@@ -97,7 +113,7 @@ const AdminSelectablePlayers = () => {
       grouped[player.team_name].push(player);
     }
     return grouped;
-  }, [filteredPlayers]);
+  }, [filteredPlayers, sortBy]);
 
   // Team stats
   const teamStats = useMemo(() => {
@@ -443,10 +459,21 @@ const AdminSelectablePlayers = () => {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" size="sm" onClick={expandAll}>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="team">By Team</SelectItem>
+                <SelectItem value="salary-high">Salary (High)</SelectItem>
+                <SelectItem value="salary-low">Salary (Low)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" size="sm" onClick={expandAll} disabled={sortBy !== "team"}>
               Expand All
             </Button>
-            <Button variant="outline" size="sm" onClick={collapseAll}>
+            <Button variant="outline" size="sm" onClick={collapseAll} disabled={sortBy !== "team"}>
               Collapse All
             </Button>
             <Button variant="secondary" size="sm" onClick={resetAllToAuto}>
@@ -466,171 +493,301 @@ const AdminSelectablePlayers = () => {
               )}
               Sync Injuries
             </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowDKImportModal(true)}
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Import DK Salaries
+            </Button>
 
             <span className="text-sm text-muted-foreground self-center ml-auto">
               Showing {filteredPlayers.length} players
             </span>
           </div>
 
-          {/* Players grouped by team */}
-          <div className="space-y-2">
-            {Object.entries(playersByTeam)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([teamName, teamPlayers]) => {
-                const isExpanded = expandedTeams.has(teamName);
-                const stats = teamStats[teamName];
-
-                return (
-                  <Collapsible
+          {/* Players - grouped by team or flat list */}
+          {sortBy === "team" ? (
+            <div className="space-y-2">
+              {Object.entries(playersByTeam)
+                .filter(([key]) => key !== "__all__")
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([teamName, teamPlayers]) => (
+                  <TeamSection
                     key={teamName}
-                    open={isExpanded}
-                    onOpenChange={() => toggleTeam(teamName)}
-                  >
-                    <Card>
-                      <CollapsibleTrigger asChild>
-                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {isExpanded ? (
-                                <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                              ) : (
-                                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                              )}
-                              <CardTitle className="text-base font-semibold">{teamName}</CardTitle>
-                              <Badge variant="outline" className="text-xs">
-                                {stats?.included || 0} / {stats?.total || 0} included
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent className="pt-0 pb-4">
-                          <div className="space-y-2">
-                            {teamPlayers.map((player) => (
-                              <div
-                                key={player.id}
-                                className={cn(
-                                  "flex items-center gap-4 p-3 rounded-lg border",
-                                  player.is_selectable
-                                    ? "bg-green-900/30 border-green-700"
-                                    : "bg-muted/30 border-border"
-                                )}
-                              >
-                                {/* Photo */}
-                                {player.image_url ? (
-                                  <img
-                                    src={player.image_url}
-                                    alt={player.name}
-                                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                                  />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
-                                    N/A
-                                  </div>
-                                )}
+                    teamName={teamName}
+                    teamPlayers={teamPlayers}
+                    isExpanded={expandedTeams.has(teamName)}
+                    onToggle={() => toggleTeam(teamName)}
+                    stats={teamStats[teamName]}
+                    updatingPlayers={updatingPlayers}
+                    onUpdateOverride={updatePlayerOverride}
+                    onMarkOut={markPlayerOut}
+                    getStatusBadge={getStatusBadge}
+                    getInjuryBadge={getInjuryBadge}
+                  />
+                ))}
+            </div>
+          ) : (
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-base">
+                  All Players (sorted by salary {sortBy === "salary-high" ? "high to low" : "low to high"})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 pb-4">
+                <div className="space-y-2">
+                  {(playersByTeam.__all__ || []).map((player) => (
+                    <PlayerRow
+                      key={player.id}
+                      player={player}
+                      isUpdating={updatingPlayers.has(player.id)}
+                      onUpdateOverride={updatePlayerOverride}
+                      onMarkOut={markPlayerOut}
+                      getStatusBadge={getStatusBadge}
+                      getInjuryBadge={getInjuryBadge}
+                      showTeam
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-                                {/* Player Info */}
-                                <div className="flex-1 min-w-0 flex items-center gap-3">
-                                  <span className="font-medium truncate text-foreground min-w-[140px]">{player.name}</span>
-                                  <Badge variant="secondary" className="text-xs w-10 justify-center flex-shrink-0">
-                                    {player.position}
-                                  </Badge>
-                                  <div className="w-12 flex-shrink-0">
-                                    {player.depth_chart_label && (
-                                      <Badge className="text-xs font-mono bg-emerald-600 hover:bg-emerald-700 text-white w-full justify-center">
-                                        {player.depth_chart_label}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  {/* Injury Badge */}
-                                  <div className="w-10 flex-shrink-0">
-                                    {getInjuryBadge(player.injury_status)}
-                                  </div>
-                                </div>
-
-                                {/* Status Badge */}
-                                <div className="flex-shrink-0">{getStatusBadge(player)}</div>
-
-                                {/* Injury Status Action */}
-                                <div className="flex-shrink-0 w-24">
-                                  {player.injury_status === 'out' || player.injury_status === 'ir' ? (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-8 px-2 w-full border-green-600 text-green-500 hover:bg-green-900/30"
-                                      onClick={() => markPlayerOut(player.id, false)}
-                                      disabled={updatingPlayers.has(player.id)}
-                                      title="Mark as Active"
-                                    >
-                                      <Check className="w-4 h-4 mr-1" />
-                                      Activate
-                                    </Button>
-                                  ) : (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-8 px-2 w-full border-red-600 text-red-500 hover:bg-red-900/30"
-                                      onClick={() => markPlayerOut(player.id, true)}
-                                      disabled={updatingPlayers.has(player.id)}
-                                      title="Mark as OUT"
-                                    >
-                                      <AlertTriangle className="w-4 h-4 mr-1" />
-                                      Mark OUT
-                                    </Button>
-                                  )}
-                                </div>
-
-                                {/* Override Toggle */}
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <Button
-                                    variant={player.selection_override === "include" ? "default" : "outline"}
-                                    size="sm"
-                                    className={cn(
-                                      "h-8 w-8 p-0",
-                                      player.selection_override === "include" && "bg-emerald-600 hover:bg-emerald-700"
-                                    )}
-                                    onClick={() => updatePlayerOverride(player.id, "include")}
-                                    disabled={updatingPlayers.has(player.id)}
-                                    title="Include"
-                                  >
-                                    <Check className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant={player.selection_override === "auto" ? "default" : "outline"}
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => updatePlayerOverride(player.id, "auto")}
-                                    disabled={updatingPlayers.has(player.id)}
-                                    title="Auto"
-                                  >
-                                    <Minus className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant={player.selection_override === "exclude" ? "destructive" : "outline"}
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => updatePlayerOverride(player.id, "exclude")}
-                                    disabled={updatingPlayers.has(player.id)}
-                                    title="Exclude"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
-                );
-              })}
-          </div>
+          <DKSalaryImportModal
+            open={showDKImportModal}
+            onOpenChange={setShowDKImportModal}
+            players={players}
+            onImportComplete={loadPlayers}
+          />
         </>
       )}
     </div>
   );
 };
+
+// TeamSection component for grouped view
+interface TeamSectionProps {
+  teamName: string;
+  teamPlayers: SelectablePlayerV2[];
+  isExpanded: boolean;
+  onToggle: () => void;
+  stats: { total: number; included: number } | undefined;
+  updatingPlayers: Set<string>;
+  onUpdateOverride: (id: string, override: SelectionOverride) => void;
+  onMarkOut: (id: string, isOut: boolean) => void;
+  getStatusBadge: (player: SelectablePlayerV2) => React.ReactNode;
+  getInjuryBadge: (status: InjuryStatus | null) => React.ReactNode;
+}
+
+function TeamSection({
+  teamName,
+  teamPlayers,
+  isExpanded,
+  onToggle,
+  stats,
+  updatingPlayers,
+  onUpdateOverride,
+  onMarkOut,
+  getStatusBadge,
+  getInjuryBadge,
+}: TeamSectionProps) {
+  return (
+    <Collapsible open={isExpanded} onOpenChange={onToggle}>
+      <Card>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isExpanded ? (
+                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                )}
+                <CardTitle className="text-base font-semibold">{teamName}</CardTitle>
+                <Badge variant="outline" className="text-xs">
+                  {stats?.included || 0} / {stats?.total || 0} included
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="pt-0 pb-4">
+            <div className="space-y-2">
+              {teamPlayers.map((player) => (
+                <PlayerRow
+                  key={player.id}
+                  player={player}
+                  isUpdating={updatingPlayers.has(player.id)}
+                  onUpdateOverride={onUpdateOverride}
+                  onMarkOut={onMarkOut}
+                  getStatusBadge={getStatusBadge}
+                  getInjuryBadge={getInjuryBadge}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
+
+// PlayerRow component
+interface PlayerRowProps {
+  player: SelectablePlayerV2;
+  isUpdating: boolean;
+  onUpdateOverride: (id: string, override: SelectionOverride) => void;
+  onMarkOut: (id: string, isOut: boolean) => void;
+  getStatusBadge: (player: SelectablePlayerV2) => React.ReactNode;
+  getInjuryBadge: (status: InjuryStatus | null) => React.ReactNode;
+  showTeam?: boolean;
+}
+
+function PlayerRow({
+  player,
+  isUpdating,
+  onUpdateOverride,
+  onMarkOut,
+  getStatusBadge,
+  getInjuryBadge,
+  showTeam,
+}: PlayerRowProps) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-4 p-3 rounded-lg border",
+        player.is_selectable
+          ? "bg-emerald-950/30 border-emerald-700"
+          : "bg-muted/30 border-border"
+      )}
+    >
+      {/* Photo */}
+      {player.image_url ? (
+        <img
+          src={player.image_url}
+          alt={player.name}
+          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+        />
+      ) : (
+        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+          N/A
+        </div>
+      )}
+
+      {/* Player Info */}
+      <div className="flex-1 min-w-0 flex items-center gap-3">
+        <span className="font-medium truncate text-foreground min-w-[140px]">{player.name}</span>
+        {showTeam && (
+          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+            {player.team_name}
+          </span>
+        )}
+        <Badge variant="secondary" className="text-xs w-10 justify-center flex-shrink-0">
+          {player.position}
+        </Badge>
+        <div className="w-12 flex-shrink-0">
+          {player.depth_chart_label && (
+            <Badge className="text-xs font-mono bg-emerald-600 hover:bg-emerald-700 w-full justify-center">
+              {player.depth_chart_label}
+            </Badge>
+          )}
+        </div>
+        {/* DK Salary */}
+        <div className="w-20 flex-shrink-0 text-right">
+          {player.dk_salary ? (
+            <div className="flex items-center justify-end gap-1">
+              <span className="font-mono text-sm text-emerald-400">
+                ${player.dk_salary.toLocaleString()}
+              </span>
+              {player.dk_salary_week && (
+                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                  Wk{player.dk_salary_week}
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <span className="text-muted-foreground text-sm">—</span>
+          )}
+        </div>
+        {/* Injury Badge */}
+        <div className="w-10 flex-shrink-0">
+          {getInjuryBadge(player.injury_status)}
+        </div>
+      </div>
+
+      {/* Status Badge */}
+      <div className="flex-shrink-0">{getStatusBadge(player)}</div>
+
+      {/* Injury Status Action */}
+      <div className="flex-shrink-0 w-24">
+        {player.injury_status === "out" || player.injury_status === "ir" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2 w-full border-emerald-600 text-emerald-500 hover:bg-emerald-900/30"
+            onClick={() => onMarkOut(player.id, false)}
+            disabled={isUpdating}
+            title="Mark as Active"
+          >
+            <Check className="w-4 h-4 mr-1" />
+            Activate
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2 w-full border-destructive text-destructive hover:bg-destructive/10"
+            onClick={() => onMarkOut(player.id, true)}
+            disabled={isUpdating}
+            title="Mark as OUT"
+          >
+            <AlertTriangle className="w-4 h-4 mr-1" />
+            Mark OUT
+          </Button>
+        )}
+      </div>
+
+      {/* Override Toggle */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <Button
+          variant={player.selection_override === "include" ? "default" : "outline"}
+          size="sm"
+          className={cn(
+            "h-8 w-8 p-0",
+            player.selection_override === "include" && "bg-emerald-600 hover:bg-emerald-700"
+          )}
+          onClick={() => onUpdateOverride(player.id, "include")}
+          disabled={isUpdating}
+          title="Include"
+        >
+          <Check className="w-4 h-4" />
+        </Button>
+        <Button
+          variant={player.selection_override === "auto" ? "default" : "outline"}
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => onUpdateOverride(player.id, "auto")}
+          disabled={isUpdating}
+          title="Auto"
+        >
+          <Minus className="w-4 h-4" />
+        </Button>
+        <Button
+          variant={player.selection_override === "exclude" ? "destructive" : "outline"}
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => onUpdateOverride(player.id, "exclude")}
+          disabled={isUpdating}
+          title="Exclude"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default AdminSelectablePlayers;
