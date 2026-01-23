@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type SelectionOverride = "auto" | "include" | "exclude";
 type InjuryStatus = "active" | "out" | "ir" | "questionable" | "doubtful" | "probable";
@@ -34,7 +36,7 @@ interface SelectablePlayerV2 {
 const AdminSelectablePlayers = () => {
   const [players, setPlayers] = useState<SelectablePlayerV2[]>([]);
   const [loading, setLoading] = useState(true);
-  const [teamFilter, setTeamFilter] = useState<string>("all");
+  const [teamFilter, setTeamFilter] = useState<string[]>([]);
   const [positionFilter, setPositionFilter] = useState<string>("all");
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [updatingPlayers, setUpdatingPlayers] = useState<Set<string>>(new Set());
@@ -71,11 +73,19 @@ const AdminSelectablePlayers = () => {
 
   const filteredPlayers = useMemo(() => {
     return players.filter((p) => {
-      if (teamFilter !== "all" && p.team_name !== teamFilter) return false;
+      if (teamFilter.length > 0 && !teamFilter.includes(p.team_name)) return false;
       if (positionFilter !== "all" && p.position !== positionFilter) return false;
       return true;
     });
   }, [players, teamFilter, positionFilter]);
+
+  const toggleTeamFilter = (team: string) => {
+    setTeamFilter((prev) =>
+      prev.includes(team) ? prev.filter((t) => t !== team) : [...prev, team]
+    );
+  };
+
+  const clearTeamFilter = () => setTeamFilter([]);
 
   // Group players by team
   const playersByTeam = useMemo(() => {
@@ -376,19 +386,48 @@ const AdminSelectablePlayers = () => {
 
           {/* Filters and Actions */}
           <div className="flex flex-wrap gap-4 mb-6">
-            <Select value={teamFilter} onValueChange={setTeamFilter}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter by team" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Teams</SelectItem>
-                {teams.map((team) => (
-                  <SelectItem key={team} value={team}>
-                    {team} ({teamStats[team]?.included || 0})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[200px] justify-between">
+                  {teamFilter.length === 0
+                    ? "All Teams"
+                    : teamFilter.length === 1
+                    ? teamFilter[0]
+                    : `${teamFilter.length} teams`}
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0 bg-background border" align="start">
+                <div className="p-2 border-b">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-muted-foreground"
+                    onClick={clearTeamFilter}
+                  >
+                    Clear selection
+                  </Button>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
+                  {teams.map((team) => (
+                    <div
+                      key={team}
+                      className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer"
+                      onClick={() => toggleTeamFilter(team)}
+                    >
+                      <Checkbox
+                        checked={teamFilter.includes(team)}
+                        onCheckedChange={() => toggleTeamFilter(team)}
+                      />
+                      <span className="flex-1 text-sm">{team}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({teamStats[team]?.included || 0})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <Select value={positionFilter} onValueChange={setPositionFilter}>
               <SelectTrigger className="w-[150px]">
