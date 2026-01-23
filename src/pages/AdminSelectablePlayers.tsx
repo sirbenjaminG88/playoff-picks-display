@@ -74,7 +74,16 @@ const AdminSelectablePlayers = () => {
         variant: "destructive",
       });
     } else {
-      setPlayers((data as unknown as SelectablePlayerV2[]) || []);
+      const rows = ((data as unknown as SelectablePlayerV2[]) || []).filter(Boolean);
+
+      // The view currently returns multiple seasons (e.g., 2024 + 2025), which
+      // makes players appear duplicated in the admin list. We default to the
+      // latest season present in the response.
+      const latestSeason = rows.length
+        ? Math.max(...rows.map((r) => (typeof r.season === "number" ? r.season : 0)))
+        : 0;
+
+      setPlayers(latestSeason ? rows.filter((r) => r.season === latestSeason) : rows);
     }
     setLoading(false);
   };
