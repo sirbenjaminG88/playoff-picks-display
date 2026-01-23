@@ -513,18 +513,34 @@ const AdminSelectablePlayers = () => {
                                 {/* Status Badge */}
                                 <div className="flex-shrink-0">{getStatusBadge(player)}</div>
 
-                                {/* Quick OUT toggle */}
-                                <Button
-                                  variant={player.injury_status === 'out' || player.injury_status === 'ir' ? "destructive" : "outline"}
-                                  size="sm"
-                                  className="h-8 px-2 flex-shrink-0"
-                                  onClick={() => markPlayerOut(player.id, player.injury_status !== 'out' && player.injury_status !== 'ir')}
-                                  disabled={updatingPlayers.has(player.id)}
-                                  title={player.injury_status === 'out' || player.injury_status === 'ir' ? "Mark Active" : "Mark OUT"}
-                                >
-                                  <AlertTriangle className="w-4 h-4 mr-1" />
-                                  {player.injury_status === 'out' || player.injury_status === 'ir' ? "Active" : "OUT"}
-                                </Button>
+                                {/* Injury Status Action */}
+                                <div className="flex-shrink-0 w-24">
+                                  {player.injury_status === 'out' || player.injury_status === 'ir' ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 px-2 w-full border-green-600 text-green-500 hover:bg-green-900/30"
+                                      onClick={() => markPlayerOut(player.id, false)}
+                                      disabled={updatingPlayers.has(player.id)}
+                                      title="Mark as Active"
+                                    >
+                                      <Check className="w-4 h-4 mr-1" />
+                                      Activate
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 px-2 w-full border-red-600 text-red-500 hover:bg-red-900/30"
+                                      onClick={() => markPlayerOut(player.id, true)}
+                                      disabled={updatingPlayers.has(player.id)}
+                                      title="Mark as OUT"
+                                    >
+                                      <AlertTriangle className="w-4 h-4 mr-1" />
+                                      Mark OUT
+                                    </Button>
+                                  )}
+                                </div>
 
                                 {/* Override Toggle */}
                                 <div className="flex items-center gap-1 flex-shrink-0">
