@@ -40,7 +40,12 @@ interface SelectablePlayerV2 {
 const AdminSelectablePlayers = () => {
   const [players, setPlayers] = useState<SelectablePlayerV2[]>([]);
   const [loading, setLoading] = useState(true);
-  const [teamFilter, setTeamFilter] = useState<string[]>([]);
+  const [teamFilter, setTeamFilter] = useState<string[]>([
+    "Seattle Seahawks",
+    "Denver Broncos",
+    "New England Patriots",
+    "Los Angeles Rams"
+  ]);
   const [positionFilter, setPositionFilter] = useState<string>("all");
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [updatingPlayers, setUpdatingPlayers] = useState<Set<string>>(new Set());
