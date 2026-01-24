@@ -45,6 +45,7 @@ interface DKSalaryImportModalProps {
     name: string;
     team_name: string;
     position: string;
+    season: number;
   }>;
   onImportComplete: () => void;
 }
@@ -78,25 +79,21 @@ export function DKSalaryImportModal({
   };
 
   const performMatching = () => {
+    // Only match against 2025 season players
+    const season2025Players = players.filter((p) => p.season === 2025);
+    
     // Create a normalized lookup map for players
     const playerLookup = new Map<string, { id: string; name: string; team_name: string }>();
     
-    for (const player of players) {
+    for (const player of season2025Players) {
       const normalizedName = normalizePlayerName(player.name);
-      // Key by normalized name + team name
-      playerLookup.set(`${normalizedName}|${player.team_name.toLowerCase()}`, {
+      // Key by normalized name + team name (more specific)
+      const teamKey = `${normalizedName}|${player.team_name.toLowerCase()}`;
+      playerLookup.set(teamKey, {
         id: player.id,
         name: player.name,
         team_name: player.team_name,
       });
-      // Also store just by normalized name for fallback
-      if (!playerLookup.has(normalizedName)) {
-        playerLookup.set(normalizedName, {
-          id: player.id,
-          name: player.name,
-          team_name: player.team_name,
-        });
-      }
     }
 
     const matched: MatchedPlayer[] = csvData.map((dkRow) => {
@@ -104,13 +101,32 @@ export function DKSalaryImportModal({
       const teamName = getTeamNameFromAbbrev(dkRow.teamAbbrev);
 
       // Try exact match with name + team
-      let match = teamName
-        ? playerLookup.get(`${normalizedDKName}|${teamName.toLowerCase()}`)
-        : null;
+      let match: { id: string; name: string; team_name: string } | undefined;
+      
+      if (teamName) {
+        // Try exact team name match
+        match = playerLookup.get(`${normalizedDKName}|${teamName.toLowerCase()}`);
+        
+        // Also try partial team name match (e.g., "Broncos" in "Denver Broncos")
+        if (!match) {
+          for (const [key, player] of playerLookup.entries()) {
+            const [keyName, keyTeam] = key.split("|");
+            if (keyName === normalizedDKName && keyTeam.includes(teamName.toLowerCase())) {
+              match = player;
+              break;
+            }
+          }
+        }
+      }
 
-      // Fallback to just name match
+      // Fallback: match by name only if exactly one player has that name
       if (!match) {
-        match = playerLookup.get(normalizedDKName);
+        const nameMatches = Array.from(playerLookup.entries()).filter(
+          ([key]) => key.split("|")[0] === normalizedDKName
+        );
+        if (nameMatches.length === 1) {
+          match = nameMatches[0][1];
+        }
       }
 
       if (match) {
@@ -122,6 +138,9 @@ export function DKSalaryImportModal({
           status: "matched" as const,
         };
       }
+
+      // Log unmatched for debugging
+      console.warn(`DK Import: No match found for "${dkRow.name}" (${dkRow.teamAbbrev})`);
 
       return {
         dkRow,
@@ -147,9 +166,11 @@ export function DKSalaryImportModal({
 
     const weekNum = parseInt(selectedWeek, 10);
     const matchedItems = matchedPlayers.filter((m) => m.status === "matched");
+    const unmatchedItems = matchedPlayers.filter((m) => m.status === "unmatched");
 
     try {
-      // Update in batches
+      // UPDATE only - never insert new rows
+      let successCount = 0;
       for (const item of matchedItems) {
         const { error } = await supabase
           .from("playoff_players")
@@ -160,13 +181,27 @@ export function DKSalaryImportModal({
           .eq("id", item.matchedPlayerId);
 
         if (error) {
-          console.error("Error updating player:", error);
+          console.error("Error updating player:", item.matchedPlayerName, error);
+        } else {
+          successCount++;
         }
       }
 
+      // Log unmatched players to console for admin review
+      if (unmatchedItems.length > 0) {
+        console.warn("DK Import - Skipped unmatched players:");
+        unmatchedItems.forEach((item) => {
+          console.warn(`  - ${item.dkRow.name} (${item.dkRow.teamAbbrev}) $${item.dkRow.salary}`);
+        });
+      }
+
+      const description = unmatchedItems.length > 0
+        ? `Updated ${successCount} players. Skipped ${unmatchedItems.length} unmatched.`
+        : `Updated ${successCount} players with DraftKings salaries`;
+
       toast({
         title: "Import complete",
-        description: `Updated ${matchedItems.length} players with DraftKings salaries`,
+        description,
       });
 
       onImportComplete();

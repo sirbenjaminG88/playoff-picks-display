@@ -59,9 +59,11 @@ const AdminSelectablePlayers = () => {
 
   const loadPlayers = async () => {
     setLoading(true);
+    // Only load 2025 season data to avoid duplicates
     const { data, error } = await supabase
       .from("selectable_playoff_players_v2" as any)
       .select("*")
+      .eq("season", 2025)
       .order("team_name")
       .order("position")
       .order("depth_chart_rank");
@@ -74,16 +76,7 @@ const AdminSelectablePlayers = () => {
         variant: "destructive",
       });
     } else {
-      const rows = ((data as unknown as SelectablePlayerV2[]) || []).filter(Boolean);
-
-      // The view currently returns multiple seasons (e.g., 2024 + 2025), which
-      // makes players appear duplicated in the admin list. We default to the
-      // latest season present in the response.
-      const latestSeason = rows.length
-        ? Math.max(...rows.map((r) => (typeof r.season === "number" ? r.season : 0)))
-        : 0;
-
-      setPlayers(latestSeason ? rows.filter((r) => r.season === latestSeason) : rows);
+      setPlayers((data as unknown as SelectablePlayerV2[]) || []);
     }
     setLoading(false);
   };
