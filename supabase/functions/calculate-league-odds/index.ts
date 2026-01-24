@@ -140,11 +140,17 @@ serve(async (req) => {
       }
     }
 
-    // Get first game kickoff for current week
+    // Check if games are LIVE (started but not all finished)
     const currentWeekGames = validGames.filter(g => g.week_index === currentWeekFromGames);
     const firstGameKickoff = currentWeekGames.length > 0 ? currentWeekGames[0].kickoff_at : null;
     const now = new Date().toISOString();
-    const currentWeekHasStarted = firstGameKickoff ? now >= firstGameKickoff : false;
+    const weekHasStarted = firstGameKickoff ? now >= firstGameKickoff : false;
+    const allGamesFinished = currentWeekGames.length > 0 && 
+      currentWeekGames.every(g => g.status_short === 'FT' || g.status_short === 'AOT');
+    
+    // Only calculate live odds when games are in progress (started AND not all finished)
+    const gamesAreLive = weekHasStarted && !allGamesFinished;
+    const currentWeekHasStarted = gamesAreLive;
 
     // Get all picks for this league and season
     const { data: picks } = await supabase
@@ -350,7 +356,8 @@ serve(async (req) => {
       leagueId, 
       currentWeek, 
       weeksRemaining,
-      weekHasStarted: currentWeekHasStarted,
+      gamesAreLive,
+      allGamesFinished,
       firstGameKickoff,
       simulations: SIMULATIONS, 
       eliminatedTeams: Array.from(eliminatedTeamIds),
