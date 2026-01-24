@@ -112,8 +112,7 @@ serve(async (req) => {
       });
     }
 
-    // Check if first game of the current week has started
-    // First, determine which week we're in based on completed games
+    // Determine current week and whether it has started
     const { data: allGames } = await supabase
       .from('playoff_games')
       .select('week_index, kickoff_at, status_short, home_team_external_id, away_team_external_id')
@@ -145,40 +144,9 @@ serve(async (req) => {
     const currentWeekGames = validGames.filter(g => g.week_index === currentWeekFromGames);
     const firstGameKickoff = currentWeekGames.length > 0 ? currentWeekGames[0].kickoff_at : null;
     const now = new Date().toISOString();
-    const weekHasStarted = firstGameKickoff ? now >= firstGameKickoff : false;
+    const currentWeekHasStarted = firstGameKickoff ? now >= firstGameKickoff : false;
 
-    // If week hasn't started, return equal odds for everyone
-    if (!weekHasStarted) {
-      const equalProb = 1 / members.length;
-      const equalPct = Math.round(equalProb * 1000) / 10;
-      const equalResults = members.map((member: any) => {
-        const user = member.users as any;
-        return {
-          userId: member.user_id,
-          displayName: user?.display_name || 'Unknown',
-          avatarUrl: user?.avatar_url || null,
-          currentPoints: 0,
-          winProbability: equalProb,
-          winProbabilityDisplay: `${equalPct}%`,
-        };
-      });
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        leagueId, 
-        currentWeek: currentWeekFromGames, 
-        weeksRemaining: Math.max(0, 4 - currentWeekFromGames + 1),
-        weekHasStarted: false,
-        firstGameKickoff,
-        simulations: 0,
-        odds: equalResults 
-      }, null, 2), { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    // Get all picks for this league and season (separate query)
+    // Get all picks for this league and season
     const { data: picks } = await supabase
       .from('user_picks')
       .select('auth_user_id, player_id, week')
@@ -186,7 +154,7 @@ serve(async (req) => {
       .eq('season', SEASON)
       .in('week', PLAYOFF_WEEKS);
 
-    // Get stats for all players who were picked (separate query, then join in memory)
+    // Get stats for all players who were picked
     const playerIds = [...new Set((picks || []).map(p => p.player_id))];
     
     let statsMap = new Map<string, number>();
@@ -198,13 +166,14 @@ serve(async (req) => {
         .in('week', PLAYOFF_WEEKS)
         .in('player_id', playerIds);
 
-      // Create stats lookup map: {playerId}_{week} -> points
       for (const stat of stats || []) {
         statsMap.set(`${stat.player_id}_${stat.week}`, stat.fantasy_points_standard || 0);
       }
     }
 
-    // Build standings with new fields for submitted-but-not-played picks
+    // Build standings
+    // KEY LOGIC: If current week hasn't started, ignore picks for current week and beyond
+    // This ensures odds "freeze" at end of previous week until new week begins
     const userStandings = new Map();
     const completedWeeks = new Set<number>();
 
@@ -215,9 +184,9 @@ serve(async (req) => {
         displayName: user?.display_name || 'Unknown',
         avatarUrl: user?.avatar_url || null,
         currentPoints: 0,
-        usedPlayerIds: [],
-        submittedFuturePicks: [] as { week: number; playerId: number }[],  // picks for unplayed weeks
-        submittedFutureWeeks: new Set<number>(),  // which weeks are pre-submitted
+        usedPlayerIds: [] as number[],
+        submittedFuturePicks: [] as { week: number; playerId: number }[],
+        submittedFutureWeeks: new Set<number>(),
       });
     }
 
@@ -225,10 +194,17 @@ serve(async (req) => {
       const standing = userStandings.get(pick.auth_user_id);
       if (!standing) continue;
       
-      // Always mark player as used
+      // If current week hasn't started, only count picks from completed weeks
+      // Ignore picks for current week and future weeks
+      if (!currentWeekHasStarted && pick.week >= currentWeekFromGames) {
+        // Don't count this pick - week hasn't started yet
+        continue;
+      }
+      
+      // Mark player as used
       standing.usedPlayerIds.push(pick.player_id);
       
-      // Look up stats using the composite key
+      // Look up stats
       const points = statsMap.get(`${pick.player_id}_${pick.week}`) || 0;
       
       if (points > 0) {
@@ -236,7 +212,7 @@ serve(async (req) => {
         standing.currentPoints += points;
         completedWeeks.add(pick.week);
       } else {
-        // Game NOT played - track for projected points
+        // Game NOT played yet but week has started - track for projected points
         standing.submittedFuturePicks.push({
           week: pick.week,
           playerId: pick.player_id
@@ -245,7 +221,8 @@ serve(async (req) => {
       }
     }
 
-    const currentWeek = getCurrentPlayoffWeek(Array.from(completedWeeks));
+    // Use game-based current week, not stats-based
+    const currentWeek = currentWeekFromGames;
     const weeksRemaining = Math.max(0, 4 - currentWeek + 1);
     const eliminatedTeamIds = await getEliminatedTeamIds(supabase);
 
@@ -372,7 +349,9 @@ serve(async (req) => {
       success: true, 
       leagueId, 
       currentWeek, 
-      weeksRemaining, 
+      weeksRemaining,
+      weekHasStarted: currentWeekHasStarted,
+      firstGameKickoff,
       simulations: SIMULATIONS, 
       eliminatedTeams: Array.from(eliminatedTeamIds),
       playerPoolSize: playerProjections.length,
