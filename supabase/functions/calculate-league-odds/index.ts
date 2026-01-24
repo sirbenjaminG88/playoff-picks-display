@@ -112,6 +112,72 @@ serve(async (req) => {
       });
     }
 
+    // Check if first game of the current week has started
+    // First, determine which week we're in based on completed games
+    const { data: allGames } = await supabase
+      .from('playoff_games')
+      .select('week_index, kickoff_at, status_short, home_team_external_id, away_team_external_id')
+      .eq('season', SEASON)
+      .order('week_index', { ascending: true })
+      .order('kickoff_at', { ascending: true });
+
+    // Find current week: first week with non-placeholder games that aren't all finished
+    let currentWeekFromGames = 1;
+    const validGames = (allGames || []).filter(g => g.home_team_external_id > 0 && g.away_team_external_id > 0);
+    
+    for (let week = 1; week <= 4; week++) {
+      const weekGames = validGames.filter(g => g.week_index === week);
+      if (weekGames.length === 0) {
+        currentWeekFromGames = week;
+        break;
+      }
+      const allFinished = weekGames.every(g => g.status_short === 'FT' || g.status_short === 'AOT');
+      if (!allFinished) {
+        currentWeekFromGames = week;
+        break;
+      }
+      if (week === 4 && allFinished) {
+        currentWeekFromGames = 4; // All done
+      }
+    }
+
+    // Get first game kickoff for current week
+    const currentWeekGames = validGames.filter(g => g.week_index === currentWeekFromGames);
+    const firstGameKickoff = currentWeekGames.length > 0 ? currentWeekGames[0].kickoff_at : null;
+    const now = new Date().toISOString();
+    const weekHasStarted = firstGameKickoff ? now >= firstGameKickoff : false;
+
+    // If week hasn't started, return equal odds for everyone
+    if (!weekHasStarted) {
+      const equalProb = 1 / members.length;
+      const equalPct = Math.round(equalProb * 1000) / 10;
+      const equalResults = members.map((member: any) => {
+        const user = member.users as any;
+        return {
+          userId: member.user_id,
+          displayName: user?.display_name || 'Unknown',
+          avatarUrl: user?.avatar_url || null,
+          currentPoints: 0,
+          winProbability: equalProb,
+          winProbabilityDisplay: `${equalPct}%`,
+        };
+      });
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        leagueId, 
+        currentWeek: currentWeekFromGames, 
+        weeksRemaining: Math.max(0, 4 - currentWeekFromGames + 1),
+        weekHasStarted: false,
+        firstGameKickoff,
+        simulations: 0,
+        odds: equalResults 
+      }, null, 2), { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
     // Get all picks for this league and season (separate query)
     const { data: picks } = await supabase
       .from('user_picks')
