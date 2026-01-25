@@ -14,6 +14,7 @@ interface LeagueOddsResponse {
   leagueId: string;
   currentWeek: number;
   weeksRemaining: number;
+  gamesAreLive?: boolean;
   simulations: number;
   odds: LeagueOdds[];
 }
@@ -38,7 +39,15 @@ export function useLeagueOdds(leagueId: string | undefined, enabled: boolean = t
       return response.json() as Promise<LeagueOddsResponse>;
     },
     enabled: !!leagueId && enabled,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes (simulations are expensive)
+    staleTime: 2 * 60 * 1000, // Refresh every 2 minutes during live games
+    refetchInterval: (query) => {
+      // Auto-refetch every 2 minutes when games are live
+      const data = query.state.data;
+      if (data?.gamesAreLive) {
+        return 2 * 60 * 1000; // 2 minutes
+      }
+      return false; // No auto-refetch when games aren't live
+    },
     refetchOnWindowFocus: false,
   });
 }
