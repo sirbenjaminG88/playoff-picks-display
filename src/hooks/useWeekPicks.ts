@@ -24,6 +24,7 @@ export interface GroupedPlayer {
   positionSlot: string;
   imageUrl: string | null;
   selectedBy: string[];
+  selectedByAuthIds: string[]; // auth_user_ids for accurate aggregation
   points: number;
   hasStats: boolean;
   stats: PlayerWeekStats | null;
@@ -177,10 +178,15 @@ async function fetchWeekPicks(
       const existing = grouped.get(pick.player_id);
       const playerStats = playerStatsMap.get(pick.player_id);
       const hasStats = playerStats !== undefined;
+      const authId = pick.auth_user_id || '';
 
       if (existing) {
         if (!existing.selectedBy.includes(pick.user_id)) {
           existing.selectedBy.push(pick.user_id);
+        }
+        // Also track by auth_user_id for accurate aggregation
+        if (authId && !existing.selectedByAuthIds.includes(authId)) {
+          existing.selectedByAuthIds.push(authId);
         }
       } else {
         grouped.set(pick.player_id, {
@@ -192,6 +198,7 @@ async function fetchWeekPicks(
           positionSlot: pick.position_slot,
           imageUrl: playerImageMap.get(pick.player_id) ?? null,
           selectedBy: [pick.user_id],
+          selectedByAuthIds: authId ? [authId] : [],
           points: hasStats ? playerStats.fantasy_points_standard : 0,
           hasStats,
           stats: playerStats ?? null,
