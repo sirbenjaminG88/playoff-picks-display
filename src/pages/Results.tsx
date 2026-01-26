@@ -862,18 +862,28 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
     return null;
   }
 
-  // Calculate points per user for this week
-  const userPoints = new Map<string, number>();
+  // Build reverse auth map: authId -> displayName
+  const reverseAuthMap = new Map<string, string>();
+  data.authUserIdMap?.forEach((authId, displayName) => {
+    reverseAuthMap.set(authId, displayName);
+  });
+
+  // Calculate points per user using auth_user_id for accuracy
+  const userPointsByAuthId = new Map<string, number>();
   
   [...data.qbs, ...data.rbs, ...data.flex].forEach((player) => {
-    player.selectedBy.forEach((userId) => {
-      const current = userPoints.get(userId) || 0;
-      userPoints.set(userId, current + player.points);
+    player.selectedByAuthIds.forEach((authId) => {
+      const current = userPointsByAuthId.get(authId) || 0;
+      userPointsByAuthId.set(authId, current + player.points);
     });
   });
 
-  const leaderboard = Array.from(userPoints.entries())
-    .map(([userId, points]) => ({ userId, points }))
+  const leaderboard = Array.from(userPointsByAuthId.entries())
+    .map(([authId, points]) => ({ 
+      authId,
+      displayName: reverseAuthMap.get(authId) || 'Unknown',
+      points 
+    }))
     .sort((a, b) => b.points - a.points);
 
   if (leaderboard.length === 0) {
@@ -889,18 +899,20 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
   const leaderPoints = leaderboard[0]?.points || 0;
 
   // Compute sequential color indices for users without avatars
-  const colorIndices = computeColorIndices(leaderboard, data.userProfiles);
+  const colorIndices = computeColorIndices(
+    leaderboard.map(e => ({ userId: e.displayName })), 
+    data.userProfiles
+  );
 
   return (
     <div className="space-y-3">
       {leaderboard.map((entry, index) => {
-        const profile = data.userProfiles?.get(entry.userId);
-        const authUserId = data.authUserIdMap?.get(entry.userId);
+        const profile = data.userProfiles?.get(entry.displayName);
         const pointsBehind = index > 0 ? leaderPoints - entry.points : 0;
-        const colorIndex = colorIndices.get(entry.userId);
+        const colorIndex = colorIndices.get(entry.displayName);
         return (
           <div
-            key={entry.userId}
+            key={entry.authId}
             className="flex items-center gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Rank - fixed width container for alignment */}
@@ -916,27 +928,16 @@ const WeekLeaderboard = ({ week, leagueId, userId }: { week: number; leagueId: s
 
             {/* Avatar + Name container */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              {authUserId ? (
-                <TappableAvatar
-                  userId={authUserId}
-                  displayName={entry.userId}
-                  avatarUrl={profile?.avatarUrl || null}
-                  leagueId={leagueId}
-                  totalPoints={entry.points}
-                  colorIndex={colorIndex}
-                />
-              ) : (
-                <Avatar className="h-9 w-9 flex-shrink-0">
-                  {profile?.avatarUrl ? (
-                    <AvatarImage src={profile.avatarUrl} alt={entry.userId} />
-                  ) : null}
-                  <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
-                    {getInitials(entry.userId)}
-                  </AvatarFallback>
-                </Avatar>
-              )}
+              <TappableAvatar
+                userId={entry.authId}
+                displayName={entry.displayName}
+                avatarUrl={profile?.avatarUrl || null}
+                leagueId={leagueId}
+                totalPoints={entry.points}
+                colorIndex={colorIndex}
+              />
               <span className="font-semibold text-sm text-foreground whitespace-normal break-words leading-tight">
-                {entry.userId}
+                {entry.displayName}
               </span>
             </div>
 
@@ -1208,8 +1209,19 @@ function OverallLeaderboard({
     );
   }
 
-  // Aggregate points across all weeks
-  const userTotalPoints = new Map<string, number>();
+  // Aggregate authUserIdMap from all weeks first (need this for auth_id -> display_name mapping)
+  const authUserIdMap = new Map<string, string>(); // displayName -> authId
+  const reverseAuthMap = new Map<string, string>(); // authId -> displayName (for lookup)
+  weekQueries.forEach((weekQuery) => {
+    weekQuery?.data?.authUserIdMap?.forEach((authId, displayName) => {
+      authUserIdMap.set(displayName, authId);
+      // Store the LATEST display name for each auth_user_id
+      reverseAuthMap.set(authId, displayName);
+    });
+  });
+
+  // Aggregate points by auth_user_id (not display name) to handle display name changes
+  const userTotalPointsByAuthId = new Map<string, number>();
 
   weekQueries.forEach((weekQuery) => {
     if (!weekQuery?.data) return;
@@ -1221,15 +1233,21 @@ function OverallLeaderboard({
     ];
     
     allPlayers.forEach((player) => {
-      player.selectedBy.forEach((oddsUserId) => {
-        const current = userTotalPoints.get(oddsUserId) || 0;
-        userTotalPoints.set(oddsUserId, current + (player.points || 0));
+      // Use selectedByAuthIds for aggregation to handle display name changes
+      player.selectedByAuthIds.forEach((authId) => {
+        const current = userTotalPointsByAuthId.get(authId) || 0;
+        userTotalPointsByAuthId.set(authId, current + (player.points || 0));
       });
     });
   });
 
-  const standings = Array.from(userTotalPoints.entries())
-    .map(([oddsUserId, totalPoints]) => ({ oddsUserId, totalPoints }))
+  // Convert to standings using auth_id as key but include display name
+  const standings = Array.from(userTotalPointsByAuthId.entries())
+    .map(([authId, totalPoints]) => ({ 
+      authId, 
+      oddsUserId: reverseAuthMap.get(authId) || 'Unknown',
+      totalPoints 
+    }))
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
   if (standings.length === 0) {
@@ -1244,16 +1262,8 @@ function OverallLeaderboard({
 
   const leaderPoints = standings[0]?.totalPoints || 0;
 
-  // Collect user profiles and authUserIdMap from the first week that has data
+  // Collect user profiles from the first week that has data
   const userProfiles = weekQueries.find(w => w?.data?.userProfiles)?.data?.userProfiles;
-  
-  // Aggregate authUserIdMap from all weeks
-  const authUserIdMap = new Map<string, string>();
-  weekQueries.forEach((weekQuery) => {
-    weekQuery?.data?.authUserIdMap?.forEach((authId, displayName) => {
-      authUserIdMap.set(displayName, authId);
-    });
-  });
 
   // Compute sequential color indices for users without avatars
   const colorIndices = computeColorIndices(
@@ -1266,13 +1276,12 @@ function OverallLeaderboard({
       {standings.map((standing, index) => {
         const pointsBehind = index > 0 ? leaderPoints - standing.totalPoints : 0;
         const profile = userProfiles?.get(standing.oddsUserId);
-        const authUserId = authUserIdMap.get(standing.oddsUserId);
         const colorIndex = colorIndices.get(standing.oddsUserId);
         const odds = oddsMap.get(standing.oddsUserId);
         
         return (
           <div
-            key={standing.oddsUserId}
+            key={standing.authId}
             className="flex items-start justify-between gap-3 pl-2 pr-4 py-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors"
           >
             {/* Left: Medal + Avatar + Name/Win% Stack */}
@@ -1288,27 +1297,16 @@ function OverallLeaderboard({
                 )}
               </div>
 
-              {/* Avatar - tappable if we have auth ID */}
-              {authUserId ? (
-                <TappableAvatar
-                  userId={authUserId}
-                  displayName={standing.oddsUserId}
-                  avatarUrl={profile?.avatarUrl || null}
-                  leagueId={leagueId}
-                  totalPoints={standing.totalPoints}
-                  colorIndex={colorIndex}
-                  className="mt-0.5"
-                />
-              ) : (
-                <Avatar className="h-9 w-9 flex-shrink-0 mt-0.5">
-                  {profile?.avatarUrl ? (
-                    <AvatarImage src={profile.avatarUrl} alt={standing.oddsUserId} />
-                  ) : null}
-                  <AvatarFallback colorIndex={colorIndex} className="font-semibold text-xs">
-                    {getInitials(standing.oddsUserId)}
-                  </AvatarFallback>
-                </Avatar>
-              )}
+              {/* Avatar - tappable with auth ID */}
+              <TappableAvatar
+                userId={standing.authId}
+                displayName={standing.oddsUserId}
+                avatarUrl={profile?.avatarUrl || null}
+                leagueId={leagueId}
+                totalPoints={standing.totalPoints}
+                colorIndex={colorIndex}
+                className="mt-0.5"
+              />
 
               {/* Name + Win% stacked */}
               <div className="flex flex-col justify-center min-h-[44px]">
